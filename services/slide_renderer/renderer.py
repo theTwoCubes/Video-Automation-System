@@ -26,10 +26,9 @@ class SlideRenderer:
             return base64.b64encode(data).decode("utf-8")
         return ""
 
-    def _render_html(self, slide_data: dict) -> str:
+    def _render_html(self, slide_data: dict, slide_index: int = 0, total_slides: int = 0) -> str:
         template = self.env.get_template("slide.html")
         theme = self.brand.get("slide_themes", {}).get("dark", {})
-        # pop fields that are passed explicitly to avoid duplicate keyword errors
         data = {k: v for k, v in slide_data.items() if k not in ("left_label", "right_label")}
         return template.render(
             width=settings.SLIDE_WIDTH,
@@ -41,40 +40,49 @@ class SlideRenderer:
             logo_b64=self.logo_b64,
             left_label=slide_data.get("left_label", ""),
             right_label=slide_data.get("right_label", ""),
+            slide_index=slide_index,
+            total_slides=total_slides,
+            code_language=slide_data.get("code_language", "cpp"),
             **data,
         )
 
-    async def render_slide_async(self, slide_data: dict, output_path: str) -> str:
+    async def render_slide_async(self, slide_data: dict, output_path: str, slide_index: int = 0, total_slides: int = 0) -> str:
         from playwright.async_api import async_playwright
-        html = self._render_html(slide_data)
+        html = self._render_html(slide_data, slide_index, total_slides)
         async with async_playwright() as p:
             browser = await p.chromium.launch()
             page = await browser.new_page(
                 viewport={"width": settings.SLIDE_WIDTH, "height": settings.SLIDE_HEIGHT}
             )
-            await page.set_content(html, wait_until="networkidle")
+            await page.set_content(html, wait_until="domcontentloaded")
+            # wait for adaptive font JS to complete
+            try:
+                await page.wait_for_function("document.readyState === 'complete'", timeout=5000)
+            except Exception:
+                pass
             await page.screenshot(path=output_path, type="png", full_page=False)
             await browser.close()
         return output_path
 
-    def render_slide(self, slide_data: dict, output_path: str) -> str:
+    def render_slide(self, slide_data: dict, output_path: str, slide_index: int = 0, total_slides: int = 0) -> str:
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import nest_asyncio
                 nest_asyncio.apply()
-                return loop.run_until_complete(self.render_slide_async(slide_data, output_path))
+                return loop.run_until_complete(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
             else:
-                return asyncio.run(self.render_slide_async(slide_data, output_path))
+                return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
         except Exception:
-            return asyncio.run(self.render_slide_async(slide_data, output_path))
+            return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
 
     def render_slides(self, slides: list[dict], output_dir: str) -> list[str]:
         Path(output_dir).mkdir(parents=True, exist_ok=True)
+        total = len(slides)
         paths = []
         for i, slide_data in enumerate(slides):
             out = str(Path(output_dir) / f"slide_{i:04d}.png")
-            self.render_slide(slide_data, out)
+            self.render_slide(slide_data, out, slide_index=i, total_slides=total)
             paths.append(out)
-            print(f"  Rendered slide {i + 1}/{len(slides)}")
+            print(f"  Rendered slide {i + 1}/{total}")
         return paths

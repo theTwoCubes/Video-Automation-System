@@ -114,6 +114,7 @@ class PipelineState(TypedDict):
 
     qa_report: Optional[dict]
     seo_metadata: Optional[dict]
+    subtitle_srt: Optional[str]
 
     output_dir: str
     error: Optional[str]

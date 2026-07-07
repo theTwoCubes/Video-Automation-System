@@ -1,0 +1,214 @@
+{
+  "lesson_id": "test_cpp_vars_001",
+  "lesson_title": "Variables and Data Types in C++",
+  "course_id": "test_cpp_course",
+  "course_title": "C++ for Complete Beginners",
+  "lesson_position": 2,
+  "target_audience": "beginners",
+  "topic_tags": ["variables", "data types", "C++", "memory", "int", "float", "bool"],
+  "prerequisites": ["basic computer knowledge"],
+  "estimated_duration_minutes": 10,
+
+  "lesson_plan": {
+    "overview": "Teaches the four fundamental C++ data types — int, float, char, bool — with actual memory sizes, stack addresses, and live examples showing how to declare, initialize, and print variables.",
+    "key_concepts": ["int (4 bytes)", "float (4 bytes)", "char (1 byte)", "bool (1 byte)", "sizeof() operator", "stack memory layout"],
+    "sections": [
+      {"id": "intro", "title": "What is a Variable?", "duration_minutes": 1, "needs_diagram": false},
+      {"id": "types", "title": "The Four Core Types", "duration_minutes": 2, "needs_diagram": true},
+      {"id": "memory", "title": "Memory Layout on the Stack", "duration_minutes": 2, "needs_diagram": true},
+      {"id": "code", "title": "Declaring and Printing Variables", "duration_minutes": 3, "needs_diagram": false},
+      {"id": "summary", "title": "Key Takeaways", "duration_minutes": 2, "needs_diagram": false}
+    ],
+    "hook": "Every program that has ever run — from a calculator to a game — stores data in variables. Today you will see exactly what happens in memory when you write int x = 42 in C++."
+  },
+
+  "script": {
+    "segments": [
+      {
+        "type": "narration",
+        "slide_id": "slide_001",
+        "text": "Every program that has ever run stores data in variables. Today you will see exactly what happens in memory when you write int x equals 42 in C plus plus."
+      },
+      {
+        "type": "narration",
+        "slide_id": "slide_002",
+        "text": "A variable is a named location in memory. In C plus plus you must declare its type before using it. The type tells the compiler how many bytes to reserve and how to interpret those bytes."
+      },
+      {
+        "type": "narration",
+        "slide_id": "slide_003",
+        "text": "C plus plus has four fundamental data types you will use constantly. int stores whole numbers using 4 bytes. float stores decimal numbers using 4 bytes. char stores a single character using 1 byte. And bool stores true or false using 1 byte."
+      },
+      {
+        "type": "narration",
+        "slide_id": "slide_004",
+        "text": "When you declare a local variable it goes onto the stack. The stack grows downward in memory. So if you declare int x first, then int y, then y will be at a lower address than x. Each variable sits at a fixed address during its lifetime."
+      },
+      {
+        "type": "code_demo",
+        "slide_id": "slide_005",
+        "code_ref": "code_001",
+        "text": "Here is how to declare, initialize, and print all four types. Include iostream for cout. In main, declare an int named age set to 25. A float named price set to 9.99. A char named grade set to A. And a bool named passed set to true. Then print each one with cout."
+      },
+      {
+        "type": "narration",
+        "slide_id": "slide_006",
+        "text": "The sizeof operator is your best tool for understanding memory. sizeof int returns 4 on any 64-bit system. sizeof char always returns 1. These sizes are guaranteed by the C plus plus standard."
+      },
+      {
+        "type": "narration",
+        "slide_id": "slide_007",
+        "text": "Quick recap. You learned four core types: int, float, char, and bool. Each has a fixed byte size. Local variables live on the stack. Use sizeof to verify memory usage at compile time. Next lesson: arithmetic operators and type conversions."
+      }
+    ]
+  },
+
+  "code_examples": [
+    {
+      "id": "code_001",
+      "title": "Declaring and printing all four fundamental types",
+      "source_code": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Whole number: 4 bytes on stack\n    int age = 25;\n\n    // Decimal number: 4 bytes on stack\n    float price = 9.99f;\n\n    // Single character: 1 byte on stack\n    char grade = 'A';\n\n    // True/false: 1 byte on stack\n    bool passed = true;\n\n    cout << \"Age:    \" << age    << endl;\n    cout << \"Price:  \" << price  << endl;\n    cout << \"Grade:  \" << grade  << endl;\n    cout << \"Passed: \" << passed << endl;\n\n    // sizeof shows byte size at compile time\n    cout << \"sizeof(int)   = \" << sizeof(int)   << endl;\n    cout << \"sizeof(float) = \" << sizeof(float) << endl;\n    cout << \"sizeof(char)  = \" << sizeof(char)  << endl;\n    cout << \"sizeof(bool)  = \" << sizeof(bool)  << endl;\n\n    return 0;\n}"
+    }
+  ],
+
+  "slide_contents": [
+    {
+      "id": "slide_001",
+      "layout": "title",
+      "headline": "Variables and Data Types in C++",
+      "subtitle": "How C++ stores data in memory",
+      "bullets": [],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "",
+      "tag": "HOOK",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_002",
+      "layout": "content",
+      "headline": "What is a Variable?",
+      "subtitle": "",
+      "bullets": [
+        "A named location in memory — compiler reserves space at compile time",
+        "Must declare type first: `int x;` before using x",
+        "Type determines byte size and how bits are interpreted",
+        "Local variables live on the stack — fast access, auto-cleaned"
+      ],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "",
+      "tag": "CONCEPT",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_003",
+      "layout": "numbered_steps",
+      "headline": "The Four Core Types",
+      "subtitle": "",
+      "bullets": [
+        "`int` — 4 bytes — whole numbers from -2,147,483,648 to 2,147,483,647",
+        "`float` — 4 bytes — decimals with ~7 digits of precision",
+        "`char` — 1 byte — one character, ASCII value 0-127",
+        "`bool` — 1 byte — true (1) or false (0)"
+      ],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "",
+      "tag": "CONCEPT",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_004",
+      "layout": "content",
+      "headline": "Stack Memory Layout",
+      "subtitle": "",
+      "bullets": [
+        "Stack grows downward — each new variable gets a lower address",
+        "int x declared first → address 0x7ffe…a4",
+        "int y declared second → address 0x7ffe…a0 (4 bytes lower)",
+        "All local variables are freed when the function returns"
+      ],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "",
+      "tag": "DEEP DIVE",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_005",
+      "layout": "code",
+      "headline": "Declaring and Printing All Four Types",
+      "subtitle": "",
+      "bullets": [],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Whole number: 4 bytes on stack\n    int age = 25;\n\n    // Decimal number: 4 bytes on stack\n    float price = 9.99f;\n\n    // Single character: 1 byte on stack\n    char grade = 'A';\n\n    // True/false: 1 byte on stack\n    bool passed = true;\n\n    cout << \"Age:    \" << age    << endl;\n    cout << \"Price:  \" << price  << endl;\n    cout << \"Grade:  \" << grade  << endl;\n    cout << \"Passed: \" << passed << endl;\n\n    cout << \"sizeof(int)   = \" << sizeof(int)   << endl;\n    cout << \"sizeof(bool)  = \" << sizeof(bool)  << endl;\n\n    return 0;\n}",
+      "tag": "CODE",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_006",
+      "layout": "comparison",
+      "headline": "Common Beginner Mistakes",
+      "subtitle": "",
+      "bullets": [],
+      "left_bullets": ["float x = 3.14;  // wrong suffix"],
+      "right_bullets": ["float x = 3.14f; // correct: f suffix"],
+      "left_label": "❌ Wrong",
+      "right_label": "✓ Correct",
+      "code_content": "",
+      "tag": "MISTAKES",
+      "lesson_number": 2
+    },
+    {
+      "id": "slide_007",
+      "layout": "summary",
+      "headline": "Key Takeaways",
+      "subtitle": "",
+      "bullets": [
+        "`int` = 4 bytes, `float` = 4 bytes, `char` = 1 byte, `bool` = 1 byte",
+        "Local variables are stack-allocated and auto-freed on return",
+        "Use `sizeof(type)` to verify memory usage at compile time"
+      ],
+      "left_bullets": [],
+      "right_bullets": [],
+      "left_label": "",
+      "right_label": "",
+      "code_content": "",
+      "tag": "SUMMARY",
+      "lesson_number": 2
+    }
+  ],
+
+  "seo_metadata": {
+    "title": "C++ Variables & Data Types Explained — int, float, char, bool (Lesson 2)",
+    "description": "Learn the four fundamental C++ data types (int, float, char, bool), how they use memory on the stack, and how to declare and print them. Includes sizeof() operator demo.",
+    "tags": ["C++ tutorial", "C++ variables", "data types C++", "int float char bool", "C++ for beginners", "theTwoCubes", "programming tutorial"],
+    "chapters": [
+      {"timestamp": "0:00", "title": "What is a Variable?"},
+      {"timestamp": "1:10", "title": "The Four Core Types"},
+      {"timestamp": "2:30", "title": "Stack Memory Layout"},
+      {"timestamp": "3:45", "title": "Code Demo"},
+      {"timestamp": "6:20", "title": "Common Mistakes"},
+      {"timestamp": "7:40", "title": "Key Takeaways"}
+    ],
+    "pinned_comment": "Timestamps in description! Next lesson covers arithmetic operators and type conversions — drop any questions below."
+  },
+
+  "qa_report": {
+    "score": 94,
+    "passed": true,
+    "feedback": "All slides teach specific concrete facts. Code is complete and runnable. No filler content."
+  }
+}

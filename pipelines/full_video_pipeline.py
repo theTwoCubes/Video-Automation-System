@@ -19,6 +19,62 @@ from agents.qa_agent import QAAgent
 from agents.seo_agent import SEOAgent
 from config.settings import settings
 
+# Fields each agent is responsible for saving to checkpoints
+AGENT_FIELDS = {
+    "plan_lesson":      ["lesson_plan"],
+    "write_script":     ["script"],
+    "generate_code":    ["code_examples"],
+    "generate_diagrams":["diagrams", "diagram_image_paths"],
+    "generate_slides":  ["slide_contents", "slide_image_paths", "slide_id_to_path"],
+    "synthesize_voice": ["audio_paths"],
+    "compose_video":    ["video_path"],
+    "generate_thumbnail":["thumbnail_path"],
+    "qa_check":         ["qa_report"],
+    "generate_seo":     ["seo_metadata"],
+}
+
+
+def _checkpoint_path(output_dir: str, step: str) -> Path:
+    return Path(output_dir) / "checkpoints" / f"{step}.json"
+
+
+def _save_checkpoint(output_dir: str, step: str, state: PipelineState, fields: list[str]):
+    cp_dir = Path(output_dir) / "checkpoints"
+    cp_dir.mkdir(parents=True, exist_ok=True)
+    data = {k: state.get(k) for k in fields if state.get(k) is not None}
+    _checkpoint_path(output_dir, step).write_text(
+        json.dumps(data, default=str, indent=2), encoding="utf-8"
+    )
+
+
+def _load_checkpoint(output_dir: str, step: str) -> dict | None:
+    cp = _checkpoint_path(output_dir, step)
+    if cp.exists():
+        return json.loads(cp.read_text(encoding="utf-8"))
+    return None
+
+
+def _with_checkpoint(step_name: str, agent_fn):
+    """Wrap a node function with checkpoint save/load logic."""
+    fields = AGENT_FIELDS.get(step_name, [])
+
+    def wrapped(state: PipelineState) -> PipelineState:
+        output_dir = state.get("output_dir", "")
+        if output_dir:
+            saved = _load_checkpoint(output_dir, step_name)
+            if saved:
+                print(f"[Checkpoint] Skipping {step_name} — loaded from checkpoint")
+                return {**state, **saved}
+
+        result = agent_fn(state)
+
+        if output_dir and not result.get("error") and fields:
+            _save_checkpoint(output_dir, step_name, result, fields)
+
+        return result
+
+    return wrapped
+
 
 def node_plan_lesson(state: PipelineState) -> PipelineState:
     return LessonPlannerAgent().run(state)
@@ -61,7 +117,6 @@ def node_generate_seo(state: PipelineState) -> PipelineState:
 
 
 def node_save_outputs(state: PipelineState) -> PipelineState:
-    """Persist final outputs to disk and save metadata JSON."""
     output_dir = Path(state["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -83,17 +138,13 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
-    # also save full script
     if state.get("script"):
-        script_path = output_dir / "script.json"
-        with open(script_path, "w", encoding="utf-8") as f:
+        with open(output_dir / "script.json", "w", encoding="utf-8") as f:
             json.dump(state["script"], f, indent=2)
 
-    # save SEO metadata as a txt for easy copy-paste
     seo = state.get("seo_metadata", {})
     if seo:
-        seo_txt = output_dir / "youtube_metadata.txt"
-        with open(seo_txt, "w", encoding="utf-8") as f:
+        with open(output_dir / "youtube_metadata.txt", "w", encoding="utf-8") as f:
             f.write(f"TITLE:\n{seo.get('title', '')}\n\n")
             f.write(f"DESCRIPTION:\n{seo.get('description', '')}\n\n")
             f.write(f"TAGS:\n{', '.join(seo.get('tags', []))}\n\n")
@@ -101,6 +152,11 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
             for ch in seo.get("chapters", []):
                 f.write(f"{ch.get('timestamp', '')} {ch.get('title', '')}\n")
             f.write(f"\nPINNED COMMENT:\n{seo.get('pinned_comment', '')}\n")
+
+    # write subtitle file if it was generated
+    srt = state.get("subtitle_srt", "")
+    if srt:
+        (output_dir / "subtitles.srt").write_text(srt, encoding="utf-8")
 
     print(f"\n[Pipeline] Done! Outputs saved to: {output_dir}")
     print(f"  Summary: {summary_path}")
@@ -120,38 +176,38 @@ def should_stop_on_error(state: PipelineState) -> Literal["continue", "stop"]:
 def build_pipeline() -> StateGraph:
     graph = StateGraph(PipelineState)
 
-    graph.add_node("plan_lesson", node_plan_lesson)
-    graph.add_node("write_script", node_write_script)
-    graph.add_node("generate_code", node_generate_code)
-    graph.add_node("generate_diagrams", node_generate_diagrams)
-    graph.add_node("generate_slides", node_generate_slides)
-    graph.add_node("synthesize_voice", node_synthesize_voice)
-    graph.add_node("compose_video", node_compose_video)
-    graph.add_node("generate_thumbnail", node_generate_thumbnail)
-    graph.add_node("qa_check", node_qa_check)
-    graph.add_node("generate_seo", node_generate_seo)
-    graph.add_node("save_outputs", node_save_outputs)
+    # wrap every node with checkpoint logic
+    graph.add_node("plan_lesson",          _with_checkpoint("plan_lesson",          node_plan_lesson))
+    graph.add_node("write_script",         _with_checkpoint("write_script",         node_write_script))
+    graph.add_node("generate_code",        _with_checkpoint("generate_code",        node_generate_code))
+    graph.add_node("generate_diagrams",    _with_checkpoint("generate_diagrams",    node_generate_diagrams))
+    graph.add_node("generate_slides",      _with_checkpoint("generate_slides",      node_generate_slides))
+    graph.add_node("synthesize_voice",     _with_checkpoint("synthesize_voice",     node_synthesize_voice))
+    graph.add_node("compose_video",        _with_checkpoint("compose_video",        node_compose_video))
+    graph.add_node("generate_thumbnail",   _with_checkpoint("generate_thumbnail",   node_generate_thumbnail))
+    graph.add_node("qa_check",             _with_checkpoint("qa_check",             node_qa_check))
+    graph.add_node("generate_seo",         _with_checkpoint("generate_seo",         node_generate_seo))
+    graph.add_node("save_outputs",         node_save_outputs)
 
     graph.set_entry_point("plan_lesson")
 
-    graph.add_edge("plan_lesson", "write_script")
-    graph.add_edge("write_script", "generate_code")
-    graph.add_edge("generate_code", "generate_diagrams")
+    graph.add_edge("plan_lesson",       "write_script")
+    graph.add_edge("write_script",      "generate_code")
+    graph.add_edge("generate_code",     "generate_diagrams")
     graph.add_edge("generate_diagrams", "generate_slides")
-    graph.add_edge("generate_slides", "synthesize_voice")
+    graph.add_edge("generate_slides",   "synthesize_voice")
 
-    # stop if slide/voice generation failed
     graph.add_conditional_edges(
         "synthesize_voice",
         should_stop_on_error,
         {"continue": "compose_video", "stop": END},
     )
 
-    graph.add_edge("compose_video", "generate_thumbnail")
-    graph.add_edge("generate_thumbnail", "qa_check")
-    graph.add_edge("qa_check", "generate_seo")
-    graph.add_edge("generate_seo", "save_outputs")
-    graph.add_edge("save_outputs", END)
+    graph.add_edge("compose_video",        "generate_thumbnail")
+    graph.add_edge("generate_thumbnail",   "qa_check")
+    graph.add_edge("qa_check",             "generate_seo")
+    graph.add_edge("generate_seo",         "save_outputs")
+    graph.add_edge("save_outputs",         END)
 
     return graph.compile()
 
@@ -167,12 +223,21 @@ def run_pipeline(
     prerequisites: list[str],
     target_audience: str = "beginners",
     estimated_duration_minutes: int = 12,
+    force_restart: bool = False,
 ) -> PipelineState:
 
     output_dir = str(
         Path(settings.OUTPUT_DIR) / course_id / f"{lesson_position:03d}_{lesson_id[:8]}"
     )
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # clear checkpoints if forcing a fresh restart
+    if force_restart:
+        cp_dir = Path(output_dir) / "checkpoints"
+        if cp_dir.exists():
+            import shutil
+            shutil.rmtree(cp_dir)
+            print("[Pipeline] Cleared checkpoints for fresh run.")
 
     initial_state: PipelineState = {
         "source_id": source_id,
@@ -196,6 +261,7 @@ def run_pipeline(
         "diagram_image_paths": None,
         "video_path": None,
         "thumbnail_path": None,
+        "subtitle_srt": None,
         "qa_report": None,
         "seo_metadata": None,
         "output_dir": output_dir,

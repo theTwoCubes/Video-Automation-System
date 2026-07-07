@@ -1,153 +1,181 @@
-# theTwoCubes Learning — Video Automation
+# theTwoCubes Video Automation
 
-An AI-powered pipeline that converts technical books and PDFs into full-length educational YouTube videos.  
-Each video includes a narrated script, synchronized slides, code examples, a thumbnail, and YouTube-ready SEO metadata — all generated automatically.
+AI-powered pipeline that converts a textbook chapter into a production-ready YouTube video — with animated slides, synchronized narration, subtitles, thumbnail, and SEO metadata.
 
----
-
-## How It Works
+## Architecture
 
 ```
-PDF Book ──► RAG Ingest ──► Curriculum ──► Per-Lesson Pipeline
-                                                   │
-                          ┌────────────────────────┤
-                          │  LessonPlannerAgent     │ Structures 8-section lesson
-                          │  ScriptAgent            │ ~1800 word narration script
-                          │  CodeAgent              │ Validates runnable code
-                          │  SlideAgent             │ Renders 10-14 PNG slides
-                          │  VoiceAgent             │ Edge-TTS audio per segment
-                          │  VideoAgent             │ Aligns slides + audio
-                          │  ThumbnailAgent         │ 1280x720 JPEG thumbnail
-                          │  QAAgent                │ Scores 0-100
-                          │  SEOAgent               │ Title, description, tags
-                          └─────────────────────────┘
-                                    │
-                            output/{course_id}/{lesson}/
-                              ├── *_final.mp4
-                              ├── thumbnail.jpg
-                              ├── script.json
-                              ├── youtube_metadata.txt
-                              └── lesson_summary.json
+PDF / Book
+    │
+    ▼
+[Ingestion Agent] ──── ChromaDB (vector store)
+    │
+    ▼
+[LessonPlannerAgent] → lesson_plan.json
+    │
+    ▼
+[ScriptAgent] ──────── script.json  (slide-mapped narration segments)
+    │
+[CodeAgent] ─────────  code_examples[]  (runnable C++ / Python)
+    │
+[DiagramAgent] ──────  animated MP4 diagrams (HTML+CSS via Playwright)
+    │
+[SlideAgent] ────────  renders PNGs via Playwright (7 layouts + progress bar)
+    │
+[VoiceAgent] ────────  edge-tts, parallel 8 workers, loudnorm normalized
+    │
+[VideoAgent] ────────  code reveal animation + subtitle .srt generation
+    │
+[Composer] ──────────  xfade transitions + optional background music
+    │
+[ThumbnailAgent]
+    │
+[QAAgent] + [SEOAgent]
+    │
+    ▼
+output/<course_id>/<lesson_id>/
+  ├── <lesson_id>_final.mp4
+  ├── subtitles.srt
+  ├── thumbnail.png
+  ├── youtube_metadata.txt
+  ├── lesson_summary.json
+  ├── script.json
+  └── checkpoints/          ← resume from crash
 ```
 
----
+## Slide Layouts
 
-## Requirements
+| Layout | Description |
+|---|---|
+| `title` | Lesson opener — gradient headline + eyebrow |
+| `content` | Bullets with accent dots |
+| `code` | Syntax-highlighted code + typewriter reveal animation |
+| `numbered_steps` | Numbered circles for ordered procedures |
+| `checklist` | Check boxes for requirements / constraints |
+| `comparison` | Side-by-side wrong/correct code panels |
+| `error_fix` | Red error panel + green fix panel |
+| `terminal` | macOS-style terminal window with green output |
+| `summary` | 3-bullet key takeaway slide |
+| `two_column` | Two labeled bullet columns |
+| `exercise` | Challenge box with sub-bullets |
 
-- Python 3.10+
-- `pip install -r requirements.txt`
-- `playwright install chromium`
-- `pip install imageio-ffmpeg` (bundles FFmpeg automatically)
-- Gemini API key (free tier works)
-
----
-
-## Quick Start
-
-### 1. Setup
+## Setup
 
 ```bash
-git clone <repo>
+# 1. Clone
+git clone https://github.com/theTwoCubes/videoAutomation
 cd videoAutomation
+
+# 2. Install Python deps
 pip install -r requirements.txt
 playwright install chromium
+
+# 3. Configure
 cp .env.example .env
-# Add your GEMINI_API_KEY to .env
+# Set GEMINI_API_KEY in .env
+
+# 4. (Optional) Install GUI deps
+cd gui && npm install && cd ..
 ```
 
-### 2. Ingest a source book
+## Running the Pipeline
 
 ```bash
-python scripts/ingest.py --source-id cpp_book --path "path/to/book.pdf" --title "C++ Programming"
+# Full pipeline (with LLM)
+python main.py --course-id cpp_beginner --lesson-id vars_001
+
+# Test pipeline (zero LLM cost — uses fixture)
+python pipelines/test_pipeline.py
+
+# Test with specific fixture
+python pipelines/test_pipeline.py --fixture tests/fixtures/cpp_variables_lesson.json
+
+# GUI dashboard (API + React)
+python scripts/start_dashboard.py
+# → open http://localhost:5173
 ```
 
-### 3. Generate a curriculum
+## Test Runner
+
+The test pipeline runs the **full rendering stack** (Playwright slides, edge-tts audio, FFmpeg video) using pre-captured LLM outputs — zero API calls:
 
 ```bash
-python scripts/generate_curriculum.py \
-  --source-id cpp_book \
-  --course-title "C++ Programming Fundamentals" \
-  --target-audience beginners \
-  --num-lessons 100
+# List available fixtures
+python pipelines/test_pipeline.py --list
+
+# Run test
+python pipelines/test_pipeline.py
+
+# Capture a new fixture from a completed pipeline run
+python scripts/capture_fixtures.py --lesson-id <id>
+
+# Force re-render (ignore cached slides/audio)
+python pipelines/test_pipeline.py --force-restart
 ```
 
-### 4. Generate the next video
+In the **GUI**, navigate to **Test Runner** in the sidebar to run tests visually and monitor progress.
 
-```bash
-python scripts/generate_next_video.py --course-id <course-id-from-step-3>
-```
+## CLI Tools
 
-Run this command once per video. Each call generates the next pending lesson.
-
----
-
-## Configuration (`.env`)
-
-| Key | Default | Description |
-|---|---|---|
-| `GEMINI_API_KEY` | required | Gemini API key |
-| `VOICE_NAME` | `en-US-AndrewNeural` | Edge-TTS voice |
-| `VOICE_RATE` | `+15%` | Speech speed |
-| `TARGET_DURATION_MINUTES` | `12` | Target video length |
-| `SLIDE_WIDTH` | `1920` | Slide resolution width |
-| `SLIDE_HEIGHT` | `1080` | Slide resolution height |
-
-## Logo Setup
-
-Place PNG files with transparent backgrounds in `assets/logos/`:
-
-| File | Used in |
+| Script | Purpose |
 |---|---|
-| `SlidesLogo.png` | Top-right of every slide (300×100px) |
-| `ThumbnailLogo.png` | Bottom-right of thumbnails (300×100px) |
-| `MainScreenLogo.png` | Reserved for title cards |
-| `EndSlideLogo.png` | Reserved for outro slide |
+| `python scripts/cost_report.py` | Show total API spend from SQLite log |
+| `python scripts/cost_report.py --clear` | Reset usage log |
+| `python scripts/review_slides.py --lesson-id <id>` | Human-review each slide before audio |
+| `python scripts/capture_fixtures.py --lesson-id <id>` | Save LLM outputs as test fixture |
+| `python scripts/start_dashboard.py` | Launch GUI dashboard |
 
-System falls back to text branding if files are missing.
+## Checkpoint / Resume
 
----
+Every pipeline stage writes a checkpoint JSON to `output/<course>/<lesson>/checkpoints/`. If a run crashes, restarting it skips already-completed stages — no repeat LLM calls.
 
-## Output Structure
+```bash
+# Resume crashed run
+python main.py --course-id cpp --lesson-id vars_001
+# (completed stages auto-detected and skipped)
 
-```
-output/
-└── {course_id}/
-    └── 001_{lesson_id[:8]}/
-        ├── {lesson_id}_final.mp4     ← upload this to YouTube
-        ├── thumbnail.jpg              ← upload as custom thumbnail
-        ├── youtube_metadata.txt       ← copy-paste title, description, tags
-        ├── script.json                ← full narration script
-        └── lesson_summary.json        ← pipeline summary + QA score
+# Force full restart
+python main.py --course-id cpp --lesson-id vars_001 --force-restart
 ```
 
----
+## Background Music
 
-## Technology Stack
+Drop MP3 files into `assets/music/`:
+- `bg_track.mp3` — mixed at 8% volume under narration
+- `intro_music.mp3` — plays during intro slide
+- `outro_music.mp3` — plays during outro slide
 
-| Component | Technology | Cost |
-|---|---|---|
-| LLM | Gemini 2.5 Flash | Free tier / ~₹0.04/video paid |
-| Embeddings | Gemini Embedding-001 | Free tier |
-| TTS | Microsoft Edge-TTS | Free |
-| Slide rendering | Playwright + Chromium | Free |
-| Video encoding | FFmpeg (imageio-ffmpeg) | Free |
-| Vector DB | ChromaDB | Free |
-| Database | SQLite | Free |
+## Configuration
 
----
+Key settings in `.env`:
+
+```env
+GEMINI_API_KEY=...
+LLM_MODEL=gemini-2.5-flash-preview-04-17
+SLIDE_WIDTH=1920
+SLIDE_HEIGHT=1080
+OUTPUT_DIR=output
+SQLITE_PATH=db/usage.sqlite
+```
 
 ## Project Structure
 
 ```
 videoAutomation/
-├── agents/          # AI agents (one per pipeline stage)
-├── config/          # Settings + brand.json
-├── contracts/       # TypedDict schemas (PipelineState)
-├── db/              # SQLite models + migrations
-├── pipelines/       # LangGraph pipeline orchestration
-├── providers/       # LLM + Embedding + TTS adapters
-├── scripts/         # CLI entry points
-├── services/        # Slide renderer, video composer, thumbnail
-├── assets/logos/    # Brand logo files (add your own)
-└── output/          # Generated videos
+├── agents/              # LLM orchestration agents
+├── api/                 # FastAPI backend for GUI
+├── config/              # Settings + pronunciation lexicon
+├── contracts/           # PipelineState TypedDict schema
+├── db/                  # SQLite usage log
+├── gui/                 # React+Vite dashboard
+├── pipelines/           # full_video_pipeline.py + test_pipeline.py
+├── providers/           # LLM + TTS providers
+├── scripts/             # CLI tools
+├── services/
+│   ├── code_animator/   # Typewriter code reveal
+│   ├── diagram_renderer/# HTML+CSS animated diagrams
+│   ├── slide_renderer/  # Playwright → PNG slides
+│   └── video_composer/  # FFmpeg assembly
+└── tests/
+    └── fixtures/        # Pre-captured LLM outputs for testing
 ```
