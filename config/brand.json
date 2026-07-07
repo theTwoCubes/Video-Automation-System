@@ -1,0 +1,22 @@
+{
+  "channel_name": "theTwoCubes Learning",
+  "primary_color": "#0D0D0D",
+  "accent_color": "#00C896",
+  "secondary_accent": "#FF6B35",
+  "text_color": "#FFFFFF",
+  "font_heading": "Outfit",
+  "font_body": "Outfit",
+  "slide_themes": {
+    "dark": {
+      "background": "#0D0D0D",
+      "surface": "#1A1A1A",
+      "border": "#2A2A2A",
+      "code_bg": "#111111"
+    }
+  },
+  "thumbnail_templates": {
+    "code": "dark_code",
+    "concept": "dark_concept",
+    "comparison": "dark_vs"
+  }
+}
