@@ -69,7 +69,7 @@ USER_TEMPLATE = """
 Lesson plan:
 {lesson_plan}
 
-Knowledge context (use ONLY this for factual claims):
+Supplementary reference from course knowledge base (treat as HINTS to enhance accuracy — do NOT be limited by it; use your own expert knowledge as the primary source and cross-check any claims from this context before including them):
 {rag_context}
 
 Write a complete script as JSON. MINIMUM {total_words} words total across all segments.

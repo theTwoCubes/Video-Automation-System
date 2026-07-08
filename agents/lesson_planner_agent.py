@@ -32,7 +32,7 @@ Target audience: {audience}
 Target duration: {duration} minutes
 
 {continuity_block}
-Retrieved knowledge context:
+Retrieved knowledge base context (SUPPLEMENTARY REFERENCE — use as hints to inform accuracy and depth; your primary knowledge source is your own expertise. Do not reproduce this text verbatim. If anything here conflicts with established facts, prefer your own knowledge):
 {rag_context}
 
 Generate a lesson plan matching this schema:

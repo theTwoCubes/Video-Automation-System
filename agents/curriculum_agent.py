@@ -5,7 +5,9 @@ from services.knowledge.ingestion import KnowledgeIngestionService
 
 
 MODULES_PROMPT = """You are a curriculum designer for theTwoCubes Learning.
-Your first task is to divide the requested course into high-level MODULES based on the provided Table of Contents.
+Your first task is to divide the requested course into high-level MODULES.
+
+Use the provided knowledge base context as a SUPPLEMENTARY REFERENCE only — it helps you understand the structure and scope of the material, but your primary source is your own expert knowledge of the subject. If the context contradicts established facts, trust your own knowledge.
 
 Output strictly valid JSON matching this schema:
 {
@@ -23,6 +25,8 @@ LESSONS_PROMPT = """You are a curriculum designer for theTwoCubes Learning.
 Your task is to generate the specific lessons for the module "{module_name}".
 The entire course has a target of at least {min_lessons} lessons. We need you to generate approximately {target_lessons_for_module} lessons for this module to meet that target.
 Do not combine topics too densely. Break complex topics into multiple smaller lessons.
+
+The knowledge base context provided is a SUPPLEMENTARY REFERENCE — use it to understand the scope and depth of what is covered in this course's material. Your primary knowledge comes from your own expertise; the reference is a guide, not a constraint. Do not blindly reproduce text from it.
 
 Rules:
 - Each lesson must be self-contained and teachable in 10-15 minutes.
