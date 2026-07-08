@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     String, Text, Integer, Float, Boolean, DateTime,
     ForeignKey, JSON
@@ -24,7 +24,7 @@ class KnowledgeSource(Base):
     topic_tags: Mapped[str] = mapped_column(Text, default="[]")  # JSON list
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="pending")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Course(Base):
@@ -39,7 +39,7 @@ class Course(Base):
     source_id: Mapped[str] = mapped_column(String(36), ForeignKey("knowledge_sources.id"), nullable=True)
     curriculum: Mapped[str] = mapped_column(Text, default="{}")  # JSON
     status: Mapped[str] = mapped_column(String(20), default="draft")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lessons: Mapped[list["Lesson"]] = relationship("Lesson", back_populates="course")
 
@@ -58,8 +58,8 @@ class Lesson(Base):
     status: Mapped[str] = mapped_column(String(30), default="pending")
     # pending | planning | scripting | rendering | qa | done | failed
     output_dir: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     course: Mapped["Course"] = relationship("Course", back_populates="lessons")
     script: Mapped["Script"] = relationship("Script", back_populates="lesson", uselist=False)
@@ -76,7 +76,7 @@ class Script(Base):
     content: Mapped[str] = mapped_column(Text)  # JSON ScriptJSON
     word_count: Mapped[int] = mapped_column(Integer, default=0)
     estimated_duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lesson: Mapped["Lesson"] = relationship("Lesson", back_populates="script")
 
@@ -90,7 +90,7 @@ class QAReport(Base):
     checks: Mapped[str] = mapped_column(Text, default="{}")  # JSON
     requires_human_review: Mapped[bool] = mapped_column(Boolean, default=False)
     issues: Mapped[str] = mapped_column(Text, default="[]")  # JSON
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lesson: Mapped["Lesson"] = relationship("Lesson", back_populates="qa_report")
 
@@ -105,7 +105,7 @@ class SEOMetadata(Base):
     tags: Mapped[str] = mapped_column(Text, default="[]")  # JSON
     chapters: Mapped[str] = mapped_column(Text, default="[]")  # JSON
     pinned_comment: Mapped[str] = mapped_column(Text, default="")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     lesson: Mapped["Lesson"] = relationship("Lesson", back_populates="seo")
 
@@ -121,4 +121,4 @@ class PipelineJob(Base):
     completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -16,7 +16,7 @@ import json
 import uuid
 import shutil
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from contracts.schemas import PipelineState
 from config.settings import settings
@@ -196,7 +196,7 @@ def run_test_pipeline(
         "fixture": fixture_path,
         "from_step": from_step,
         "lesson_title": state["lesson_title"],
-        "completed_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
         "video_path": state.get("video_path", ""),
         "thumbnail_path": state.get("thumbnail_path", ""),
         "slides": len(state.get("slide_image_paths") or []),

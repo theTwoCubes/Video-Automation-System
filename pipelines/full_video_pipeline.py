@@ -1,7 +1,7 @@
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from langgraph.graph import StateGraph, END
@@ -139,7 +139,7 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
     summary = {
         "lesson_id": state["lesson_id"],
         "lesson_title": state["lesson_title"],
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "video_path": state.get("video_path", ""),
         "thumbnail_path": state.get("thumbnail_path", ""),
         "qa_score": state.get("qa_report", {}).get("score", 0),

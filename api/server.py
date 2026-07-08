@@ -7,7 +7,7 @@ import subprocess
 import sys
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form
@@ -221,7 +221,7 @@ def add_knowledge_source(
     finally:
         db.close()
 
-    task_id = f"ingest_{datetime.utcnow().strftime('%H%M%S')}"
+    task_id = f"ingest_{datetime.now(timezone.utc).strftime('%H%M%S')}"
     _ingest_tasks[task_id] = {"status": "running", "source_id": None, "error": None}
 
     # If it's a PDF upload, save it to a temporary file
@@ -329,7 +329,7 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
     finally:
         db.close()
 
-    task_id = f"curr_{datetime.utcnow().strftime('%H%M%S')}"
+    task_id = f"curr_{datetime.now(timezone.utc).strftime('%H%M%S')}"
     _curricula_tasks[task_id] = {"status": "running", "curriculum": None, "error": None}
 
     def _do_generate():
@@ -405,7 +405,7 @@ def trigger_generation(course_id: str, background_tasks: BackgroundTasks):
     
     def _run_with_logs():
         with open(log_file, "a") as f:
-            f.write(f"\\n--- Started run at {datetime.utcnow().isoformat()} ---\\n")
+            f.write(f"\\n--- Started run at {datetime.now(timezone.utc).isoformat()} ---\\n")
             subprocess.run(
                 [sys.executable, str(script), "--course-id", course_id],
                 cwd=str(ROOT),
@@ -457,12 +457,12 @@ class TestRunRequest(BaseModel):
 @app.post("/api/test/run")
 def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
     """Trigger a test pipeline run with fixture data."""
-    run_id = f"run_{datetime.utcnow().strftime('%H%M%S')}"
+    run_id = f"run_{datetime.now(timezone.utc).strftime('%H%M%S')}"
     _test_runs[run_id] = {
         "id": run_id,
         "status": "running",
         "fixture": req.fixture_path,
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(timezone.utc).isoformat(),
         "video_path": None,
         "error": None,
     }
@@ -479,11 +479,11 @@ def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
             _test_runs[run_id]["video_path"] = result.get("video_path", "")
             _test_runs[run_id]["error"] = result.get("error")
             _test_runs[run_id]["video_quality"] = result.get("video_quality", {})
-            _test_runs[run_id]["completed_at"] = datetime.utcnow().isoformat()
+            _test_runs[run_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
         except Exception as e:
             _test_runs[run_id]["status"] = "failed"
             _test_runs[run_id]["error"] = str(e)
-            _test_runs[run_id]["completed_at"] = datetime.utcnow().isoformat()
+            _test_runs[run_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     background_tasks.add_task(_do_run)
     return {"run_id": run_id, "status": "started"}

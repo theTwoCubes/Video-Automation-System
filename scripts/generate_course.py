@@ -12,7 +12,7 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -110,7 +110,7 @@ def main():
     succeeded = 0
     failed_list = []
     prev_summary = None
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
 
     for idx, lesson in enumerate(pending):
         pos = lesson.get("position", idx + 1)
@@ -155,7 +155,7 @@ def main():
             }
 
             succeeded += 1
-            elapsed = (datetime.utcnow() - start_time).seconds
+            elapsed = (datetime.now(timezone.utc) - start_time).seconds
             avg = elapsed // max(succeeded, 1)
             remaining = avg * (len(pending) - idx - 1)
             print(f"  Done. ETA for remaining: {remaining//60}m{remaining%60}s")
