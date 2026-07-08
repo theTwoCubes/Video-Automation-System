@@ -15,19 +15,20 @@ All measurements use `gemini-2.5-flash` (thinking disabled, `thinking_budget=0`)
 | SlideAgent | 1 | ~4 000 | ~3 000 | $0.00120 |
 | QAAgent | 1 | ~3 000 | ~500 | $0.00105 |
 | SEOAgent | 1 | ~2 500 | ~800 | $0.00090 |
-| **Total** | **8–10** | **~19 500** | **~12 300** | **~$0.0063** |
+| QuizAgent | 1 | ~3 000 | ~1 000 | $0.00120 |
+| **Total** | **8–10** | **~22 500** | **~13 300** | **~$0.0075** |
 
-**Per video: ≈ $0.006 USD (~₹0.50)**
+**Per video: ≈ $0.0075 USD (~₹0.60)**
 
 ### 100-lesson C++ course (based on 300-page book)
 
 | Resource | Quantity | Cost |
 |---|---|---|
-| Gemini API (all 7 agents × 100 lessons) | ~1 000 calls | ~$0.63 USD (~₹53) |
+| Gemini API (all agents × 100 lessons) | ~1 000 calls | ~$0.75 USD (~₹60) |
 | edge-tts (Microsoft TTS) | 100 lessons | **Free** |
 | Playwright rendering | 100 × ~8 slides | **Free** |
 | FFmpeg video composition | 100 videos | **Free** |
-| **Total** | | **~$0.63 USD (~₹53)** |
+| **Total** | | **~$0.75 USD (~₹60)** |
 
 > **Upper bound**: $1.50 USD for a full 100-video course if every lesson is unusually long and uses Retry + complex diagrams.
 
@@ -38,7 +39,7 @@ All measurements use `gemini-2.5-flash` (thinking disabled, `thinking_budget=0`)
 - 1 code block (runnable, complete): ~800 tokens
 - 1 animated diagram (HTML CSS): ~4 000 tokens
 - 7 slide specs: ~3 000 tokens output
-- 1 QA check + 1 SEO block: ~3 500 tokens combined
+- 1 QA check + 1 SEO block + 1 Quiz block: ~4 500 tokens combined
 
 ---
 
@@ -59,11 +60,16 @@ Capture fixture (one time, free):
   → tests/fixtures/<name>.json
 
 Every iteration (zero cost):
-  python pipelines/test_pipeline.py
+  python pipelines/test_pipeline.py --from-step slides
   → Slides rendered (Playwright)
   → Audio synthesized (edge-tts, free)
   → Video composed (FFmpeg, free)
   → Output in output/test_course/test_<lesson_id>/
+
+Partial iteration (e.g., tweaking just FFmpeg animations):
+  python pipelines/test_pipeline.py --from-step video
+  → Skips Playwright & edge-tts
+  → Video composed (FFmpeg)
 ```
 
 ### Running from GUI
@@ -72,9 +78,10 @@ Every iteration (zero cost):
 2. Open http://localhost:5173
 3. Click **Test Runner** in sidebar
 4. Select a fixture (shows slide count + segment count)
-5. Optionally enable **Force restart** to re-render all slides
-6. Click **Run Test** → watch pipeline stages update live
-7. Click a previous run in history to re-inspect
+5. Select a **Start from** step (`slides`, `audio`, `video`, `thumbnail`) to skip earlier unchanged stages
+6. Optionally enable **Force restart** to clear caches
+7. Click **Run Test** → watch pipeline stages update live
+8. Click a previous run in history to re-inspect video output and validation metrics
 
 ### Creating new fixtures
 
@@ -117,6 +124,7 @@ python scripts/capture_fixtures.py --output-dir output/cpp/003_abc12345
       "headline": "string",
       "bullets": [],
       "code_content": "",
+      "transition_hint": "fade|zoomin|wipeleft|wiperight",
       "left_bullets": [], "right_bullets": [],
       "left_label": "", "right_label": "",
       "tag": "HOOK|CONCEPT|CODE|MISTAKES|SUMMARY|EXERCISE",
@@ -125,13 +133,28 @@ python scripts/capture_fixtures.py --output-dir output/cpp/003_abc12345
   ],
   "code_examples": [{ "id": "code_001", "source_code": "..." }],
   "seo_metadata": { "title": "", "description": "", "tags": [], "chapters": [] },
-  "qa_report": { "score": 90, "passed": true }
+  "qa_report": { "score": 90, "passed": true },
+  "quiz_questions": [
+    {
+      "question": "string",
+      "options": ["A", "B", "C", "D"],
+      "correct_answer": 0,
+      "explanation": "string"
+    }
+  ]
 }
 ```
 
 ---
 
-## Further Improvement Roadmap
+## Batch Processing & Validation
+
+The pipeline includes built-in safeguards and batch tools:
+
+- **Batch Generation**: `python scripts/generate_course.py --course-id <id>` will queue all lessons.
+- **Cost Guard**: Set `MAX_COST_USD_PER_RUN=0.10` in `.env` to prevent budget blowouts.
+- **Validation**: Includes automatic `SlideValidator` (auto-fixes too long bullets), `CodeValidator` (regex sanity checks), and `VideoValidator` (checks final MP4).
+- **GUI Alerts**: The dashboard shows a red banner if any lesson creates a `FAILED.txt` during generation.
 
 The following is a prioritized list of improvements to reach full production quality.
 

@@ -1,7 +1,7 @@
 import subprocess
 import shutil
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 def _get_ffmpeg() -> str:
@@ -101,21 +101,26 @@ def _apply_xfade_transitions(
     output_path: Path,
     ffmpeg_exe: str,
     transition_duration: float = 0.4,
+    transition_hints: Optional[List[str]] = None,
 ) -> bool:
     """
-    Apply xfade transitions between all video segments.
+    Apply per-layout xfade transitions between video segments. (B.2)
+    transition_hints[i] = transition type for segment i coming in.
     Returns True on success, False if fallback to simple concat.
     """
     n = len(segment_files)
     if n <= 1:
         return False
 
-    # build filter_complex
+    hints = transition_hints or ["fade"] * n
+    # pad hints to match segment count
+    while len(hints) < n:
+        hints.append("fade")
+
     inputs = []
     for seg in segment_files:
         inputs += ["-i", _fwd(seg)]
 
-    # chain xfade for video, acrossfade for audio
     vf_parts = []
     af_parts = []
     offset = 0.0
@@ -126,8 +131,10 @@ def _apply_xfade_transitions(
         offset += max(durations[i - 1] - transition_duration, 0.1)
         out_v = f"[v{i}]"
         out_a = f"[a{i}]"
+        # use hint for the incoming segment
+        trans = hints[i] if hints[i] in _VALID_TRANSITIONS else "fade"
         vf_parts.append(
-            f"{last_v}[{i}:v]xfade=transition=fade:duration={transition_duration}:offset={offset:.3f}{out_v}"
+            f"{last_v}[{i}:v]xfade=transition={trans}:duration={transition_duration}:offset={offset:.3f}{out_v}"
         )
         af_parts.append(
             f"{last_a}[{i}:a]acrossfade=d={transition_duration}{out_a}"
@@ -136,7 +143,6 @@ def _apply_xfade_transitions(
         last_a = out_a
 
     filter_complex = ";".join(vf_parts + af_parts)
-
     cmd = (
         [ffmpeg_exe, "-y"]
         + inputs
@@ -153,12 +159,54 @@ def _apply_xfade_transitions(
     return result.returncode == 0 and output_path.exists()
 
 
+_VALID_TRANSITIONS = {
+    "fade", "fadeblack", "fadewhite", "wipeleft", "wiperight", "wipeup", "wipedown",
+    "slideleft", "slideright", "slideup", "slidedown", "zoomin", "smoothleft",
+    "circlecrop", "dissolve",
+}
+
+
+def _apply_ken_burns(
+    img_path: str,
+    duration: float,
+    output_path: str,
+    ffmpeg_exe: str,
+    fps: int = 30,
+) -> Optional[str]:
+    """
+    Apply a slow zoom-in (Ken Burns) effect to a static slide. (B.1)
+    Only used for slides where duration > KEN_BURNS_THRESHOLD.
+    Returns path to created MP4 or None on failure.
+    """
+    # scale up first to avoid zoompan pixel shortage
+    cmd = [
+        ffmpeg_exe, "-y",
+        "-loop", "1",
+        "-i", _fwd(Path(img_path)),
+        "-t", f"{duration:.3f}",
+        "-vf", (
+            f"scale=3840:2160:flags=lanczos,"
+            f"zoompan=z='min(zoom+0.0002,1.06)':d={int(duration * fps)}"
+            f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1920x1080,"
+            f"fps={fps}"
+        ),
+        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+        "-an",
+        _fwd(Path(output_path)),
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode == 0 and Path(output_path).exists():
+        return output_path
+    return None
+
+
 def compose_video_aligned(
     slide_audio_pairs: List[Tuple[str, List[str]]],
     output_path: str,
     fps: int = 30,
     use_transitions: bool = True,
     prebuilt_segments: dict = None,
+    transition_hints: List[str] = None,
 ) -> str:
     """
     Compose a video where each slide is displayed for the combined duration
@@ -176,11 +224,18 @@ def compose_video_aligned(
     segments_dir = output_abs.parent / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
     prebuilt_segments = prebuilt_segments or {}
+    transition_hints = list(transition_hints or []) or ["fade"] * len(slide_audio_pairs)
+
+    from config.settings import settings
+    ken_threshold = settings.KEN_BURNS_THRESHOLD_SECONDS
 
     segment_files: List[Path] = []
     segment_durations: List[float] = []
+    used_transition_hints: List[str] = []
 
     for i, (slide_path, audio_files) in enumerate(slide_audio_pairs):
+        hint = transition_hints[i] if i < len(transition_hints) else "fade"
+
         # use prebuilt segment if available (e.g. code reveal)
         if i in prebuilt_segments and Path(prebuilt_segments[i]).exists():
             pb = Path(prebuilt_segments[i])
@@ -189,6 +244,7 @@ def compose_video_aligned(
             dur = _get_audio_duration(_fwd(seg_out), ffmpeg_exe)
             segment_files.append(seg_out)
             segment_durations.append(dur)
+            used_transition_hints.append(hint)
             print(f"  Slide {i+1}/{len(slide_audio_pairs)}: code reveal {dur:.1f}s")
             continue
 
@@ -203,6 +259,32 @@ def compose_video_aligned(
         total_dur = _concat_audio(valid_audios, merged_audio, ffmpeg_exe)
 
         seg_out = segments_dir / f"seg_{i:04d}.mp4"
+
+        # B.1: Ken Burns for long static slides (content/summary/numbered_steps)
+        if total_dur > ken_threshold:
+            kb_video = str(segments_dir / f"kb_{i:04d}.mp4")
+            kb_result = _apply_ken_burns(str(slide_abs), total_dur + 1.0, kb_video, ffmpeg_exe, fps)
+            if kb_result:
+                # combine ken burns video with audio
+                cmd = [
+                    ffmpeg_exe, "-y",
+                    "-i", _fwd(Path(kb_video)),
+                    "-i", _fwd(merged_audio),
+                    "-af", "apad=pad_dur=0.8",
+                    "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "192k",
+                    "-shortest",
+                    _fwd(seg_out),
+                ]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode == 0 and seg_out.exists():
+                    actual_dur = _get_audio_duration(_fwd(seg_out), ffmpeg_exe)
+                    segment_files.append(seg_out)
+                    segment_durations.append(actual_dur)
+                    used_transition_hints.append(hint)
+                    print(f"  Slide {i+1}/{len(slide_audio_pairs)}: Ken Burns {total_dur:.1f}s")
+                    continue
+
         cmd = [
             ffmpeg_exe, "-y",
             "-loop", "1",
@@ -220,6 +302,7 @@ def compose_video_aligned(
             actual_dur = _get_audio_duration(_fwd(seg_out), ffmpeg_exe)
             segment_files.append(seg_out)
             segment_durations.append(actual_dur)
+            used_transition_hints.append(hint)
             print(f"  Slide {i+1}/{len(slide_audio_pairs)}: {len(valid_audios)} audio clip(s), {total_dur:.1f}s")
         else:
             print(f"  Segment {i+1} failed: {result.stderr[-200:]}")
@@ -234,7 +317,8 @@ def compose_video_aligned(
     if use_transitions and len(segment_files) > 1:
         print("  Applying slide transitions...")
         success = _apply_xfade_transitions(
-            segment_files, segment_durations, transitioned_path, ffmpeg_exe
+            segment_files, segment_durations, transitioned_path, ffmpeg_exe,
+            transition_hints=used_transition_hints,
         )
         if success:
             used_transitions = True

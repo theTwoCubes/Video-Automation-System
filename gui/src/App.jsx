@@ -4,13 +4,13 @@ import {
   LayoutDashboard, BookOpen, DollarSign, FlaskConical,
   CheckCircle2, Clock, Loader2, XCircle, ChevronRight,
   ArrowLeft, Sparkles, Play, RefreshCw, FileJson,
-  AlertTriangle, Video, Terminal
+  AlertTriangle, Video, Terminal, HelpCircle, Zap
 } from 'lucide-react'
 import './index.css'
 
 const API = 'http://localhost:8000/api'
 
-// ── helpers ──────────────────────────────────────────────────────
+//  helpers 
 
 function useFetch(url, deps = []) {
   const [data, setData] = useState(null)
@@ -42,7 +42,7 @@ function usePolling(url, intervalMs = 2000, enabled = true) {
   return data
 }
 
-// ── components ────────────────────────────────────────────────────
+//  components 
 
 function StatusBadge({ status }) {
   const map = {
@@ -82,13 +82,14 @@ function PipelineDiagram({ completedSteps = 0, status = 'done' }) {
   )
 }
 
-// ── Dashboard ─────────────────────────────────────────────────────
+//  Dashboard 
 
 function Dashboard() {
   const navigate = useNavigate()
   const { data: courses, loading } = useFetch(`${API}/courses`)
   const { data: usage } = useFetch(`${API}/usage`)
   const { data: testRuns } = useFetch(`${API}/test/runs`)
+  const { data: alerts } = useFetch(`${API}/alerts`)
 
   const stats = courses ? {
     courses: courses.length,
@@ -98,9 +99,30 @@ function Dashboard() {
   } : {}
 
   const recentTest = testRuns?.[testRuns.length - 1]
+  const failedCount = alerts?.failed_lessons ?? 0
 
   return (
     <div>
+      {/* E.5: Failure alert banner */}
+      {failedCount > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          background: 'rgba(255,95,95,0.08)', border: '1px solid rgba(255,95,95,0.3)',
+          borderRadius: 10, padding: '12px 18px', marginBottom: 20,
+        }}>
+          <AlertTriangle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: 13 }}>
+              {failedCount} lesson{failedCount !== 1 ? 's' : ''} failed
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 12, marginLeft: 8 }}>
+              {alerts?.details?.slice(0, 2).map(d => d.lesson_title).join(', ')}
+              {failedCount > 2 ? ` +${failedCount - 2} more` : ''}
+            </span>
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Check Courses for details</span>
+        </div>
+      )}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Courses</div>
@@ -154,7 +176,7 @@ function CourseCard({ course }) {
   )
 }
 
-// ── Course Page ───────────────────────────────────────────────────
+//  Course Page 
 
 function CoursePage() {
   const { courseId } = useParams()
@@ -195,20 +217,40 @@ function CoursePage() {
       {!loading && (
         <div className="card">
           <table className="lesson-table">
-            <thead><tr><th>#</th><th>Title</th><th>Status</th><th>QA</th><th>SEO Title</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Title</th><th>Status</th><th>QA</th><th>Quiz</th><th>SEO Title</th><th></th></tr></thead>
             <tbody>
               {lessons.map(l => (
                 <tr key={l.id} onClick={() => navigate(`/lessons/${l.id}`)} style={{ cursor: 'pointer' }}>
                   <td><span className="lesson-num">{String(l.position).padStart(3, '0')}</span></td>
-                  <td><span className="lesson-title">{l.title}</span></td>
+                  <td>
+                    <span className="lesson-title">{l.title}</span>
+                    {l.failed_error && (
+                      <span style={{ marginLeft: 8, fontSize: 10, color: 'var(--red)' }} title={l.failed_error}>
+                        <AlertTriangle size={10} /> FAILED
+                      </span>
+                    )}
+                    {l.slide_validation_issues > 0 && (
+                      <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--yellow)' }} title={`${l.slide_validation_issues} slide validation issue(s)`}>
+                        ⚠ {l.slide_validation_issues}
+                      </span>
+                    )}
+                    {l.pacing_flags > 0 && (
+                      <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text-muted)' }} title={`${l.pacing_flags} pacing flag(s)`}>
+                        <Zap size={9} /> {l.pacing_flags}
+                      </span>
+                    )}
+                  </td>
                   <td><StatusBadge status={l.status} /></td>
                   <td><QAScore score={l.qa_score} /></td>
-                  <td style={{ color: 'var(--text-dim)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.seo_title || '—'}</td>
+                  <td style={{ color: l.quiz_questions > 0 ? 'var(--accent)' : 'var(--text-muted)', fontSize: 12 }}>
+                    {l.quiz_questions > 0 ? <><HelpCircle size={11} style={{ verticalAlign: 'middle', marginRight: 3 }} />{l.quiz_questions}q</> : '—'}
+                  </td>
+                  <td style={{ color: 'var(--text-dim)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.seo_title || '—'}</td>
                   <td><ChevronRight size={14} style={{ color: 'var(--text-muted)' }} /></td>
                 </tr>
               ))}
               {lessons.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No lessons match filter.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No lessons match filter.</td></tr>
               )}
             </tbody>
           </table>
@@ -218,7 +260,7 @@ function CoursePage() {
   )
 }
 
-// ── Lesson Page ───────────────────────────────────────────────────
+//  Lesson Page 
 
 function LessonPage() {
   const { lessonId } = useParams()
@@ -254,7 +296,7 @@ function LessonPage() {
   )
 }
 
-// ── Cost Page ─────────────────────────────────────────────────────
+//  Cost Page 
 
 function CostPage() {
   const { data, loading } = useFetch(`${API}/usage`)
@@ -293,26 +335,24 @@ function CostPage() {
   )
 }
 
-// ── Test Runner Page ──────────────────────────────────────────────
+//  Test Runner Page 
 
 function TestPage() {
   const { data: fixtures, loading: fixturesLoading } = useFetch(`${API}/test/fixtures`)
   const [selected, setSelected] = useState('tests/fixtures/cpp_variables_lesson.json')
   const [forceRestart, setForceRestart] = useState(false)
+  const [fromStep, setFromStep] = useState('slides')
   const [launching, setLaunching] = useState(false)
   const [activeRunId, setActiveRunId] = useState(null)
 
-  // poll run status while a run is active
   const runData = usePolling(
     activeRunId ? `${API}/test/runs/${activeRunId}` : null,
     1500,
     !!activeRunId && true
   )
 
-  // stop polling when done/failed
   useEffect(() => {
     if (runData?.status === 'done' || runData?.status === 'failed') {
-      // keep showing final state but stop polling after 1 more second
       setTimeout(() => {}, 1000)
     }
   }, [runData?.status])
@@ -325,7 +365,7 @@ function TestPage() {
       const res = await fetch(`${API}/test/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fixture_path: selected, force_restart: forceRestart }),
+        body: JSON.stringify({ fixture_path: selected, force_restart: forceRestart, from_step: fromStep }),
       })
       const data = await res.json()
       setActiveRunId(data.run_id)
@@ -383,24 +423,38 @@ function TestPage() {
             )}
           </div>
 
-          <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-dim)' }}>
-              <input
-                type="checkbox" checked={forceRestart} onChange={e => setForceRestart(e.target.checked)}
-                style={{ accentColor: 'var(--accent)' }}
-              />
-              Force restart (clear cache)
-            </label>
-            <div style={{ flex: 1 }} />
-            <button
-              className="btn btn-primary"
-              onClick={handleRun}
-              disabled={launching || isRunning || !selected}
-            >
-              {launching || isRunning
-                ? <><Loader2 size={14} className="spin" /> Running...</>
-                : <><Play size={14} /> Run Test</>}
-            </button>
+          {/* from_step + force restart + run button */}
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 80 }}>Start from:</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['slides', 'audio', 'video', 'thumbnail'].map(s => (
+                  <button key={s} className="btn btn-ghost btn-sm"
+                    onClick={() => setFromStep(s)}
+                    style={fromStep === s ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : { fontSize: 11 }}
+                  >{s}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--text-dim)' }}>
+                <input
+                  type="checkbox" checked={forceRestart} onChange={e => setForceRestart(e.target.checked)}
+                  style={{ accentColor: 'var(--accent)' }}
+                />
+                Force restart (clear cache)
+              </label>
+              <div style={{ flex: 1 }} />
+              <button
+                className="btn btn-primary"
+                onClick={handleRun}
+                disabled={launching || isRunning || !selected}
+              >
+                {launching || isRunning
+                  ? <><Loader2 size={14} className="spin" /> Running...</>
+                  : <><Play size={14} /> Run Test</>}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -451,6 +505,16 @@ function TestPage() {
                 <div style={{ background: 'rgba(0,200,150,0.06)', border: '1px solid rgba(0,200,150,0.2)', borderRadius: 8, padding: '12px 16px' }}>
                   <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginBottom: 4 }}>✓ Video ready</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', wordBreak: 'break-all' }}>{activeRun.video_path}</div>
+                  {activeRun.video_quality?.metrics && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-dim)' }}>
+                      <span>{activeRun.video_quality.metrics.duration_s?.toFixed(1)}s</span>
+                      <span>{activeRun.video_quality.metrics.resolution}</span>
+                      <span>{activeRun.video_quality.metrics.size_mb?.toFixed(1)} MB</span>
+                      {!activeRun.video_quality.passed && (
+                        <span style={{ color: 'var(--yellow)' }}>⚠ Quality issues</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {activeRun.status === 'failed' && (
@@ -491,7 +555,7 @@ function TestPage() {
   )
 }
 
-// ── App Shell ─────────────────────────────────────────────────────
+//  App Shell 
 
 function Sidebar() {
   return (

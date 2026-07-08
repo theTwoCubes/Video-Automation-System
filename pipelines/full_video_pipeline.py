@@ -17,6 +17,7 @@ from agents.video_agent import VideoAgent
 from agents.thumbnail_agent import ThumbnailAgent
 from agents.qa_agent import QAAgent
 from agents.seo_agent import SEOAgent
+from agents.quiz_agent import QuizAgent
 from config.settings import settings
 
 # Fields each agent is responsible for saving to checkpoints
@@ -31,6 +32,7 @@ AGENT_FIELDS = {
     "generate_thumbnail":["thumbnail_path"],
     "qa_check":         ["qa_report"],
     "generate_seo":     ["seo_metadata"],
+    "generate_quiz":    ["quiz_questions"],
 }
 
 
@@ -116,6 +118,10 @@ def node_generate_seo(state: PipelineState) -> PipelineState:
     return SEOAgent().run(state)
 
 
+def node_generate_quiz(state: PipelineState) -> PipelineState:
+    return QuizAgent().run(state)
+
+
 def node_save_outputs(state: PipelineState) -> PipelineState:
     output_dir = Path(state["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -132,6 +138,10 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
         "tags": state.get("seo_metadata", {}).get("tags", []),
         "chapters": state.get("seo_metadata", {}).get("chapters", []),
         "pinned_comment": state.get("seo_metadata", {}).get("pinned_comment", ""),
+        "quiz_questions": len(state.get("quiz_questions") or []),
+        "slide_validation_issues": len(state.get("slide_validation_issues") or []),
+        "pacing_flags": len(state.get("pacing_flags") or []),
+        "video_quality": state.get("video_quality", {}),
     }
 
     summary_path = output_dir / "lesson_summary.json"
@@ -187,6 +197,7 @@ def build_pipeline() -> StateGraph:
     graph.add_node("generate_thumbnail",   _with_checkpoint("generate_thumbnail",   node_generate_thumbnail))
     graph.add_node("qa_check",             _with_checkpoint("qa_check",             node_qa_check))
     graph.add_node("generate_seo",         _with_checkpoint("generate_seo",         node_generate_seo))
+    graph.add_node("generate_quiz",        _with_checkpoint("generate_quiz",        node_generate_quiz))
     graph.add_node("save_outputs",         node_save_outputs)
 
     graph.set_entry_point("plan_lesson")
@@ -206,7 +217,8 @@ def build_pipeline() -> StateGraph:
     graph.add_edge("compose_video",        "generate_thumbnail")
     graph.add_edge("generate_thumbnail",   "qa_check")
     graph.add_edge("qa_check",             "generate_seo")
-    graph.add_edge("generate_seo",         "save_outputs")
+    graph.add_edge("generate_seo",         "generate_quiz")
+    graph.add_edge("generate_quiz",        "save_outputs")
     graph.add_edge("save_outputs",         END)
 
     return graph.compile()
@@ -224,6 +236,7 @@ def run_pipeline(
     target_audience: str = "beginners",
     estimated_duration_minutes: int = 12,
     force_restart: bool = False,
+    previous_lesson_summary: dict | None = None,
 ) -> PipelineState:
 
     output_dir = str(
@@ -250,6 +263,7 @@ def run_pipeline(
         "prerequisites": prerequisites,
         "target_audience": target_audience,
         "estimated_duration_minutes": estimated_duration_minutes,
+        "previous_lesson_summary": previous_lesson_summary,
         "lesson_plan": None,
         "script": None,
         "code_examples": None,
@@ -264,11 +278,27 @@ def run_pipeline(
         "subtitle_srt": None,
         "qa_report": None,
         "seo_metadata": None,
+        "quiz_questions": None,
         "output_dir": output_dir,
         "error": None,
         "retry_count": 0,
     }
 
     pipeline = build_pipeline()
-    final_state = pipeline.invoke(initial_state)
-    return final_state
+    failed_marker = Path(output_dir) / "FAILED.txt"
+    try:
+        final_state = pipeline.invoke(initial_state)
+        if final_state.get("error"):
+            failed_marker.write_text(
+                "Pipeline error:\n" + str(final_state["error"]), encoding="utf-8"
+            )
+        elif failed_marker.exists():
+            failed_marker.unlink()
+        return final_state
+    except Exception as exc:
+        import traceback
+        failed_marker.write_text(
+            "Unhandled exception:\n" + str(exc) + "\n\n" + traceback.format_exc(),
+            encoding="utf-8",
+        )
+        raise

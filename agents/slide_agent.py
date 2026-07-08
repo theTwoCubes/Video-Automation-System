@@ -2,6 +2,19 @@ import json
 from pathlib import Path
 from agents.base_agent import BaseAgent
 from services.slide_renderer.renderer import SlideRenderer
+from services.slide_validator.validator import validate_slides, auto_fix_slides, print_validation_report
+
+# Layout -> default transition when this slide is shown after a non-code slide
+LAYOUT_TRANSITIONS = {
+    "title":          "zoomin",
+    "code":           "wipeleft",
+    "terminal":       "wipeleft",
+    "comparison":     "slideleft",
+    "error_fix":      "slideleft",
+    "summary":        "fadeblack",
+    "exercise":       "slideleft",
+    "default":        "fade",
+}
 
 
 SYSTEM_PROMPT = """You are a slide designer for theTwoCubes Learning technical YouTube channel.
@@ -169,10 +182,23 @@ class SlideAgent(BaseAgent):
             final_slides.append(slide)
 
         print(f"  Rendering {len(final_slides)} slides to PNG...")
+
+        # add transition hints before rendering
+        for slide in final_slides:
+            layout = slide.get("layout", "content")
+            slide["transition_hint"] = LAYOUT_TRANSITIONS.get(layout, LAYOUT_TRANSITIONS["default"])
+
+        # validate before rendering
+        issues = validate_slides(final_slides)
+        print_validation_report(issues)
+        if issues:
+            print("  Auto-fixing simple issues...")
+            final_slides = auto_fix_slides(final_slides)
+
         slide_dir = f"{output_dir}/slides"
         slide_paths = self.renderer.render_slides(final_slides, slide_dir)
 
-        # build id → path mapping
+        # build id -> path mapping
         slide_id_to_path: dict[str, str] = {}
         for slide_data, img_path in zip(final_slides, slide_paths):
             slide_id_to_path[slide_data.get("id", "")] = img_path
@@ -180,5 +206,6 @@ class SlideAgent(BaseAgent):
         state["slide_contents"] = final_slides
         state["slide_image_paths"] = slide_paths
         state["slide_id_to_path"] = slide_id_to_path
+        state["slide_validation_issues"] = issues
         print(f"  Rendered {len(slide_paths)} slides.")
         return state

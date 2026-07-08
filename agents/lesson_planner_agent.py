@@ -31,6 +31,7 @@ Prerequisites already covered: {prerequisites}
 Target audience: {audience}
 Target duration: {duration} minutes
 
+{continuity_block}
 Retrieved knowledge context:
 {rag_context}
 
@@ -75,6 +76,19 @@ class LessonPlannerAgent(BaseAgent):
         duration = state.get("estimated_duration_minutes", 12)
         position = state.get("lesson_position", 1)
 
+        # A.3: Lesson continuity — inject previous lesson's summary
+        prev_summary = state.get("previous_lesson_summary")
+        if prev_summary:
+            bullets = prev_summary.get("key_takeaways", [])
+            prev_title = prev_summary.get("title", "")
+            continuity_block = (
+                f"PREVIOUS LESSON ({prev_title}) ALREADY COVERED — do NOT re-explain:\n"
+                + "\n".join(f"  - {b}" for b in bullets[:5])
+                + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n\n"
+            )
+        else:
+            continuity_block = ""
+
         # RAG context for this specific topic
         chunks = self.ingestion.query(source_id, title, n_results=6)
         rag_context = "\n\n---\n\n".join(chunks) if chunks else "No context available."
@@ -88,6 +102,7 @@ class LessonPlannerAgent(BaseAgent):
             audience=audience,
             duration=duration,
             rag_context=rag_context[:5000],
+            continuity_block=continuity_block,
         )
 
         lesson_plan = self.llm.complete_json(SYSTEM_PROMPT, user_msg)

@@ -1,3 +1,12 @@
+"""
+VideoAgent — composes the final lesson video from slides + audio.
+
+New features:
+- B.2: Per-layout slide transitions from slide_contents.transition_hint
+- E.2: Video quality validation via ffprobe after composition
+- Code reveal animation integration
+- Subtitle .srt generation
+"""
 from collections import OrderedDict
 from pathlib import Path
 from agents.base_agent import BaseAgent
@@ -14,12 +23,7 @@ def _seconds_to_srt_time(s: float) -> str:
 
 
 def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> str:
-    """Generate SRT subtitle content from segment texts and audio durations."""
-    try:
-        from services.video_composer.composer import _get_audio_duration
-    except Exception:
-        return ""
-
+    from services.video_composer.composer import _get_audio_duration
     srt_lines = []
     cursor = 0.0
 
@@ -33,9 +37,9 @@ def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> s
 
         start = _seconds_to_srt_time(cursor)
         end   = _seconds_to_srt_time(cursor + dur)
-        text  = seg.get("text", "").strip()
+        text  = seg.get("text", "").strip().replace("[PAUSE]", "")
 
-        # wrap long lines at ~80 chars
+        # wrap at ~80 chars
         if len(text) > 80:
             words = text.split()
             lines, cur_line, cur_len = [], [], 0
@@ -44,7 +48,8 @@ def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> s
                     lines.append(" ".join(cur_line))
                     cur_line, cur_len = [w], len(w)
                 else:
-                    cur_line.append(w); cur_len += len(w) + 1
+                    cur_line.append(w)
+                    cur_len += len(w) + 1
             if cur_line:
                 lines.append(" ".join(cur_line))
             text = "\n".join(lines[:3])
@@ -58,7 +63,7 @@ def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> s
 class VideoAgent(BaseAgent):
     def __init__(self):
         super().__init__()
-        self._renderer = None  # lazy-init (Playwright is heavy)
+        self._renderer = None
 
     def _get_renderer(self):
         if self._renderer is None:
@@ -77,7 +82,7 @@ class VideoAgent(BaseAgent):
         output_dir = state["output_dir"]
         lesson_id = state["lesson_id"]
 
-        # rebuild slide mapping (immune to schema drops)
+        # rebuild slide mapping
         if slide_contents and slide_paths:
             slide_id_to_path = {}
             for slide_data, img_path in zip(slide_contents, slide_paths):
@@ -93,7 +98,7 @@ class VideoAgent(BaseAgent):
             state["error"] = "No audio segments."
             return state
 
-        # build quick lookup: slide_id -> slide content dict
+        # build quick lookups
         slide_content_map = {s.get("id", ""): s for s in slide_contents}
 
         narration_segs = [
@@ -116,16 +121,21 @@ class VideoAgent(BaseAgent):
         fallback_img = slide_paths[-1]
         aligned_pairs = []
         pair_slide_ids = []
+        transition_hints = []
+
         for slide_id, audios in slide_audio_map.items():
             img = slide_id_to_path.get(slide_id, fallback_img)
             if not Path(img).exists():
                 img = fallback_img
             aligned_pairs.append((img, audios))
             pair_slide_ids.append(slide_id)
+            # pull transition_hint from slide_contents
+            slide_data = slide_content_map.get(slide_id, {})
+            transition_hints.append(slide_data.get("transition_hint", "fade"))
 
         print(f"  {len(aligned_pairs)} slide groups, {len(audio_paths)} total audio segments")
 
-        # build code reveal animations for code-layout slides
+        # build code reveal animations
         prebuilt_segments = {}
         try:
             prebuilt_segments = self._build_code_reveals(
@@ -135,8 +145,19 @@ class VideoAgent(BaseAgent):
             print(f"  Code reveal skipped: {e}")
 
         output_path = str(Path(output_dir) / f"{lesson_id}_final.mp4")
+
+        # compute expected duration from audio files for quality validation
+        expected_dur = sum(
+            self._audio_dur(a) for auds in [p[1] for p in aligned_pairs] for a in auds
+        )
+
         try:
-            compose_video_aligned(aligned_pairs, output_path, prebuilt_segments=prebuilt_segments)
+            compose_video_aligned(
+                aligned_pairs,
+                output_path,
+                prebuilt_segments=prebuilt_segments,
+                transition_hints=transition_hints,
+            )
             state["video_path"] = output_path
             size_mb = Path(output_path).stat().st_size / (1024 * 1024)
             print(f"  Video: {output_path} ({size_mb:.1f} MB)")
@@ -145,7 +166,20 @@ class VideoAgent(BaseAgent):
             state["error"] = str(e)
             return state
 
-        # generate .srt subtitle file
+        # E.2: video quality validation
+        try:
+            from services.video_composer.validator import validate_video
+            from services.video_composer.composer import _get_ffmpeg
+            vq = validate_video(output_path, expected_dur, _get_ffmpeg())
+            state["video_quality"] = vq
+            if not vq["passed"]:
+                print(f"  Video quality issues: {vq['issues']}")
+            else:
+                print(f"  Video quality OK: {vq['metrics']['duration_s']:.1f}s, {vq['metrics']['resolution']}")
+        except Exception as e:
+            print(f"  Video quality check skipped: {e}")
+
+        # subtitle generation
         try:
             from services.video_composer.composer import _get_ffmpeg
             ffmpeg_exe = _get_ffmpeg()
@@ -160,6 +194,18 @@ class VideoAgent(BaseAgent):
 
         return state
 
+    def _audio_dur(self, path: str) -> float:
+        import re, subprocess, shutil
+        try:
+            f = shutil.which("ffmpeg") or "ffmpeg"
+            r = subprocess.run([f, "-i", path], capture_output=True, text=True)
+            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.?\d*)", r.stderr)
+            if m:
+                return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+        except Exception:
+            pass
+        return 0.0
+
     def _build_code_reveals(
         self,
         aligned_pairs: list,
@@ -167,10 +213,6 @@ class VideoAgent(BaseAgent):
         slide_content_map: dict,
         output_dir: str,
     ) -> dict:
-        """
-        For each 'code' layout slide, pre-build a reveal animation video.
-        Returns {pair_index: reveal_mp4_path}.
-        """
         from services.video_composer.composer import _get_ffmpeg, _concat_audio
         from services.code_animator.animator import create_code_reveal_segment
 
@@ -189,13 +231,12 @@ class VideoAgent(BaseAgent):
                 continue
             code = slide_data.get("code_content", "").strip()
             if not code or code.count("\n") < 2:
-                continue  # too short to animate
+                continue
 
             valid_audios = [a for a in audio_files if Path(a).exists()]
             if not valid_audios:
                 continue
 
-            # concat audio for this slide
             merged = segments_dir / f"merged_{i:04d}.mp3"
             _concat_audio(valid_audios, merged, ffmpeg_exe)
 
@@ -211,6 +252,6 @@ class VideoAgent(BaseAgent):
             )
             if result:
                 prebuilt[i] = result
-                print(f"  Code reveal ready for slide {i+1}")
+                print(f"  Code reveal ready for slide {i + 1}")
 
         return prebuilt

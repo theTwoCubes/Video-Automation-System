@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     OUTPUT_DIR: str = "output"
     CHROMA_DIR: str = "data/chroma"
     SQLITE_PATH: str = "data/twocubes.db"
+    USAGE_LOG_PATH: str = "data/usage.sqlite"
     PROMPTS_DIR: str = "prompts"
     ASSETS_DIR: str = "assets"
 
@@ -30,6 +31,12 @@ class Settings(BaseSettings):
     # Gemini model names (free tier)
     LLM_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "models/gemini-embedding-001"
+
+    # Cost guard — set 0 to disable
+    MAX_COST_USD_PER_RUN: float = 0.50
+
+    # Ken Burns threshold (seconds): slides longer than this get slow zoom
+    KEN_BURNS_THRESHOLD_SECONDS: float = 7.0
 
     class Config:
         env_file = ".env"

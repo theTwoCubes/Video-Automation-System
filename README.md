@@ -11,24 +11,29 @@ PDF / Book
 [Ingestion Agent] ──── ChromaDB (vector store)
     │
     ▼
-[LessonPlannerAgent] → lesson_plan.json
+[LessonPlannerAgent] → lesson_plan.json (Uses Previous Lesson Summary)
     │
     ▼
-[ScriptAgent] ──────── script.json  (slide-mapped narration segments)
+[Cost Guard] ───────── Budget verification before LLM calls
     │
-[CodeAgent] ─────────  code_examples[]  (runnable C++ / Python)
+    ▼
+[ScriptAgent] ──────── script.json (2-Pass Generation)
+    │
+[CodeAgent] ─────────  code_examples[] ──> [CodeValidator]
     │
 [DiagramAgent] ──────  animated MP4 diagrams (HTML+CSS via Playwright)
     │
-[SlideAgent] ────────  renders PNGs via Playwright (7 layouts + progress bar)
+[SlideAgent] ────────  slide specs ──> [SlideValidator] ──> PNGs
     │
-[VoiceAgent] ────────  edge-tts, parallel 8 workers, loudnorm normalized
+[VoiceAgent] ────────  edge-tts, parallel 8 workers, loudnorm normalized + silence trimmed
     │
-[VideoAgent] ────────  code reveal animation + subtitle .srt generation
+[VideoAgent] ────────  weighted code animation + subtitles .srt
     │
-[Composer] ──────────  xfade transitions + optional background music
+[Composer] ──────────  xfade/Ken Burns + bg music ──> [VideoValidator]
     │
 [ThumbnailAgent]
+    │
+[QuizAgent] ─────────  quiz.json (3-5 MCQs)
     │
 [QAAgent] + [SEOAgent]
     │
@@ -40,55 +45,61 @@ output/<course_id>/<lesson_id>/
   ├── youtube_metadata.txt
   ├── lesson_summary.json
   ├── script.json
+  ├── quiz.json
+  ├── FAILED.txt            ← (if pipeline crashed)
   └── checkpoints/          ← resume from crash
 ```
 
 ## Slide Layouts
 
-| Layout | Description |
-|---|---|
-| `title` | Lesson opener — gradient headline + eyebrow |
-| `content` | Bullets with accent dots |
-| `code` | Syntax-highlighted code + typewriter reveal animation |
-| `numbered_steps` | Numbered circles for ordered procedures |
-| `checklist` | Check boxes for requirements / constraints |
-| `comparison` | Side-by-side wrong/correct code panels |
-| `error_fix` | Red error panel + green fix panel |
-| `terminal` | macOS-style terminal window with green output |
-| `summary` | 3-bullet key takeaway slide |
-| `two_column` | Two labeled bullet columns |
-| `exercise` | Challenge box with sub-bullets |
+| Layout             | Description                                           |
+| ------------------ | ----------------------------------------------------- |
+| `title`          | Lesson opener — gradient headline + eyebrow          |
+| `content`        | Bullets with accent dots                              |
+| `code`           | Syntax-highlighted code + typewriter reveal animation |
+| `numbered_steps` | Numbered circles for ordered procedures               |
+| `checklist`      | Check boxes for requirements / constraints            |
+| `comparison`     | Side-by-side wrong/correct code panels                |
+| `error_fix`      | Red error panel + green fix panel                     |
+| `terminal`       | macOS-style terminal window with green output         |
+| `summary`        | 3-bullet key takeaway slide                           |
+| `two_column`     | Two labeled bullet columns                            |
+| `exercise`       | Challenge box with sub-bullets                        |
 
 ## Setup
 
-```bash
-# 1. Clone
-git clone https://github.com/theTwoCubes/videoAutomation
-cd videoAutomation
+* [ ] 
+  ```bash
+  # 1. Clone
+  git clone https://github.com/theTwoCubes/videoAutomation
+  cd videoAutomation
 
-# 2. Install Python deps
-pip install -r requirements.txt
-playwright install chromium
+  # 2. Install Python deps
+  pip install -r requirements.txt
+  playwright install chromium
 
-# 3. Configure
-cp .env.example .env
-# Set GEMINI_API_KEY in .env
+  # 3. Configure
+  cp .env.example .env
+  # Set GEMINI_API_KEY in .env
 
-# 4. (Optional) Install GUI deps
-cd gui && npm install && cd ..
-```
+  # 4. (Optional) Install GUI deps
+  cd gui && npm install && cd ..
+  ```
 
 ## Running the Pipeline
 
 ```bash
-# Full pipeline (with LLM)
+# Full pipeline for a single lesson (with LLM)
 python main.py --course-id cpp_beginner --lesson-id vars_001
+
+# Batch generate an entire course (sequential, checkpoint-safe)
+python scripts/generate_course.py --course-id cpp_beginner
 
 # Test pipeline (zero LLM cost — uses fixture)
 python pipelines/test_pipeline.py
 
-# Test with specific fixture
-python pipelines/test_pipeline.py --fixture tests/fixtures/cpp_variables_lesson.json
+# Test with specific fixture starting from a specific step (slides, audio, video, thumbnail)
+python pipelines/test_pipeline.py --fixture tests/fixtures/cpp_variables_lesson.json --from-step video
 
 # GUI dashboard (API + React)
 python scripts/start_dashboard.py
@@ -106,6 +117,9 @@ python pipelines/test_pipeline.py --list
 # Run test
 python pipelines/test_pipeline.py
 
+# Run test starting from video composition (skips slide rendering and audio synthesis)
+python pipelines/test_pipeline.py --from-step video
+
 # Capture a new fixture from a completed pipeline run
 python scripts/capture_fixtures.py --lesson-id <id>
 
@@ -117,13 +131,16 @@ In the **GUI**, navigate to **Test Runner** in the sidebar to run tests visually
 
 ## CLI Tools
 
-| Script | Purpose |
-|---|---|
-| `python scripts/cost_report.py` | Show total API spend from SQLite log |
-| `python scripts/cost_report.py --clear` | Reset usage log |
-| `python scripts/review_slides.py --lesson-id <id>` | Human-review each slide before audio |
-| `python scripts/capture_fixtures.py --lesson-id <id>` | Save LLM outputs as test fixture |
-| `python scripts/start_dashboard.py` | Launch GUI dashboard |
+| Script                                                  | Purpose                                             |
+| ------------------------------------------------------- | --------------------------------------------------- |
+| `python scripts/generate_course.py`                   | Batch run all pending lessons for a course          |
+| `python scripts/cost_report.py`                       | Show total API spend from SQLite log                |
+| `python scripts/cost_report.py --clear`               | Reset usage log                                     |
+| `python scripts/review_slides.py --lesson-id <id>`    | Human-review each slide before audio                |
+| `python scripts/capture_fixtures.py --lesson-id <id>` | Save LLM outputs as test fixture                    |
+| `python scripts/preview_slide.py`                     | Hot-reload visual preview for slide layouts         |
+| `python scripts/stress_test_layouts.py`               | Renders all layout combinations to check boundaries |
+| `python scripts/start_dashboard.py`                   | Launch GUI dashboard                                |
 
 ## Checkpoint / Resume
 
@@ -141,6 +158,7 @@ python main.py --course-id cpp --lesson-id vars_001 --force-restart
 ## Background Music
 
 Drop MP3 files into `assets/music/`:
+
 - `bg_track.mp3` — mixed at 8% volume under narration
 - `intro_music.mp3` — plays during intro slide
 - `outro_music.mp3` — plays during outro slide

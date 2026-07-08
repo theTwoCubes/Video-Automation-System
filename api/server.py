@@ -42,7 +42,7 @@ def _db():
         return None
 
 
-# ── Courses & Lessons ─────────────────────────────────────────────
+#  Courses & Lessons 
 
 @app.get("/api/courses")
 def list_courses():
@@ -90,10 +90,14 @@ def list_lessons(course_id: str):
         result = []
         for l in lessons:
             summary = {}
+            failed_error = ""
             if l.output_dir:
                 sp = Path(l.output_dir) / "lesson_summary.json"
                 if sp.exists():
                     summary = json.loads(sp.read_text(encoding="utf-8"))
+                fp = Path(l.output_dir) / "FAILED.txt"
+                if fp.exists():
+                    failed_error = fp.read_text(encoding="utf-8")[:200]
             result.append({
                 "id": l.id,
                 "title": l.title,
@@ -104,6 +108,10 @@ def list_lessons(course_id: str):
                 "seo_title": summary.get("seo_title", ""),
                 "video_path": summary.get("video_path", ""),
                 "thumbnail_path": summary.get("thumbnail_path", ""),
+                "quiz_questions": summary.get("quiz_questions", 0),
+                "slide_validation_issues": summary.get("slide_validation_issues", 0),
+                "pacing_flags": summary.get("pacing_flags", 0),
+                "failed_error": failed_error,
                 "updated_at": str(getattr(l, "updated_at", "")),
             })
         return {"course": {"id": course.id, "title": course.title}, "lessons": result}
@@ -130,7 +138,7 @@ def get_slides(lesson_id: str):
         db.close()
 
 
-# ── Video Generation ──────────────────────────────────────────────
+#  Video Generation 
 
 @app.post("/api/courses/{course_id}/generate")
 def trigger_generation(course_id: str, background_tasks: BackgroundTasks):
@@ -144,7 +152,7 @@ def trigger_generation(course_id: str, background_tasks: BackgroundTasks):
     return {"status": "started", "message": "Generation started in background"}
 
 
-# ── Test Pipeline ─────────────────────────────────────────────────
+#  Test Pipeline 
 
 @app.get("/api/test/fixtures")
 def list_fixtures():
@@ -156,6 +164,7 @@ def list_fixtures():
 class TestRunRequest(BaseModel):
     fixture_path: str = "tests/fixtures/cpp_variables_lesson.json"
     force_restart: bool = False
+    from_step: str = "slides"
 
 
 @app.post("/api/test/run")
@@ -177,10 +186,12 @@ def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
             result = run_test_pipeline(
                 fixture_path=req.fixture_path,
                 force_restart=req.force_restart,
+                from_step=req.from_step,
             )
             _test_runs[run_id]["status"] = "done" if not result.get("error") else "failed"
             _test_runs[run_id]["video_path"] = result.get("video_path", "")
             _test_runs[run_id]["error"] = result.get("error")
+            _test_runs[run_id]["video_quality"] = result.get("video_quality", {})
             _test_runs[run_id]["completed_at"] = datetime.utcnow().isoformat()
         except Exception as e:
             _test_runs[run_id]["status"] = "failed"
@@ -204,7 +215,59 @@ def get_test_run(run_id: str):
     return _test_runs[run_id]
 
 
-# ── Usage & Health ────────────────────────────────────────────────
+#  Quiz 
+
+@app.get("/api/lessons/{lesson_id}/quiz")
+def get_quiz(lesson_id: str):
+    """Return quiz questions for a lesson."""
+    db = _db()
+    try:
+        if db:
+            from db import models
+            lesson = db.get(models.Lesson, lesson_id)
+            if lesson and lesson.output_dir:
+                qp = Path(lesson.output_dir) / "quiz.json"
+                if qp.exists():
+                    return json.loads(qp.read_text(encoding="utf-8"))
+    finally:
+        if db:
+            db.close()
+    return {"lesson_id": lesson_id, "questions": []}
+
+
+#  Failed Lessons Alert 
+
+@app.get("/api/alerts")
+def get_alerts():
+    """
+    Returns aggregate alert counts across all courses.
+    Used by GUI to show red banner if any lessons failed.
+    """
+    db = _db()
+    if not db:
+        return {"failed_lessons": 0, "details": []}
+    try:
+        from db import models
+        failed = db.query(models.Lesson).filter(models.Lesson.status == "failed").all()
+        details = []
+        for l in failed:
+            err = ""
+            if l.output_dir:
+                fp = Path(l.output_dir) / "FAILED.txt"
+                if fp.exists():
+                    err = fp.read_text(encoding="utf-8")[:200]
+            details.append({
+                "lesson_id": l.id,
+                "lesson_title": l.title,
+                "course_id": l.course_id,
+                "error": err or getattr(l, "error", ""),
+            })
+        return {"failed_lessons": len(failed), "details": details}
+    finally:
+        db.close()
+
+
+#  Usage & Health 
 
 @app.get("/api/usage")
 def get_usage():
@@ -213,4 +276,4 @@ def get_usage():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "2.0"}
+    return {"status": "ok", "version": "2.1"}
