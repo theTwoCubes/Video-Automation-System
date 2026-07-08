@@ -149,7 +149,7 @@ def _png_to_video(
             "-i", _fwd(audio_path),
             "-t", str(duration),
             "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
             "-c:a", "aac", "-b:a", "192k",
             "-shortest",
             _fwd(output_path),
@@ -161,7 +161,7 @@ def _png_to_video(
             "-t", str(duration),
             "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
             "-an",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
             _fwd(output_path),
         ]
 

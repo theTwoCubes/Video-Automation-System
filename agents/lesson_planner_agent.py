@@ -67,7 +67,7 @@ class LessonPlannerAgent(BaseAgent):
     def run(self, state: dict) -> dict:
         print(f"[LessonPlannerAgent] Planning: {state['lesson_title']}")
 
-        source_id = state["source_id"]
+        source_ids = state.get("source_ids", [])
         lesson_id = state["lesson_id"]
         title = state["lesson_title"]
         tags = ", ".join(state.get("topic_tags", []))
@@ -90,7 +90,7 @@ class LessonPlannerAgent(BaseAgent):
             continuity_block = ""
 
         # RAG context for this specific topic
-        chunks = self.ingestion.query(source_id, title, n_results=6)
+        chunks = self.ingestion.query(source_ids, title, n_results=6)
         rag_context = "\n\n---\n\n".join(chunks) if chunks else "No context available."
 
         user_msg = USER_TEMPLATE.format(

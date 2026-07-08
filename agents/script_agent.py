@@ -118,7 +118,7 @@ class ScriptAgent(BaseAgent):
     def run(self, state: dict) -> dict:
         print(f"[ScriptAgent] Writing script for: {state['lesson_title']}")
 
-        source_id = state["source_id"]
+        source_ids = state.get("source_ids", [])
         lesson_id = state["lesson_id"]
         lesson_plan = state.get("lesson_plan", {})
         duration = lesson_plan.get("duration_estimate_minutes", 12)
@@ -127,7 +127,7 @@ class ScriptAgent(BaseAgent):
         key_concepts = lesson_plan.get("key_concepts", [state["lesson_title"]])
         chunks = []
         for concept in key_concepts[:4]:
-            chunks.extend(self.ingestion.query(source_id, concept, n_results=3))
+            chunks.extend(self.ingestion.query(source_ids, concept, n_results=3))
 
         seen = set()
         unique_chunks = []

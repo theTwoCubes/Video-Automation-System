@@ -62,30 +62,34 @@ def list_courses():
         for c in courses:
             lessons = db.query(models.Lesson).filter(models.Lesson.course_id == c.id).all()
             done = sum(1 for l in lessons if l.status == "done")
-            source_data = None
-            if c.source_id:
-                src = db.get(models.KnowledgeSource, c.source_id)
-                if src:
-                    tags_parsed = []
-                    try:
-                        import json
-                        tags_parsed = json.loads(src.topic_tags) if src.topic_tags else []
-                    except:
-                        pass
-                    source_data = {
-                        "id": src.id,
-                        "name": src.name,
-                        "type": src.type,
-                        "chunk_count": src.chunk_count,
-                        "status": src.status,
-                        "topic_tags": tags_parsed
-                    }
+            sources_data = []
+            if c.source_ids:
+                try:
+                    s_ids = json.loads(c.source_ids)
+                except:
+                    s_ids = []
+                for sid in s_ids:
+                    src = db.get(models.KnowledgeSource, sid)
+                    if src:
+                        tags_parsed = []
+                        try:
+                            tags_parsed = json.loads(src.topic_tags) if src.topic_tags else []
+                        except:
+                            pass
+                        sources_data.append({
+                            "id": src.id,
+                            "name": src.name,
+                            "type": src.type,
+                            "chunk_count": src.chunk_count,
+                            "status": src.status,
+                            "topic_tags": tags_parsed
+                        })
 
             result.append({
                 "id": c.id,
                 "title": c.title,
                 "target_audience": getattr(c, "target_audience", ""),
-                "source": source_data,
+                "sources": sources_data,
                 "total_lessons": len(lessons),
                 "done_lessons": done,
                 "pending_lessons": sum(1 for l in lessons if l.status == "pending"),
@@ -252,7 +256,13 @@ def add_knowledge_source(
                 from db import models
                 c = db2.get(models.Course, course_id)
                 if c:
-                    c.source_id = sid
+                    import json
+                    try:
+                        s_ids = json.loads(c.source_ids) if c.source_ids else []
+                    except:
+                        s_ids = []
+                    s_ids.append(sid)
+                    c.source_ids = json.dumps(s_ids)
                     db2.commit()
                 db2.close()
 
@@ -283,24 +293,22 @@ def query_knowledge(course_id: str, req: QueryRequest):
     try:
         from db import models
         course = db.get(models.Course, course_id)
-        if not course or not course.source_id:
+        import json
+        try:
+            s_ids = json.loads(course.source_ids) if course.source_ids else []
+        except:
+            s_ids = []
+            
+        if not course or not s_ids:
             raise HTTPException(status_code=400, detail="Course has no knowledge source")
         
-        # Query Chroma
+        if not req.query.strip():
+            return {"chunks": []}
+            
         from services.knowledge.ingestion import KnowledgeIngestionService
         svc = KnowledgeIngestionService()
-        collection = svc._get_collection(course.source_id)
         
-        embeds = svc.embedder.embed(req.query)
-        results = collection.query(
-            query_embeddings=[embeds],
-            n_results=3
-        )
-        
-        chunks = []
-        if results and results["documents"]:
-            for doc in results["documents"][0]:
-                chunks.append(doc)
+        chunks = svc.query(s_ids, req.query, n_results=3)
         
         return {"chunks": chunks}
     finally:
@@ -321,9 +329,16 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
     try:
         from db import models
         course = db.get(models.Course, req.course_id)
-        if not course or not course.source_id:
+        import json
+        try:
+            s_ids = json.loads(course.source_ids) if course.source_ids else []
+        except:
+            s_ids = []
+            
+        if not course or not s_ids:
             raise HTTPException(status_code=400, detail="Course or knowledge source not found")
-        source_id = course.source_id
+            
+        source_ids = s_ids
         topic = course.topic
         target_audience = course.target_audience
     finally:
@@ -337,7 +352,7 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
             from agents.curriculum_agent import CurriculumAgent
             agent = CurriculumAgent()
             state = {
-                "source_id": source_id,
+                "source_ids": source_ids,
                 "topic": topic,
                 "target_audience": target_audience,
                 "min_lessons": req.min_lessons,

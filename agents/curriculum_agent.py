@@ -52,18 +52,18 @@ class CurriculumAgent(BaseAgent):
     def run(self, state: dict) -> dict:
         print("[CurriculumAgent] Generating curriculum...")
 
-        source_id = state["source_id"]
+        source_ids = state.get("source_ids", [])
         topic = state.get("topic", "Programming")
         audience = state.get("target_audience", "beginners")
         source_name = state.get("source_name", topic)
         min_lessons = state.get("min_lessons", 30)
 
         # 1. Grab the Table of Contents (first 20 chunks should cover it + intro)
-        toc_chunks = self.ingestion.get_first_chunks(source_id, n_chunks=20)
+        toc_chunks = self.ingestion.get_first_chunks(source_ids, n_chunks=20)
         
         # 2. Grab some general overview chunks via RAG
         overview_chunks = self.ingestion.query(
-            source_id,
+            source_ids,
             f"table of contents, chapters, topics covered in {topic}",
             n_results=10,
         )

@@ -160,7 +160,7 @@ def create_code_reveal_segment(
         "-i", _fwd(Path(merged_audio)),
         "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
         "-af", "apad=pad_dur=0.8",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
         "-c:a", "aac", "-b:a", "192k",
         "-shortest",
         _fwd(output_abs),

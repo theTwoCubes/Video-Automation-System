@@ -25,6 +25,8 @@ export function Curricula() {
 
   const [currTaskId, setCurrTaskId] = useState(null);
   const currStatus = usePolling(currTaskId ? `${API}/curricula/tasks/${currTaskId}` : null, 2000, !!currTaskId);
+  
+  const [minLessons, setMinLessons] = useState(15);
 
   if (!course && courses) return <div className="p-8 text-zinc-400">Course not found.</div>;
   if (!course) return <div className="p-8 text-zinc-400">Loading...</div>;
@@ -77,7 +79,7 @@ export function Curricula() {
       const res = await fetch(`${API}/curricula/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ course_id: courseId, min_lessons: 15 }),
+        body: JSON.stringify({ course_id: courseId, min_lessons: Number(minLessons) }),
       });
       const data = await res.json();
       if (data.task_id) setCurrTaskId(data.task_id);
@@ -104,32 +106,36 @@ export function Curricula() {
       {activeTab === 'knowledge' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">
-            {course.source && (
-              <div className="bg-zinc-900/50 border border-zinc-700 p-5 rounded-xl">
-                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Active Knowledge Source</h2>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-zinc-100 font-medium">{course.source.name}</span>
-                  <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded uppercase">{course.source.type}</span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-zinc-500 mb-3">
-                  <span>Chunks: {course.source.chunk_count}</span>
-                  <span>Status: <span className={course.source.status === 'done' ? 'text-green-500' : 'text-yellow-500'}>{course.source.status}</span></span>
-                </div>
-                {course.source.topic_tags && course.source.topic_tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {course.source.topic_tags.map(tag => (
-                      <span key={tag} className="px-2 py-1 bg-zinc-800/50 border border-zinc-700 text-zinc-300 text-[10px] uppercase tracking-wider rounded-md">
-                        {tag}
-                      </span>
-                    ))}
+            {course.sources && course.sources.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Active Knowledge Sources ({course.sources.length})</h2>
+                {course.sources.map(source => (
+                  <div key={source.id} className="bg-zinc-900/50 border border-zinc-700 p-5 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-zinc-100 font-medium">{source.name}</span>
+                      <span className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded uppercase">{source.type}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-zinc-500 mb-3">
+                      <span>Chunks: {source.chunk_count}</span>
+                      <span>Status: <span className={source.status === 'done' ? 'text-green-500' : 'text-yellow-500'}>{source.status}</span></span>
+                    </div>
+                    {source.topic_tags && source.topic_tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {source.topic_tags.map(tag => (
+                          <span key={tag} className="px-2 py-1 bg-zinc-800/50 border border-zinc-700 text-zinc-300 text-[10px] uppercase tracking-wider rounded-md">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             )}
 
             <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
               <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-zinc-400" /> {course.source ? 'Overwrite Source' : 'Add Knowledge Source'}
+                <Upload className="w-5 h-5 text-zinc-400" /> {course.sources && course.sources.length > 0 ? 'Add Another Source' : 'Add Knowledge Source'}
               </h2>
               <form onSubmit={handleIngest} className="space-y-4">
                 <div>
@@ -152,7 +158,7 @@ export function Curricula() {
                   <input required value={sourceName} onChange={e => setSourceName(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:border-zinc-500" placeholder="e.g. Official Docs" />
                 </div>
                 <button type="submit" disabled={ingestStatus?.status === 'running'} className="w-full bg-white text-black font-medium py-2 rounded-md hover:bg-zinc-200 disabled:opacity-50 transition-colors">
-                  {course.source ? 'Overwrite Data' : 'Ingest Data'}
+                  {course.sources && course.sources.length > 0 ? 'Add Source' : 'Ingest Data'}
                 </button>
                 
                 {ingestStatus && (
@@ -190,9 +196,21 @@ export function Curricula() {
         <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-medium flex items-center gap-2"><BookOpen className="w-5 h-5 text-zinc-400" /> Generated Curriculum</h2>
-            <button onClick={handleGenerate} disabled={currStatus?.status === 'running'} className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors">
-              <Play className="w-4 h-4" /> Generate AI Curriculum
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-zinc-400">Target Lessons:</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  value={minLessons} 
+                  onChange={(e) => setMinLessons(e.target.value)}
+                  className="w-20 bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-white focus:border-zinc-500"
+                />
+              </div>
+              <button onClick={handleGenerate} disabled={currStatus?.status === 'running'} className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-md font-medium hover:bg-zinc-200 disabled:opacity-50 transition-colors">
+                <Play className="w-4 h-4" /> Generate AI Curriculum
+              </button>
+            </div>
           </div>
           
           {currStatus && currStatus.status === 'running' && (

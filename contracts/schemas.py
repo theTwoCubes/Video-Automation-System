@@ -88,7 +88,7 @@ class SEOMetadata(BaseModel):
 
 
 class PipelineState(TypedDict):
-    source_id: str
+    source_ids: List[str]
     course_id: str
     course_title: str
     lesson_id: str

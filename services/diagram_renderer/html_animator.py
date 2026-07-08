@@ -97,7 +97,7 @@ def assemble_diagram_video(
         "-f", "concat", "-safe", "0", "-i", _fwd(concat_file),
         "-vf", "scale=1920:1080:flags=lanczos,fps=30",
         "-an",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
         _fwd(Path(output_path)),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)

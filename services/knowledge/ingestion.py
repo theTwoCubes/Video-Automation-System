@@ -127,34 +127,55 @@ class KnowledgeIngestionService:
         print(f"Ingested {len(chunks)} chunks. Source ID: {source_id}")
         return source_id
 
-    def query(self, source_id: str, query: str, n_results: int = 5) -> list[str]:
-        """RAG query. Returns top-n relevant chunks."""
-        collection = self._get_collection(source_id)
+    def query(self, source_ids: list[str], query: str, n_results: int = 5) -> list[str]:
+        """RAG query across multiple sources. Returns top-n relevant chunks."""
+        if not source_ids:
+            return []
         query_embedding = self.embedder.embed(query)
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(n_results, collection.count()),
-        )
-        return results["documents"][0] if results["documents"] else []
-
-    def get_first_chunks(self, source_id: str, n_chunks: int = 15) -> list[str]:
-        """Fetch the first N chunks of the document to guarantee Table of Contents capture."""
-        collection = self._get_collection(source_id)
-        # Attempt to get chunk_0 to chunk_{n_chunks-1}
-        ids_to_fetch = [f"{source_id}_chunk_{i}" for i in range(n_chunks)]
-        results = collection.get(ids=ids_to_fetch)
         
-        # Sort results by the chunk index to maintain order
-        if not results or not results["documents"]:
+        all_results = []
+        for sid in source_ids:
+            collection = self._get_collection(sid)
+            count = collection.count()
+            if count == 0: continue
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=min(n_results, count),
+            )
+            if results["documents"] and results["distances"]:
+                docs = results["documents"][0]
+                dists = results["distances"][0]
+                for doc, dist in zip(docs, dists):
+                    all_results.append((dist, doc))
+                    
+        # Sort by distance (lower is closer)
+        all_results.sort(key=lambda x: x[0])
+        top_n = all_results[:n_results]
+        return [doc for _, doc in top_n]
+
+    def get_first_chunks(self, source_ids: list[str], n_chunks: int = 15) -> list[str]:
+        """Fetch the first N chunks of the document to guarantee Table of Contents capture."""
+        if not source_ids:
             return []
             
-        docs_with_indices = []
-        for doc_id, doc_text in zip(results["ids"], results["documents"]):
-            try:
-                idx = int(doc_id.split("_chunk_")[-1])
-                docs_with_indices.append((idx, doc_text))
-            except ValueError:
+        all_docs = []
+        for sid in source_ids:
+            collection = self._get_collection(sid)
+            ids_to_fetch = [f"{sid}_chunk_{i}" for i in range(n_chunks)]
+            results = collection.get(ids=ids_to_fetch)
+            
+            if not results or not results["documents"]:
                 continue
                 
-        docs_with_indices.sort(key=lambda x: x[0])
-        return [doc for _, doc in docs_with_indices]
+            docs_with_indices = []
+            for doc_id, doc_text in zip(results["ids"], results["documents"]):
+                try:
+                    idx = int(doc_id.split("_chunk_")[-1])
+                    docs_with_indices.append((idx, doc_text))
+                except ValueError:
+                    continue
+                    
+            docs_with_indices.sort(key=lambda x: x[0])
+            all_docs.extend([doc for _, doc in docs_with_indices])
+            
+        return all_docs
