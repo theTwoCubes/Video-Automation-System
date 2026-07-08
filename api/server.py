@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -62,10 +62,30 @@ def list_courses():
         for c in courses:
             lessons = db.query(models.Lesson).filter(models.Lesson.course_id == c.id).all()
             done = sum(1 for l in lessons if l.status == "done")
+            source_data = None
+            if c.source_id:
+                src = db.get(models.KnowledgeSource, c.source_id)
+                if src:
+                    tags_parsed = []
+                    try:
+                        import json
+                        tags_parsed = json.loads(src.topic_tags) if src.topic_tags else []
+                    except:
+                        pass
+                    source_data = {
+                        "id": src.id,
+                        "name": src.name,
+                        "type": src.type,
+                        "chunk_count": src.chunk_count,
+                        "status": src.status,
+                        "topic_tags": tags_parsed
+                    }
+
             result.append({
                 "id": c.id,
                 "title": c.title,
                 "target_audience": getattr(c, "target_audience", ""),
+                "source": source_data,
                 "total_lessons": len(lessons),
                 "done_lessons": done,
                 "pending_lessons": sum(1 for l in lessons if l.status == "pending"),
@@ -73,6 +93,34 @@ def list_courses():
                 "failed_lessons": sum(1 for l in lessons if l.status == "failed"),
             })
         return result
+    finally:
+        db.close()
+
+class CourseCreateRequest(BaseModel):
+    title: str
+    topic: str
+    target_audience: str = "beginners"
+    difficulty: str = "mixed"
+
+@app.post("/api/courses")
+def create_course(req: CourseCreateRequest):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        import uuid
+        course_id = req.topic.lower().replace(" ", "_").replace("-", "_") + "_" + str(uuid.uuid4())[:4]
+        course = models.Course(
+            id=course_id,
+            title=req.title,
+            topic=req.topic,
+            target_audience=req.target_audience,
+            difficulty=req.difficulty,
+        )
+        db.add(course)
+        db.commit()
+        return {"id": course.id, "title": course.title}
     finally:
         db.close()
 
@@ -149,26 +197,65 @@ def get_slides(lesson_id: str):
 class IngestRequest(BaseModel):
     source: str
     name: str
-    topic: str
     source_type: str = "pdf"
     tags: str = ""
 
-@app.post("/api/ingest")
-def trigger_ingestion(req: IngestRequest, background_tasks: BackgroundTasks):
+@app.post("/api/courses/{course_id}/source")
+def add_knowledge_source(
+    course_id: str, 
+    background_tasks: BackgroundTasks,
+    name: str = Form(...),
+    source_type: str = Form(...),
+    source: str = Form(None),
+    file: UploadFile = File(None)
+):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        course = db.get(models.Course, course_id)
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        topic = course.topic
+    finally:
+        db.close()
+
     task_id = f"ingest_{datetime.utcnow().strftime('%H%M%S')}"
     _ingest_tasks[task_id] = {"status": "running", "source_id": None, "error": None}
+
+    # If it's a PDF upload, save it to a temporary file
+    final_source = source
+    if source_type == "pdf" and file:
+        import shutil
+        upload_dir = Path("data/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path = upload_dir / f"{task_id}_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        final_source = str(file_path.absolute())
 
     def _do_ingest():
         try:
             from services.knowledge.ingestion import KnowledgeIngestionService
             svc = KnowledgeIngestionService()
-            tag_list = [req.topic.lower()] + [t.strip().lower() for t in req.tags.split(",") if t.strip()]
+            tag_list = [topic.lower()]
             sid = svc.ingest(
-                name=req.name,
-                source_type=req.source_type,
-                path_or_url=req.source,
+                name=name,
+                source_type=source_type,
+                path_or_url=final_source,
                 topic_tags=tag_list,
             )
+            # Link to course
+            db2 = _db()
+            if db2:
+                from db import models
+                c = db2.get(models.Course, course_id)
+                if c:
+                    c.source_id = sid
+                    db2.commit()
+                db2.close()
+
             _ingest_tasks[task_id]["status"] = "done"
             _ingest_tasks[task_id]["source_id"] = sid
         except Exception as e:
@@ -185,16 +272,63 @@ def get_ingest_status(task_id: str):
     return _ingest_tasks[task_id]
 
 
+class QueryRequest(BaseModel):
+    query: str
+
+@app.post("/api/courses/{course_id}/query")
+def query_knowledge(course_id: str, req: QueryRequest):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        course = db.get(models.Course, course_id)
+        if not course or not course.source_id:
+            raise HTTPException(status_code=400, detail="Course has no knowledge source")
+        
+        # Query Chroma
+        from services.knowledge.ingestion import KnowledgeIngestionService
+        svc = KnowledgeIngestionService()
+        collection = svc._get_collection(course.source_id)
+        
+        embeds = svc.embedder.embed(req.query)
+        results = collection.query(
+            query_embeddings=[embeds],
+            n_results=3
+        )
+        
+        chunks = []
+        if results and results["documents"]:
+            for doc in results["documents"][0]:
+                chunks.append(doc)
+        
+        return {"chunks": chunks}
+    finally:
+        db.close()
+
+
 #  Curriculum Generation 
 
 class CurriculaGenerateRequest(BaseModel):
-    source_id: str
-    topic: str
-    target_audience: str = "beginners"
+    course_id: str
     min_lessons: int = 30
 
 @app.post("/api/curricula/generate")
 def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: BackgroundTasks):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        course = db.get(models.Course, req.course_id)
+        if not course or not course.source_id:
+            raise HTTPException(status_code=400, detail="Course or knowledge source not found")
+        source_id = course.source_id
+        topic = course.topic
+        target_audience = course.target_audience
+    finally:
+        db.close()
+
     task_id = f"curr_{datetime.utcnow().strftime('%H%M%S')}"
     _curricula_tasks[task_id] = {"status": "running", "curriculum": None, "error": None}
 
@@ -203,30 +337,23 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
             from agents.curriculum_agent import CurriculumAgent
             agent = CurriculumAgent()
             state = {
-                "source_id": req.source_id,
-                "topic": req.topic,
-                "target_audience": req.target_audience,
+                "source_id": source_id,
+                "topic": topic,
+                "target_audience": target_audience,
                 "min_lessons": req.min_lessons,
             }
             res = agent.run(state)
             
-            # Save curriculum to DB automatically as a new Course
-            db = _db()
-            if db:
+            # Save curriculum to DB automatically
+            db2 = _db()
+            if db2:
                 from db import models
-                curr = res.get("curriculum", {})
-                course_id = req.topic.lower().replace(" ", "_")
-                
-                # Create course if doesn't exist
-                course = db.get(models.Course, course_id)
-                if not course:
-                    course = models.Course(id=course_id, title=curr.get("course_title", req.topic))
-                    db.add(course)
-                    
-                # Save as a draft curriculum JSON string
-                course.curriculum = json.dumps(curr)
-                db.commit()
-                db.close()
+                c = db2.get(models.Course, req.course_id)
+                if c:
+                    curr = res.get("curriculum", {})
+                    c.curriculum = json.dumps(curr)
+                    db2.commit()
+                db2.close()
 
             _curricula_tasks[task_id]["status"] = "done"
             _curricula_tasks[task_id]["curriculum"] = res.get("curriculum")

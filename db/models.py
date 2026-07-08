@@ -36,7 +36,7 @@ class Course(Base):
     description: Mapped[str] = mapped_column(Text, nullable=True)
     difficulty: Mapped[str] = mapped_column(String(20), default="mixed")
     target_audience: Mapped[str] = mapped_column(String(100), default="beginners")
-    source_id: Mapped[str] = mapped_column(String(36), ForeignKey("knowledge_sources.id"))
+    source_id: Mapped[str] = mapped_column(String(36), ForeignKey("knowledge_sources.id"), nullable=True)
     curriculum: Mapped[str] = mapped_column(Text, default="{}")  # JSON
     status: Mapped[str] = mapped_column(String(20), default="draft")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

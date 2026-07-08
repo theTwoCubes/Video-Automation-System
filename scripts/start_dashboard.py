@@ -17,7 +17,7 @@ ROOT = Path(__file__).parent.parent
 
 
 def main():
-    print("\n🎬  theTwoCubes Learning Dashboard\n")
+    print("\ntheTwoCubes Learning Dashboard\n")
     print("  Starting API server on http://localhost:8000 ...")
     print("  Starting GUI on     http://localhost:5173 ...\n")
 

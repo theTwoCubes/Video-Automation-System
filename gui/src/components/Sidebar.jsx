@@ -1,38 +1,35 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, FlaskConical, Video, Settings, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Video, Settings, HelpCircle, Box } from 'lucide-react';
 
 export function Sidebar() {
   return (
-    <nav className="sidebar">
-      <div className="sidebar-logo">
-        <div className="brand">
-          <div className="cube-icon" />
+    <nav className="w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col h-full">
+      <div className="p-6 border-b border-zinc-900">
+        <div className="flex items-center gap-3 text-zinc-100 font-semibold tracking-tight text-lg">
+          <Box className="w-6 h-6 text-zinc-400" />
           theTwoCubes
         </div>
-        <div className="sub">Video Automation System</div>
+        <div className="text-xs text-zinc-500 mt-1">Video Automation System</div>
       </div>
       
-      <div className="sidebar-nav">
-        <NavLink to="/" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <LayoutDashboard /> Dashboard
+      <div className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto">
+        <NavLink to="/" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <LayoutDashboard className="w-4 h-4" /> Dashboard
         </NavLink>
-        <NavLink to="/knowledge" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <BookOpen /> Knowledge Base
+        <NavLink to="/curricula" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <FlaskConical className="w-4 h-4" /> Curricula
         </NavLink>
-        <NavLink to="/curricula" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <FlaskConical /> Curricula
-        </NavLink>
-        <NavLink to="/pipeline" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <Video /> Pipeline Monitor
+        <NavLink to="/pipeline" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <Video className="w-4 h-4" /> Pipeline Monitor
         </NavLink>
       </div>
 
-      <div className="sidebar-footer">
-        <NavLink to="/settings" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <Settings /> Settings
+      <div className="p-4 border-t border-zinc-900 flex flex-col gap-1">
+        <NavLink to="/settings" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <Settings className="w-4 h-4" /> Settings
         </NavLink>
-        <NavLink to="/help" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <HelpCircle /> Documentation
+        <NavLink to="/help" className={({isActive}) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <HelpCircle className="w-4 h-4" /> Documentation
         </NavLink>
       </div>
     </nav>

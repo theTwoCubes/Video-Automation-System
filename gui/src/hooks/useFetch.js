@@ -22,9 +22,20 @@ export function usePolling(url, intervalMs = 2000, enabled = true) {
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!enabled || !url) return;
-    const tick = () => fetch(url).then(r => r.json()).then(setData).catch(() => {});
+    let id;
+    const tick = () => {
+      fetch(url)
+        .then(r => r.json())
+        .then(d => {
+          setData(d);
+          if (d?.status === 'done' || d?.status === 'failed') {
+            if (id) clearInterval(id);
+          }
+        })
+        .catch(() => {});
+    };
     tick();
-    const id = setInterval(tick, intervalMs);
+    id = setInterval(tick, intervalMs);
     return () => clearInterval(id);
   }, [url, intervalMs, enabled]);
   return data;

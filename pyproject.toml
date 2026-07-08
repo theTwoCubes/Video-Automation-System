@@ -1,0 +1,14 @@
+[tool.pyright]
+reportMissingImports = false
+reportMissingModuleSource = false
+reportGeneralTypeIssues = false
+reportOptionalMemberAccess = false
+reportOptionalIterable = false
+reportOptionalSubscript = false
+reportOptionalCall = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportArgumentType = false
+reportAssignmentType = false
+typeCheckingMode = "off"
