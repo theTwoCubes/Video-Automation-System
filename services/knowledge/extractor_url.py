@@ -4,30 +4,30 @@ import re
 
 
 def extract_url(url: str, timeout: int = 30) -> str:
-    """Fetch and extract readable text from a URL."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; theTwoCubes/1.0; educational bot)"
-    }
-    with httpx.Client(follow_redirects=True, timeout=timeout) as client:
-        response = client.get(url, headers=headers)
-        response.raise_for_status()
+    """Fetch and extract readable text from a URL using Playwright for CSR support."""
+    from playwright.sync_api import sync_playwright
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    # remove nav, footer, scripts, styles
-    for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
-        tag.decompose()
-
-    # extract main content area if available
-    main = soup.find("main") or soup.find("article") or soup.find("div", class_=re.compile(r"content|main|body"))
-    if main:
-        text = main.get_text(separator="\n")
-    else:
-        text = soup.get_text(separator="\n")
-
-    # clean up whitespace
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    return "\n".join(lines)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+            # wait until network is mostly idle to ensure JS framework has rendered
+            page.goto(url, timeout=timeout * 1000, wait_until="networkidle")
+            
+            # extract main content or body text, removing scripts/styles
+            text = page.evaluate("""() => {
+                const clones = document.body.cloneNode(true);
+                clones.querySelectorAll('script, style, nav, footer, header, aside').forEach(el => el.remove());
+                const main = clones.querySelector('main') || clones.querySelector('article') || clones;
+                return main.innerText;
+            }""")
+            
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            return "\n".join(lines)
+        finally:
+            browser.close()
 
 
 def extract_markdown_dir(dir_path: str) -> str:

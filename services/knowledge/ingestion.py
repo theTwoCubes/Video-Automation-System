@@ -95,7 +95,7 @@ class KnowledgeIngestionService:
 
         for i, chunk in enumerate(chunks):
             chunk_ids.append(f"{source_id}_chunk_{i}")
-            chunk_texts.append(chunk[:2000])  # chromadb text limit safety
+            chunk_texts.append(chunk)  # chunker already enforces length limit
             chunk_metas.append({
                 "source_id": source_id,
                 "chunk_index": i,

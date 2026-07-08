@@ -33,7 +33,20 @@ def chunk_text(text: str, max_tokens: int = 500, overlap: int = 50) -> List[str]
                     else:
                         if current:
                             chunks.append(current)
-                        current = sent
+                        
+                        # if a single sentence is STILL too long, split by words
+                        if len(sent) > max_chars:
+                            words = sent.split()
+                            temp = ""
+                            for w in words:
+                                if len(temp) + len(w) <= max_chars:
+                                    temp = (temp + " " + w).strip()
+                                else:
+                                    chunks.append(temp)
+                                    temp = w
+                            current = temp
+                        else:
+                            current = sent
 
     if current:
         chunks.append(current)

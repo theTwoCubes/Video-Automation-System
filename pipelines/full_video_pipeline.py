@@ -57,10 +57,14 @@ def _load_checkpoint(output_dir: str, step: str) -> dict | None:
 
 
 def _with_checkpoint(step_name: str, agent_fn):
-    """Wrap a node function with checkpoint save/load logic."""
+    """Wrap a node function with checkpoint save/load logic and error handling."""
     fields = AGENT_FIELDS.get(step_name, [])
 
     def wrapped(state: PipelineState) -> PipelineState:
+        if state.get("error"):
+            print(f"[{step_name}] Skipping execution because pipeline is in error state.")
+            return state
+
         output_dir = state.get("output_dir", "")
         if output_dir:
             saved = _load_checkpoint(output_dir, step_name)
@@ -68,7 +72,13 @@ def _with_checkpoint(step_name: str, agent_fn):
                 print(f"[Checkpoint] Skipping {step_name} — loaded from checkpoint")
                 return {**state, **saved}
 
-        result = agent_fn(state)
+        try:
+            result = agent_fn(state)
+        except Exception as e:
+            import traceback
+            err_msg = f"Exception in {step_name}:\n{e}\n{traceback.format_exc()}"
+            print(f"[Error] {err_msg}")
+            result = {**state, "error": err_msg}
 
         if output_dir and not result.get("error") and fields:
             _save_checkpoint(output_dir, step_name, result, fields)
@@ -246,11 +256,24 @@ def run_pipeline(
 
     # clear checkpoints if forcing a fresh restart
     if force_restart:
+        import shutil
         cp_dir = Path(output_dir) / "checkpoints"
         if cp_dir.exists():
-            import shutil
             shutil.rmtree(cp_dir)
-            print("[Pipeline] Cleared checkpoints for fresh run.")
+            
+        # Clear old media to prevent disk bloat
+        seg_dir = Path(output_dir) / "segments"
+        if seg_dir.exists():
+            shutil.rmtree(seg_dir)
+            
+        for ext in ("*.mp4", "*.mp3", "*.png", "*.srt", "*.json"):
+            for f in Path(output_dir).glob(ext):
+                # Don't delete lesson_summary.json yet
+                if f.name != "lesson_summary.json":
+                    try: f.unlink()
+                    except: pass
+                    
+        print("[Pipeline] Cleared checkpoints and old media for fresh run.")
 
     initial_state: PipelineState = {
         "source_id": source_id,

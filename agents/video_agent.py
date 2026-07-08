@@ -32,8 +32,8 @@ def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> s
             continue
         try:
             dur = _get_audio_duration(audio_path, ffmpeg_exe)
-        except Exception:
-            dur = 5.0
+        except Exception as e:
+            raise RuntimeError(f"Corrupt or unreadable audio file: {audio_path}. ffprobe failed: {e}")
 
         start = _seconds_to_srt_time(cursor)
         end   = _seconds_to_srt_time(cursor + dur)
