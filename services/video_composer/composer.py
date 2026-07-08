@@ -100,7 +100,7 @@ def _apply_xfade_transitions(
     durations: List[float],
     output_path: Path,
     ffmpeg_exe: str,
-    transition_duration: float = 0.4,
+    transition_duration: float = 0.5,
     transition_hints: Optional[List[str]] = None,
 ) -> bool:
     """

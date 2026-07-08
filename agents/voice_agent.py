@@ -56,7 +56,7 @@ def _trim_silence(audio_path: str, ffmpeg_exe: str) -> None:
         ffmpeg_exe, "-y", "-i", audio_path,
         "-af", (
             "silenceremove=start_periods=1:start_silence=0.2:start_threshold=-50dB"
-            ":stop_periods=1:stop_silence=0.2:stop_threshold=-50dB"
+            ":stop_periods=-1:stop_silence=0.2:stop_threshold=-50dB"
         ),
         "-c:a", "libmp3lame", "-q:a", "2", tmp,
     ]

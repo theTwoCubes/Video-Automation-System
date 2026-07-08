@@ -15,43 +15,26 @@ INTRO_HTML = """
 <head>
 <meta charset="utf-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     width: 1920px; height: 1080px;
-    background: #080b10; font-family: 'Outfit', sans-serif;
+    background: #000000; font-family: 'Outfit', sans-serif;
     overflow: hidden; position: relative;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
   }
-  .bg-glow {
-    position: absolute;
-    width: 800px; height: 800px;
-    background: radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%);
-    top: 50%; left: 50%; transform: translate(-50%, -50%);
-    border-radius: 50%;
-  }
-  .bg-glow2 {
-    position: absolute;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%);
-    top: 30%; left: 70%; transform: translate(-50%, -50%);
-    border-radius: 50%;
-  }
-  .left-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: linear-gradient(180deg, #00c896, #ff6b35); }
-  .center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-  .course-label { font-size: 16px; font-weight: 700; color: #00c896; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 24px; opacity: 0.9; }
-  .lesson-title { font-size: 72px; font-weight: 900; color: #fff; line-height: 1.1; max-width: 1400px; background: linear-gradient(135deg, #fff 40%, #00c896); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .lesson-num { font-size: 20px; color: rgba(255,255,255,0.35); margin-top: 24px; font-weight: 300; letter-spacing: 0.1em; }
-  .channel { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); font-size: 18px; font-weight: 700; color: #00c896; letter-spacing: 0.06em; opacity: 0.7; }
+  .center { text-align: center; max-width: 1400px; }
+  .course-label { font-size: 20px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 32px; }
+  .lesson-title { font-size: 96px; font-weight: 800; color: #ffffff; line-height: 1.1; letter-spacing: -0.02em; }
+  .lesson-num { font-size: 24px; color: #52525b; margin-top: 32px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; }
+  .channel { position: absolute; bottom: 60px; font-size: 20px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.1em; }
   {% if logo_b64 %}
-  .logo { position: absolute; top: 36px; right: 50px; }
-  .logo img { height: 50px; width: auto; opacity: 0.85; }
+  .logo { position: absolute; top: 60px; }
+  .logo img { height: 48px; width: auto; opacity: 0.8; filter: grayscale(100%) brightness(200%); }
   {% endif %}
 </style>
 </head>
 <body>
-  <div class="bg-glow"></div>
-  <div class="bg-glow2"></div>
-  <div class="left-bar"></div>
   {% if logo_b64 %}
   <div class="logo"><img src="data:image/png;base64,{{ logo_b64 }}" /></div>
   {% endif %}
@@ -60,7 +43,7 @@ INTRO_HTML = """
     <div class="lesson-title">{{ lesson_title }}</div>
     <div class="lesson-num">Lesson {{ lesson_position }}</div>
   </div>
-  <div class="channel">theTwoCubes Learning</div>
+  <div class="channel">theTwoCubes</div>
 </body>
 </html>
 """
@@ -71,41 +54,48 @@ OUTRO_HTML = """
 <head>
 <meta charset="utf-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     width: 1920px; height: 1080px;
-    background: #080b10; font-family: 'Outfit', sans-serif;
+    background: #000000; font-family: 'Outfit', sans-serif;
     overflow: hidden; position: relative;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
   }
-  .bg-glow { position: absolute; width: 900px; height: 900px; background: radial-gradient(circle, rgba(0,200,150,0.1) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%; }
-  .left-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: linear-gradient(180deg, #00c896, #ff6b35); }
-  .center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 1600px; }
-  .tag { font-size: 14px; font-weight: 700; color: #00c896; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 20px; }
-  .cta-text { font-size: 64px; font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 24px; }
-  .cta-text span { color: #00c896; }
-  .sub { font-size: 22px; color: rgba(255,255,255,0.45); margin-bottom: 40px; }
-  .next-up { background: rgba(0,200,150,0.07); border: 1px solid rgba(0,200,150,0.2); border-radius: 12px; padding: 24px 40px; display: inline-block; }
-  .next-label { font-size: 13px; font-weight: 700; color: #00c896; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-  .next-title { font-size: 26px; font-weight: 600; color: #fff; }
-  .channel { position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%); font-size: 17px; font-weight: 700; color: rgba(255,255,255,0.25); letter-spacing: 0.06em; }
+  .center { text-align: center; width: 1600px; }
+  .tag { font-size: 18px; font-weight: 600; color: #a1a1aa; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 40px; }
+  .cta-text { font-size: 80px; font-weight: 800; color: #ffffff; line-height: 1.1; margin-bottom: 24px; letter-spacing: -0.02em; }
+  .cta-text span { color: #ffffff; }
+  .sub { font-size: 28px; color: #71717a; margin-bottom: 60px; font-weight: 400; }
+  
+  {% if next_lesson_title %}
+  .next-up { 
+    background: #0a0a0a; border: 1px solid #27272a; 
+    border-radius: 12px; padding: 40px 60px; 
+    display: inline-block; text-align: left;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  }
+  .next-label { font-size: 16px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .next-title { font-size: 36px; font-weight: 600; color: #ffffff; }
+  {% endif %}
+  
+  .channel { position: absolute; bottom: 60px; font-size: 20px; font-weight: 600; color: #52525b; letter-spacing: 0.1em; text-transform: uppercase; }
 </style>
 </head>
 <body>
-  <div class="bg-glow"></div>
-  <div class="left-bar"></div>
   <div class="center">
-    <div class="tag">theTwoCubes Learning</div>
-    <div class="cta-text">Like · Share · <span>Subscribe</span></div>
-    <div class="sub">More programming tutorials every week</div>
+    <div class="tag">theTwoCubes</div>
+    <div class="cta-text">Like · Share · Subscribe</div>
+    <div class="sub">Advanced Programming Tutorials</div>
+    
     {% if next_lesson_title %}
     <div class="next-up">
-      <div class="next-label">▶ Up Next</div>
+      <div class="next-label">Coming Up Next</div>
       <div class="next-title">{{ next_lesson_title }}</div>
     </div>
     {% endif %}
   </div>
-  <div class="channel">theTwoCubes Learning</div>
+  <div class="channel">END OF LESSON</div>
 </body>
 </html>
 """

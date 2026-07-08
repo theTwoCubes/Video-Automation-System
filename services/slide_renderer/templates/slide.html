@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     width: {{ width }}px;
     height: {{ height }}px;
-    background: {{ bg }};
-    font-family: 'Outfit', 'Segoe UI', sans-serif;
-    color: {{ text_color }};
+    background: #0a0a0a; /* Vercel/Stripe clean dark */
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #ededed;
     overflow: hidden;
   }
 
@@ -23,74 +23,58 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    padding: 72px 110px 72px 120px;
+    padding: 80px 140px;
     position: relative;
-    background: {{ bg }};
+    background: #0a0a0a;
   }
 
-  /* left accent bar */
-  .slide::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 8px;
-    background: linear-gradient(180deg, {{ accent }}, {{ secondary_accent }});
-  }
-
-  /* top progress track */
+  /* Minimal progress track */
   .progress-track {
     position: absolute;
-    top: 0; left: 8px; right: 0;
-    height: 4px;
+    top: 0; left: 0; right: 0;
+    height: 3px;
     background: rgba(255,255,255,0.05);
   }
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, {{ accent }}, {{ secondary_accent }});
+    background: #ededed;
     transition: width 0.3s ease;
   }
 
   /* logo area */
   .logo-area {
     position: absolute;
-    top: 24px; right: 48px;
+    top: 40px; right: 60px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
-  .logo-area img { height: 40px; width: auto; opacity: 0.9; }
+  .logo-area img { height: 32px; width: auto; opacity: 0.8; filter: grayscale(100%) brightness(200%); }
   .channel-tag {
-    font-size: 15px; font-weight: 700;
-    color: {{ accent }}; letter-spacing: 0.06em; opacity: 0.85;
+    font-size: 14px; font-weight: 600;
+    color: #a1a1aa; letter-spacing: 0.05em;
   }
 
   /* slide counter */
   .slide-counter {
     position: absolute;
-    bottom: 24px; right: 48px;
-    font-size: 14px; font-weight: 600;
-    color: rgba(255,255,255,0.25);
+    bottom: 40px; right: 60px;
+    font-size: 14px; font-weight: 500;
+    color: #52525b;
     letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
   }
 
-  /* tag pill */
+  /* tag pill - subtle desktop app style */
   .tag-label {
     position: absolute;
-    top: 32px; left: 58px;
-    font-size: 12px; font-weight: 700;
-    color: {{ accent }};
-    background: rgba(0,200,150,0.08);
-    border: 1px solid rgba(0,200,150,0.28);
-    padding: 5px 14px; border-radius: 20px;
-    letter-spacing: 0.1em; text-transform: uppercase;
-  }
-
-  /* bottom accent */
-  .bottom-bar {
-    position: absolute;
-    bottom: 0; left: 0; right: 0; height: 4px;
-    background: linear-gradient(90deg, {{ accent }}, {{ secondary_accent }}, transparent 80%);
-    opacity: 0.4;
+    top: 40px; left: 140px;
+    font-size: 12px; font-weight: 600;
+    color: #a1a1aa;
+    background: #18181b;
+    border: 1px solid #27272a;
+    padding: 6px 12px; border-radius: 4px;
+    letter-spacing: 0.05em; text-transform: uppercase;
   }
 
   /* ── shared headline ── */
@@ -98,465 +82,269 @@
   .layout-summary h2,
   .layout-two_column h2,
   .layout-code h2,
-  .layout-numbered_steps h2,
-  .layout-checklist h2,
   .layout-comparison h2,
   .layout-error_fix h2,
-  .layout-terminal h2 {
-    font-size: 50px; font-weight: 700;
-    color: #fff; margin-bottom: 44px;
-    line-height: 1.1; max-width: 1450px;
-    id: "headline";
+  .layout-terminal h2,
+  .layout-numbered_steps h2,
+  .layout-checklist h2,
+  .layout-exercise h2 {
+    font-size: 64px;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 60px;
+    letter-spacing: -0.02em;
+    color: #ffffff;
   }
 
-  /* ── TITLE layout ── */
-  .layout-title .eyebrow {
-    font-size: 17px; color: {{ accent }};
-    font-weight: 700; letter-spacing: 0.18em;
-    text-transform: uppercase; margin-bottom: 26px;
+  .headline-container { width: 100%; }
+  
+  .layout-content h2.long-text,
+  .layout-summary h2.long-text,
+  .layout-code h2.long-text {
+    font-size: 52px;
   }
+
+  /* ── bullets ── */
+  ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+  li {
+    font-size: 38px;
+    line-height: 1.4;
+    color: #d4d4d8;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    font-weight: 400;
+  }
+  li::before {
+    content: "—";
+    color: #52525b;
+    font-weight: 400;
+  }
+
+  /* ── Layout: TITLE ── */
+  .layout-title { align-items: center; text-align: center; justify-content: center; padding: 0 160px; }
   .layout-title h1 {
-    font-size: 82px; font-weight: 900; line-height: 1.05;
-    background: linear-gradient(135deg, #ffffff 50%, {{ accent }});
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    background-clip: text; max-width: 1100px;
-    id: "title-headline";
+    font-size: 110px; font-weight: 700;
+    line-height: 1.05; letter-spacing: -0.03em;
+    margin-bottom: 32px; color: #ffffff;
   }
   .layout-title .subtitle {
-    margin-top: 28px; font-size: 26px;
-    color: rgba(255,255,255,0.45); max-width: 800px; line-height: 1.4;
+    font-size: 42px; font-weight: 400;
+    color: #a1a1aa; line-height: 1.4;
   }
 
-  /* ── CONTENT / SUMMARY bullets ── */
-  .bullets { display: flex; flex-direction: column; gap: 26px; }
-  .bullet {
-    display: flex; align-items: flex-start; gap: 20px;
-    font-size: 32px; font-weight: 400;
-    color: rgba(255,255,255,0.88); line-height: 1.35;
-    max-width: 1520px; id: "bullet-text";
+  /* ── Layout: CODE ── */
+  .code-container {
+    width: 100%;
+    flex: 1;
+    background: #000000;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
   }
-  .bullet code {
+  .code-header {
+    display: flex; gap: 8px; margin-bottom: 24px;
+  }
+  .code-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #3f3f46;
+  }
+  pre {
+    margin: 0;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 27px; color: {{ accent }};
-    background: rgba(0,200,150,0.08);
-    padding: 2px 8px; border-radius: 4px;
-  }
-  .bullet-dot {
-    min-width: 9px; height: 9px; border-radius: 50%;
-    background: {{ accent }}; margin-top: 15px; flex-shrink: 0;
-  }
-
-  /* ── TWO COLUMN layout ── */
-  .two-col {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 56px; width: 100%; max-width: 1600px;
-  }
-  .col-label {
-    font-size: 15px; font-weight: 700; color: {{ accent }};
-    letter-spacing: 0.1em; text-transform: uppercase;
-    margin-bottom: 22px; padding-bottom: 10px;
-    border-bottom: 1px solid rgba(0,200,150,0.22);
-  }
-
-  /* ── CODE layout ── */
-  .code-block {
-    background: #0a0a0a;
-    border: 1px solid #1e1e1e;
-    border-left: 4px solid {{ accent }};
-    border-radius: 10px;
-    padding: 32px 40px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 23px; line-height: 1.75; color: #e2e2e2;
-    width: 100%; max-width: 1620px;
-    overflow: hidden; white-space: pre;
-    position: relative;
-  }
-  .code-block .kw  { color: #c792ea; }
-  .code-block .str { color: #c3e88d; }
-  .code-block .cmt { color: #546E7A; font-style: italic; }
-  .code-block .num { color: #f78c6c; }
-  .code-block .fn  { color: #82aaff; }
-  .code-block .typ { color: #ffcb6b; }
-  .code-block .inc { color: #89ddff; }
-  .code-block .op  { color: #89ddff; }
-
-  /* ── EXERCISE layout ── */
-  .layout-exercise .ex-label {
-    font-size: 13px; font-weight: 700; color: {{ accent }};
-    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 26px;
-  }
-  .challenge-box {
-    background: rgba(0,200,150,0.04);
-    border: 1px solid rgba(0,200,150,0.18);
-    border-left: 4px solid {{ accent }};
-    border-radius: 12px; padding: 46px 56px;
-    font-size: 36px; color: #fff; line-height: 1.55; max-width: 1450px;
-  }
-
-  /* ── NUMBERED STEPS layout ── */
-  .steps { display: flex; flex-direction: column; gap: 28px; }
-  .step-item {
-    display: flex; align-items: flex-start; gap: 28px;
-    font-size: 30px; color: rgba(255,255,255,0.88); line-height: 1.35;
-    max-width: 1500px;
-  }
-  .step-num {
-    min-width: 56px; height: 56px; border-radius: 50%;
-    background: linear-gradient(135deg, {{ accent }}, {{ secondary_accent }});
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 900; color: #000; flex-shrink: 0;
-  }
-  .step-text { padding-top: 12px; }
-
-  /* ── CHECKLIST layout ── */
-  .checklist { display: flex; flex-direction: column; gap: 28px; }
-  .check-item {
-    display: flex; align-items: flex-start; gap: 20px;
-    font-size: 31px; color: rgba(255,255,255,0.88); line-height: 1.35;
-    max-width: 1500px;
-  }
-  .check-icon {
-    min-width: 38px; height: 38px;
-    border: 2px solid {{ accent }};
-    border-radius: 8px; margin-top: 8px;
-    display: flex; align-items: center; justify-content: center;
-    color: {{ accent }}; font-size: 22px; font-weight: 700; flex-shrink: 0;
-  }
-  .check-icon.done { background: {{ accent }}; color: #000; }
-
-  /* ── COMPARISON layout ── */
-  .comparison-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 40px; width: 100%; max-width: 1600px;
-  }
-  .comparison-col {
-    border-radius: 12px; padding: 30px 36px;
-  }
-  .comparison-col.bad  {
-    background: rgba(255,80,80,0.06);
-    border: 1px solid rgba(255,80,80,0.2);
-    border-left: 4px solid #ff5050;
-  }
-  .comparison-col.good {
-    background: rgba(0,200,150,0.05);
-    border: 1px solid rgba(0,200,150,0.2);
-    border-left: 4px solid {{ accent }};
-  }
-  .comparison-label {
-    font-size: 14px; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; margin-bottom: 18px; padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-  .comparison-col.bad  .comparison-label { color: #ff5050; }
-  .comparison-col.good .comparison-label { color: {{ accent }}; }
-  .comparison-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 20px; line-height: 1.6; color: #e2e2e2;
-    white-space: pre-wrap; word-break: break-all;
-  }
-
-  /* ── ERROR/FIX layout ── */
-  .error-fix-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 40px; width: 100%; max-width: 1620px;
-  }
-  .ef-col { border-radius: 10px; padding: 28px 36px; }
-  .ef-col.error {
-    background: rgba(255,60,60,0.05);
-    border: 1px solid rgba(255,60,60,0.2);
-    border-top: 4px solid #ff3c3c;
-  }
-  .ef-col.fix {
-    background: rgba(0,200,150,0.05);
-    border: 1px solid rgba(0,200,150,0.2);
-    border-top: 4px solid {{ accent }};
-  }
-  .ef-label {
-    font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
-    text-transform: uppercase; margin-bottom: 16px;
-  }
-  .ef-col.error .ef-label { color: #ff3c3c; }
-  .ef-col.fix   .ef-label { color: {{ accent }}; }
-  .ef-code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 20px; line-height: 1.65; color: #e2e2e2;
+    font-size: 32px; line-height: 1.6;
+    color: #e4e4e7;
     white-space: pre-wrap;
+    word-break: break-all;
   }
 
-  /* ── TERMINAL layout ── */
+  /* syntax highlights (monochrome/subtle) */
+  .token.keyword { color: #fff; font-weight: 600; }
+  .token.string { color: #a1a1aa; }
+  .token.comment { color: #52525b; font-style: italic; }
+  .token.number { color: #e4e4e7; }
+  .token.function { color: #fff; }
+
+  /* ── Layout: NUMBERED STEPS ── */
+  .layout-numbered_steps ul { gap: 40px; }
+  .layout-numbered_steps li { gap: 32px; align-items: center; }
+  .layout-numbered_steps li::before { display: none; }
+  .step-number {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #ffffff; color: #000000;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* ── Layout: TWO COLUMN ── */
+  .two-column-wrapper {
+    display: flex; width: 100%; gap: 60px; flex: 1;
+  }
+  .col { flex: 1; display: flex; flex-direction: column; }
+  .col-label {
+    font-size: 24px; font-weight: 600; color: #a1a1aa;
+    margin-bottom: 32px; text-transform: uppercase; letter-spacing: 0.1em;
+    padding-bottom: 16px; border-bottom: 1px solid #27272a;
+  }
+
+  /* ── Layout: EXERCISE ── */
+  .exercise-box {
+    width: 100%; flex: 1;
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 60px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .exercise-box h3 {
+    font-size: 48px; color: #ffffff; margin-bottom: 40px; font-weight: 600;
+  }
+
+  /* ── Layout: COMPARISON / ERROR_FIX ── */
+  .split-panel {
+    display: flex; width: 100%; gap: 40px; flex: 1;
+  }
+  .panel {
+    flex: 1; border-radius: 8px; padding: 40px;
+    border: 1px solid #27272a;
+    background: #000000;
+  }
+  .panel.error { border-top: 4px solid #ef4444; }
+  .panel.success { border-top: 4px solid #22c55e; }
+  .panel-label {
+    font-size: 20px; font-weight: 600; margin-bottom: 24px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .panel.error .panel-label { color: #ef4444; }
+  .panel.success .panel-label { color: #22c55e; }
+
+  /* ── Layout: TERMINAL ── */
   .terminal-window {
-    background: #0d0d0d; border: 1px solid #222;
-    border-radius: 12px; width: 100%; max-width: 1620px;
-    overflow: hidden;
+    width: 100%; flex: 1;
+    background: #000000; border-radius: 8px;
+    border: 1px solid #27272a;
+    padding: 40px; font-family: 'JetBrains Mono', monospace;
+    font-size: 32px; line-height: 1.6; color: #a1a1aa;
   }
-  .terminal-bar {
-    background: #1a1a1a; padding: 12px 20px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .terminal-dot { width: 13px; height: 13px; border-radius: 50%; }
-  .terminal-dot.red   { background: #ff5f56; }
-  .terminal-dot.yellow{ background: #ffbd2e; }
-  .terminal-dot.green { background: #27c93f; }
-  .terminal-title {
-    margin-left: 8px; font-size: 13px; font-weight: 500;
-    color: rgba(255,255,255,0.35); font-family: 'JetBrains Mono', monospace;
-  }
-  .terminal-body {
-    padding: 28px 36px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 22px; line-height: 1.7;
-    color: #a8d8a8; white-space: pre-wrap;
-  }
-  .terminal-body .prompt { color: {{ accent }}; }
-  .terminal-body .error-line { color: #ff6b6b; }
-  .terminal-body .output { color: #e2e2e2; }
+  .terminal-prompt { color: #fff; margin-right: 16px; }
+
 </style>
-<script>
-// ── inline syntax highlighter ──────────────────────────────────
-(function() {
-  var CPP_KW = /\b(auto|break|case|catch|class|const|constexpr|continue|default|delete|do|double|else|enum|explicit|extern|false|float|for|friend|goto|if|inline|int|long|mutable|namespace|new|nullptr|operator|override|private|protected|public|register|return|short|signed|sizeof|static|struct|switch|template|this|throw|true|try|typedef|typename|union|unsigned|using|virtual|void|volatile|while|bool|char|string|cout|cin|endl|std|vector|map|set|pair|array|nullptr_t|size_t|int8_t|int16_t|int32_t|int64_t|uint8_t|uint32_t|uint64_t)\b/g;
-  var PY_KW  = /\b(False|None|True|and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield|self|print|range|len|int|str|float|list|dict|set|tuple|bool)\b/g;
-
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-
-  function hl(code, lang) {
-    var e = escHtml(code);
-    // comments first (greedy)
-    e = e.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span class="cmt">$1</span>');
-    e = e.replace(/(\/\*[\s\S]*?\*\/)/g,    '<span class="cmt">$1</span>');
-    // strings
-    e = e.replace(/(&#34;(?:[^\\&#34;]|\\.)*&#34;|&#39;(?:[^\\&#39;]|\\.)*&#39;|&quot;(?:[^\\&quot;]|\\.)*&quot;)/g, '<span class="str">$1</span>');
-    e = e.replace(/("(?:[^\\"]|\\.)*"|'(?:[^\\']|\\.)*')/g, '<span class="str">$1</span>');
-    // preprocessor / includes
-    e = e.replace(/(#(?:include|define|ifdef|ifndef|endif|pragma)[^\n]*)/g, '<span class="inc">$1</span>');
-    // numbers
-    e = e.replace(/\b(\d+\.?\d*(?:[eE][+-]?\d+)?[uUlLfF]*)\b/g, '<span class="num">$1</span>');
-    // keywords
-    if (lang === 'python' || lang === 'py') {
-      e = e.replace(PY_KW, '<span class="kw">$1</span>');
-    } else {
-      e = e.replace(CPP_KW, '<span class="kw">$1</span>');
-    }
-    // types (capitalised words)
-    e = e.replace(/\b([A-Z][A-Za-z0-9_]+)\b/g, '<span class="typ">$1</span>');
-    // function calls
-    e = e.replace(/\b([a-z_][a-z0-9_]*)(?=\s*\()/g, '<span class="fn">$1</span>');
-    return e;
-  }
-
-  window._syntaxHighlight = hl;
-})();
-
-// ── adaptive font sizing ──────────────────────────────────────
-function adaptFontSize(selectors, minPx, maxPx) {
-  selectors.forEach(function(sel) {
-    var els = document.querySelectorAll(sel);
-    els.forEach(function(el) {
-      var parent = el.parentElement;
-      if (!parent) return;
-      var fs = maxPx;
-      el.style.fontSize = fs + 'px';
-      while (fs > minPx && (el.scrollHeight > parent.clientHeight || el.scrollWidth > parent.clientWidth)) {
-        fs -= 2;
-        el.style.fontSize = fs + 'px';
-      }
-    });
-  });
-}
-
-window.onload = function() {
-  // syntax highlight all code blocks
-  var lang = document.body.getAttribute('data-lang') || 'cpp';
-  document.querySelectorAll('.code-block, .comparison-code, .ef-code').forEach(function(el) {
-    var raw = el.textContent;
-    el.innerHTML = window._syntaxHighlight(raw, lang);
-  });
-
-  // adaptive sizing
-  adaptFontSize(['.layout-title h1'], 36, 88);
-  adaptFontSize(['.layout-content h2, .layout-code h2, .layout-numbered_steps h2, .layout-checklist h2, .layout-comparison h2, .layout-error_fix h2, .layout-terminal h2, .layout-summary h2, .layout-two_column h2'], 28, 54);
-  adaptFontSize(['.bullet', '.step-item', '.check-item'], 18, 33);
-  adaptFontSize(['.challenge-box'], 20, 38);
-  adaptFontSize(['.code-block'], 14, 24);
-};
-</script>
 </head>
-<body data-lang="{{ code_language or 'cpp' }}">
-<div class="slide layout-{{ layout }}" id="slide">
+<body>
+  {% set progress = (slide_index / total_slides * 100) if total_slides > 0 else 0 %}
+  <div class="progress-track"><div class="progress-fill" style="width: {{ progress }}%"></div></div>
 
-  <!-- progress bar -->
-  {% if total_slides and total_slides > 1 %}
-  <div class="progress-track">
-    <div class="progress-fill" style="width: {{ ((slide_index or 0) / total_slides * 100)|int }}%"></div>
-  </div>
-  {% endif %}
-
-  <!-- logo / branding -->
-  <div class="logo-area">
-    {% if logo_b64 %}
-    <img src="data:image/png;base64,{{ logo_b64 }}" alt="logo">
-    {% else %}
-    <span class="channel-tag">theTwoCubes</span>
+  <div class="slide layout-{{ layout }}">
+    
+    <div class="logo-area">
+      {% if logo_b64 %}
+        <img src="data:image/png;base64,{{ logo_b64 }}" alt="Logo">
+      {% endif %}
+      <div class="channel-tag">theTwoCubes</div>
+    </div>
+    
+    {% if tag %}
+      <div class="tag-label">{{ tag }}</div>
     {% endif %}
-  </div>
 
-  {% if tag %}<span class="tag-label">{{ tag }}</span>{% endif %}
+    {% if total_slides > 0 %}
+      <div class="slide-counter">{{ slide_index + 1 }} / {{ total_slides }}</div>
+    {% endif %}
 
-  {% if total_slides and total_slides > 1 %}
-  <div class="slide-counter">{{ (slide_index or 0) + 1 }} / {{ total_slides }}</div>
-  {% endif %}
+    {% if layout == 'title' %}
+      <h1>{{ headline }}</h1>
+      {% if bullets and bullets|length > 0 %}
+        <div class="subtitle">{{ bullets[0] }}</div>
+      {% endif %}
 
-  <!-- ── TITLE ── -->
-  {% if layout == "title" %}
-  <div class="eyebrow">Lesson {{ lesson_number }}</div>
-  <h1>{{ headline }}</h1>
-  {% if subtitle %}<div class="subtitle">{{ subtitle }}</div>{% endif %}
+    {% elif layout in ['content', 'summary'] %}
+      <div class="headline-container"><h2 id="headline">{{ headline }}</h2></div>
+      <ul id="bullets">
+        {% for b in bullets %}<li>{{ b }}</li>{% endfor %}
+      </ul>
 
-  <!-- ── CONTENT ── -->
-  {% elif layout == "content" %}
-  <h2>{{ headline }}</h2>
-  <div class="bullets">
-    {% for b in bullets %}
-    <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
-    {% endfor %}
-  </div>
+    {% elif layout == 'code' %}
+      <div class="headline-container"><h2 id="headline">{{ headline }}</h2></div>
+      <div class="code-container">
+        <div class="code-header">
+          <div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div>
+        </div>
+        <pre><code class="language-{{ code_language }}">{{ code_content }}</code></pre>
+      </div>
 
-  <!-- ── SUMMARY ── -->
-  {% elif layout == "summary" %}
-  <h2>{{ headline or "Key Takeaways" }}</h2>
-  <div class="bullets">
-    {% for b in bullets %}
-    <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
-    {% endfor %}
-  </div>
+    {% elif layout == 'numbered_steps' %}
+      <h2>{{ headline }}</h2>
+      <ul>
+        {% for b in bullets %}
+          <li><div class="step-number">{{ loop.index }}</div> <div>{{ b }}</div></li>
+        {% endfor %}
+      </ul>
 
-  <!-- ── TWO COLUMN ── -->
-  {% elif layout == "two_column" %}
-  <h2>{{ headline }}</h2>
-  <div class="two-col">
-    <div>
-      {% if left_label %}<div class="col-label">{{ left_label }}</div>{% endif %}
-      <div class="bullets">
-        {% for b in left_bullets %}
-        <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
+    {% elif layout == 'two_column' %}
+      <h2>{{ headline }}</h2>
+      <div class="two-column-wrapper">
+        <div class="col">
+          <div class="col-label">{{ left_label }}</div>
+          <ul>{% for b in left_bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+        </div>
+        <div class="col">
+          <div class="col-label">{{ right_label }}</div>
+          <ul>{% for b in right_bullets %}<li>{{ b }}</li>{% endfor %}</ul>
+        </div>
+      </div>
+
+    {% elif layout == 'comparison' or layout == 'error_fix' %}
+      <h2>{{ headline }}</h2>
+      <div class="split-panel">
+        <div class="panel {% if layout == 'error_fix' %}error{% endif %}">
+          <div class="panel-label">{% if layout == 'error_fix' %}MISTAKE{% else %}{{ left_label }}{% endif %}</div>
+          <pre><code class="language-{{ code_language }}">{{ left_bullets | join('\n') }}</code></pre>
+        </div>
+        <div class="panel {% if layout == 'error_fix' %}success{% endif %}">
+          <div class="panel-label">{% if layout == 'error_fix' %}FIX{% else %}{{ right_label }}{% endif %}</div>
+          <pre><code class="language-{{ code_language }}">{{ right_bullets | join('\n') }}</code></pre>
+        </div>
+      </div>
+
+    {% elif layout == 'terminal' %}
+      <h2>{{ headline }}</h2>
+      <div class="terminal-window">
+        {% for b in bullets %}
+          <div><span class="terminal-prompt">$</span>{{ b }}</div>
         {% endfor %}
       </div>
-    </div>
-    <div>
-      {% if right_label %}<div class="col-label">{{ right_label }}</div>{% endif %}
-      <div class="bullets">
-        {% for b in right_bullets %}
-        <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
-        {% endfor %}
+
+    {% elif layout == 'exercise' %}
+      <div class="exercise-box">
+        <h3>{{ headline }}</h3>
+        <ul>
+          {% for b in bullets %}<li>{{ b }}</li>{% endfor %}
+        </ul>
       </div>
-    </div>
+    {% endif %}
+
   </div>
 
-  <!-- ── CODE ── -->
-  {% elif layout == "code" %}
-  <h2>{{ headline }}</h2>
-  <pre class="code-block">{{ code_content }}</pre>
-
-  <!-- ── EXERCISE ── -->
-  {% elif layout == "exercise" %}
-  <div class="ex-label">Challenge</div>
-  <div class="challenge-box">{{ headline }}</div>
-  {% if bullets %}
-  <div class="bullets" style="margin-top:32px">
-    {% for b in bullets %}
-    <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- ── NUMBERED STEPS ── -->
-  {% elif layout == "numbered_steps" %}
-  <h2>{{ headline }}</h2>
-  <div class="steps">
-    {% for b in bullets %}
-    <div class="step-item">
-      <div class="step-num">{{ loop.index }}</div>
-      <div class="step-text">{{ b }}</div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- ── CHECKLIST ── -->
-  {% elif layout == "checklist" %}
-  <h2>{{ headline }}</h2>
-  <div class="checklist">
-    {% for b in bullets %}
-    <div class="check-item">
-      <div class="check-icon done">✓</div>
-      <span>{{ b }}</span>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- ── COMPARISON ── -->
-  {% elif layout == "comparison" %}
-  <h2>{{ headline }}</h2>
-  <div class="comparison-grid">
-    <div class="comparison-col bad">
-      <div class="comparison-label">{{ left_label or "❌ Wrong" }}</div>
-      {% if left_bullets %}
-        {% for b in left_bullets %}
-        <pre class="comparison-code">{{ b }}</pre>
-        {% endfor %}
-      {% endif %}
-    </div>
-    <div class="comparison-col good">
-      <div class="comparison-label">{{ right_label or "✓ Correct" }}</div>
-      {% if right_bullets %}
-        {% for b in right_bullets %}
-        <pre class="comparison-code">{{ b }}</pre>
-        {% endfor %}
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- ── ERROR / FIX ── -->
-  {% elif layout == "error_fix" %}
-  <h2>{{ headline }}</h2>
-  <div class="error-fix-grid">
-    <div class="ef-col error">
-      <div class="ef-label">❌ Error</div>
-      <pre class="ef-code">{{ left_bullets[0] if left_bullets else '' }}</pre>
-    </div>
-    <div class="ef-col fix">
-      <div class="ef-label">✓ Fix</div>
-      <pre class="ef-code">{{ right_bullets[0] if right_bullets else '' }}</pre>
-    </div>
-  </div>
-
-  <!-- ── TERMINAL ── -->
-  {% elif layout == "terminal" %}
-  <h2>{{ headline }}</h2>
-  <div class="terminal-window">
-    <div class="terminal-bar">
-      <div class="terminal-dot red"></div>
-      <div class="terminal-dot yellow"></div>
-      <div class="terminal-dot green"></div>
-      <span class="terminal-title">bash — theTwoCubes</span>
-    </div>
-    <div class="terminal-body">{{ code_content }}</div>
-  </div>
-
-  <!-- ── FALLBACK ── -->
-  {% else %}
-  <h2>{{ headline }}</h2>
-  {% if bullets %}
-  <div class="bullets">
-    {% for b in bullets %}
-    <div class="bullet"><div class="bullet-dot"></div><span>{{ b }}</span></div>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% endif %}
-
-  <div class="bottom-bar"></div>
-</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script>
+    function adjustFontSize() {
+      const hl = document.getElementById('headline');
+      if(hl && hl.innerText.length > 50) hl.classList.add('long-text');
+    }
+    window.onload = adjustFontSize;
+  </script>
 </body>
 </html>

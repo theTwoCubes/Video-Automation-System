@@ -1,17 +1,17 @@
 :root {
-  --bg: #080b10;
-  --surface: #0d1117;
-  --surface2: #161b22;
-  --border: #21262d;
-  --accent: #00c896;
-  --accent2: #ff6b35;
-  --text: #e6edf3;
-  --text-dim: #7d8590;
-  --text-muted: #484f58;
-  --red: #ff5f5f;
-  --yellow: #f0a030;
-  --green: #00c896;
-  --radius: 10px;
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --border: #2a2a2a;
+  --accent: #ededed;
+  --accent-dim: #a1a1aa;
+  --text: #ededed;
+  --text-dim: #a1a1aa;
+  --text-muted: #71717a;
+  --red: #ef4444;
+  --yellow: #eab308;
+  --green: #22c55e;
+  --radius: 6px;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }

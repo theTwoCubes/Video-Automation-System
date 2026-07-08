@@ -42,6 +42,11 @@ def _db():
         return None
 
 
+#  In-memory Task Tracking 
+
+_ingest_tasks: dict[str, dict] = {}
+_curricula_tasks: dict[str, dict] = {}
+
 #  Courses & Lessons 
 
 @app.get("/api/courses")
@@ -138,18 +143,172 @@ def get_slides(lesson_id: str):
         db.close()
 
 
+#  Knowledge Ingestion 
+
+class IngestRequest(BaseModel):
+    source: str
+    name: str
+    topic: str
+    source_type: str = "pdf"
+    tags: str = ""
+
+@app.post("/api/ingest")
+def trigger_ingestion(req: IngestRequest, background_tasks: BackgroundTasks):
+    task_id = f"ingest_{datetime.utcnow().strftime('%H%M%S')}"
+    _ingest_tasks[task_id] = {"status": "running", "source_id": None, "error": None}
+
+    def _do_ingest():
+        try:
+            from services.knowledge.ingestion import KnowledgeIngestionService
+            svc = KnowledgeIngestionService()
+            tag_list = [req.topic.lower()] + [t.strip().lower() for t in req.tags.split(",") if t.strip()]
+            sid = svc.ingest(
+                name=req.name,
+                source_type=req.source_type,
+                path_or_url=req.source,
+                topic_tags=tag_list,
+            )
+            _ingest_tasks[task_id]["status"] = "done"
+            _ingest_tasks[task_id]["source_id"] = sid
+        except Exception as e:
+            _ingest_tasks[task_id]["status"] = "failed"
+            _ingest_tasks[task_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_ingest)
+    return {"task_id": task_id, "status": "started"}
+
+@app.get("/api/ingest/{task_id}")
+def get_ingest_status(task_id: str):
+    if task_id not in _ingest_tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return _ingest_tasks[task_id]
+
+
+#  Curriculum Generation 
+
+class CurriculaGenerateRequest(BaseModel):
+    source_id: str
+    topic: str
+    target_audience: str = "beginners"
+    min_lessons: int = 30
+
+@app.post("/api/curricula/generate")
+def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: BackgroundTasks):
+    task_id = f"curr_{datetime.utcnow().strftime('%H%M%S')}"
+    _curricula_tasks[task_id] = {"status": "running", "curriculum": None, "error": None}
+
+    def _do_generate():
+        try:
+            from agents.curriculum_agent import CurriculumAgent
+            agent = CurriculumAgent()
+            state = {
+                "source_id": req.source_id,
+                "topic": req.topic,
+                "target_audience": req.target_audience,
+                "min_lessons": req.min_lessons,
+            }
+            res = agent.run(state)
+            
+            # Save curriculum to DB automatically as a new Course
+            db = _db()
+            if db:
+                from db import models
+                curr = res.get("curriculum", {})
+                course_id = req.topic.lower().replace(" ", "_")
+                
+                # Create course if doesn't exist
+                course = db.get(models.Course, course_id)
+                if not course:
+                    course = models.Course(id=course_id, title=curr.get("course_title", req.topic))
+                    db.add(course)
+                    
+                # Save as a draft curriculum JSON string
+                course.curriculum = json.dumps(curr)
+                db.commit()
+                db.close()
+
+            _curricula_tasks[task_id]["status"] = "done"
+            _curricula_tasks[task_id]["curriculum"] = res.get("curriculum")
+        except Exception as e:
+            _curricula_tasks[task_id]["status"] = "failed"
+            _curricula_tasks[task_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_generate)
+    return {"task_id": task_id, "status": "started"}
+
+@app.get("/api/curricula/tasks/{task_id}")
+def get_curricula_status(task_id: str):
+    if task_id not in _curricula_tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return _curricula_tasks[task_id]
+
+class CurriculumEditRequest(BaseModel):
+    curriculum: str
+
+@app.put("/api/courses/{course_id}/curriculum")
+def update_curriculum(course_id: str, req: CurriculumEditRequest):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        course = db.get(models.Course, course_id)
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        course.curriculum = req.curriculum
+        db.commit()
+        return {"status": "success", "message": "Curriculum updated"}
+    finally:
+        db.close()
+
+
 #  Video Generation 
+
+from fastapi.responses import StreamingResponse
+import time
 
 @app.post("/api/courses/{course_id}/generate")
 def trigger_generation(course_id: str, background_tasks: BackgroundTasks):
     """Trigger next video generation in background."""
     script = ROOT / "scripts" / "generate_next_video.py"
-    background_tasks.add_task(
-        subprocess.run,
-        [sys.executable, str(script), "--course-id", course_id],
-        cwd=str(ROOT),
-    )
+    log_dir = ROOT / "logs"
+    log_dir.mkdir(exist_ok=True)
+    log_file = log_dir / f"{course_id}.log"
+    
+    def _run_with_logs():
+        with open(log_file, "a") as f:
+            f.write(f"\\n--- Started run at {datetime.utcnow().isoformat()} ---\\n")
+            subprocess.run(
+                [sys.executable, str(script), "--course-id", course_id],
+                cwd=str(ROOT),
+                stdout=f,
+                stderr=subprocess.STDOUT
+            )
+
+    background_tasks.add_task(_run_with_logs)
     return {"status": "started", "message": "Generation started in background"}
+
+@app.get("/api/logs/{course_id}")
+def stream_logs(course_id: str):
+    """SSE endpoint to stream live logs for a course generation."""
+    log_file = ROOT / "logs" / f"{course_id}.log"
+    
+    def log_generator():
+        if not log_file.exists():
+            yield "data: Waiting for logs to start...\\n\\n"
+            while not log_file.exists():
+                time.sleep(1)
+        
+        with open(log_file, "r") as f:
+            f.seek(0, os.SEEK_END) # start from end to only get live logs
+            while True:
+                line = f.readline()
+                if not line:
+                    time.sleep(0.5)
+                    continue
+                yield f"data: {line}\\n\\n"
+                
+    return StreamingResponse(log_generator(), media_type="text/event-stream")
 
 
 #  Test Pipeline 

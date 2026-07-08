@@ -136,3 +136,25 @@ class KnowledgeIngestionService:
             n_results=min(n_results, collection.count()),
         )
         return results["documents"][0] if results["documents"] else []
+
+    def get_first_chunks(self, source_id: str, n_chunks: int = 15) -> list[str]:
+        """Fetch the first N chunks of the document to guarantee Table of Contents capture."""
+        collection = self._get_collection(source_id)
+        # Attempt to get chunk_0 to chunk_{n_chunks-1}
+        ids_to_fetch = [f"{source_id}_chunk_{i}" for i in range(n_chunks)]
+        results = collection.get(ids=ids_to_fetch)
+        
+        # Sort results by the chunk index to maintain order
+        if not results or not results["documents"]:
+            return []
+            
+        docs_with_indices = []
+        for doc_id, doc_text in zip(results["ids"], results["documents"]):
+            try:
+                idx = int(doc_id.split("_chunk_")[-1])
+                docs_with_indices.append((idx, doc_text))
+            except ValueError:
+                continue
+                
+        docs_with_indices.sort(key=lambda x: x[0])
+        return [doc for _, doc in docs_with_indices]
