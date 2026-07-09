@@ -3,7 +3,6 @@ Intro and Outro slide renderers for theTwoCubes Learning.
 These produce static MP4 clips (not LLM-generated) that are prepended/appended to every video.
 """
 import subprocess
-import shutil
 import base64
 from pathlib import Path
 from jinja2 import Environment, BaseLoader

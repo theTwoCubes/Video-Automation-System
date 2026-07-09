@@ -18,7 +18,6 @@ from rich.panel import Panel
 from db.database import init_db, SessionLocal
 from db import models
 from agents.curriculum_agent import CurriculumAgent
-from config.settings import settings
 
 app = typer.Typer()
 console = Console()

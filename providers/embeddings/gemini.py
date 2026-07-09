@@ -1,6 +1,5 @@
 import time
 from google import genai
-from google.genai import types
 from tenacity import retry, stop_after_attempt, wait_exponential
 from providers.embeddings.base import EmbeddingProvider
 from config.settings import settings

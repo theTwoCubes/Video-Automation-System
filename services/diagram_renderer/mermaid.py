@@ -38,7 +38,6 @@ def generate_ascii_diagram(lines: list[str], output_path: str) -> str:
     Used when mmdc is not available.
     """
     from PIL import Image, ImageDraw, ImageFont
-    import json
 
     bg_color = (13, 13, 13)
     text_color = (0, 200, 150)

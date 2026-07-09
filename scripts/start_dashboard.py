@@ -8,9 +8,7 @@ Then open: http://localhost:5173
 """
 import subprocess
 import sys
-import os
 import time
-import signal
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent

@@ -14,7 +14,6 @@ The LLM generates self-contained HTML with CSS @keyframe animations for:
 - Loop/iteration step-throughs
 """
 import subprocess
-import time
 from pathlib import Path
 from typing import Optional
 

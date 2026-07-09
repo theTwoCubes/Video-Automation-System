@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import argparse
 from pathlib import Path
-from config.settings import settings
 
 
 def capture_from_checkpoints(output_dir: str, lesson_meta: dict, out_path: str):
