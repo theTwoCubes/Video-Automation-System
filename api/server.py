@@ -241,6 +241,7 @@ def add_pdf_source(
                     status="ready",
                 )
                 db2.add(src)
+                db2.flush()  # Ensure src.id is generated before assignment
                 # Link to course
                 c = db2.get(m.Course, course_id)
                 if c:
@@ -597,6 +598,82 @@ def get_alerts():
 @app.get("/api/usage")
 def get_usage():
     return get_usage_report()
+
+#  Video Generation & Logging 
+
+@app.post("/api/lessons/{lesson_id}/generate")
+def generate_lesson(lesson_id: str, background_tasks: BackgroundTasks):
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        lesson = db.get(models.Lesson, lesson_id)
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        course_id = lesson.course_id
+        
+        # Prepare output directory
+        log_dir = Path("output") / lesson_id
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "pipeline.log"
+        
+        def _run_pipeline():
+            import subprocess
+            import os
+            with open(log_file, "w", encoding="utf-8") as f:
+                f.write(f"Starting video generation for lesson {lesson_id}...\n")
+                process = subprocess.Popen(
+                    ["python", "-m", "scripts.generate_next_video", "--course-id", course_id, "--lesson-id", lesson_id],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    bufsize=1,
+                    cwd=str(Path.cwd()),
+                    env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
+                )
+                for line in process.stdout:
+                    f.write(line)
+                    f.flush()
+                process.wait()
+                f.write(f"\nPipeline finished with exit code {process.returncode}\n")
+        
+        background_tasks.add_task(_run_pipeline)
+        return {"status": "started", "lesson_id": lesson_id}
+    finally:
+        db.close()
+
+from fastapi.responses import StreamingResponse
+import asyncio
+
+@app.get("/api/logs/lessons/{lesson_id}")
+async def get_lesson_logs(lesson_id: str):
+    log_file = Path("output") / lesson_id / "pipeline.log"
+    
+    async def log_generator():
+        # Wait up to 5 seconds for the file to exist
+        for _ in range(10):
+            if log_file.exists():
+                break
+            await asyncio.sleep(0.5)
+            
+        if not log_file.exists():
+            yield "data: Waiting for generation to start...\n\n"
+            while not log_file.exists():
+                await asyncio.sleep(1)
+                
+        with open(log_file, "r", encoding="utf-8", errors="replace") as f:
+            while True:
+                line = f.readline()
+                if line:
+                    yield f"data: {line.strip()}\n\n"
+                    if "Pipeline finished" in line:
+                        break
+                else:
+                    await asyncio.sleep(0.5)
+    
+    return StreamingResponse(log_generator(), media_type="text/event-stream")
 
 
 @app.get("/api/health")

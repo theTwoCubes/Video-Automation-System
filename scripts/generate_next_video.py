@@ -117,7 +117,8 @@ def main(
         )
 
         elapsed = time.time() - start_time
-        qa_score = final_state.get("qa_report", {}).get("score", 0)
+        qa_report = final_state.get("qa_report") or {}
+        qa_score = qa_report.get("score", 0)
         status = "done" if not final_state.get("error") else "failed"
 
         # update lesson status in DB

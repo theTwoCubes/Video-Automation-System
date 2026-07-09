@@ -162,13 +162,9 @@ class VoiceAgent(BaseAgent):
         if "[PAUSE]" in text:
             return i, self._synthesize_with_pauses(i, text, out_path, seg)
 
-        try:
-            self.tts.synthesize_sync(text, out_path)
-            return i, out_path
-        except Exception as e:
-            print(f"  TTS error on segment {i}: {e}")
-            Path(out_path).touch()
-            return i, out_path
+        # If TTS fails, we let the exception propagate so the pipeline stops.
+        self.tts.synthesize_sync(text, out_path)
+        return i, out_path
 
     def _synthesize_with_pauses(self, i: int, text: str, out_path: str, seg: dict) -> str:
         """Synthesize text containing [PAUSE] markers, inserting 600ms silence."""
@@ -188,11 +184,8 @@ class VoiceAgent(BaseAgent):
         for j, part in enumerate(parts_text):
             part_path = str(tmp_dir / f"part_{j:02d}.mp3")
             silence_path = str(tmp_dir / f"silence_{j:02d}.mp3")
-            try:
-                self.tts.synthesize_sync(part, part_path)
-                part_files.append(part_path)
-            except Exception:
-                pass
+            self.tts.synthesize_sync(part, part_path)
+            part_files.append(part_path)
             if j < len(parts_text) - 1:
                 _make_silence(600, silence_path, ffmpeg_exe)
                 part_files.append(silence_path)
@@ -222,6 +215,7 @@ class VoiceAgent(BaseAgent):
                 results[idx] = path
             except Exception as e:
                 print(f"  Synthesis thread error: {e}")
+                raise RuntimeError(f"Audio synthesis failed for segment: {e}") from e
             completed += 1
             print(f"  Synthesized {completed}/{total}")
 

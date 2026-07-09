@@ -27,9 +27,9 @@ def _session_cost() -> float:
     total = 0.0
     for e in _usage_log:
         total += (
-            e.get("input_tokens",   0) * _PRICE_INPUT_PER_M  / 1_000_000
-            + e.get("output_tokens", 0) * _PRICE_OUTPUT_PER_M / 1_000_000
-            + e.get("thinking_tokens", 0) * _PRICE_THINK_PER_M / 1_000_000
+            (e.get("input_tokens") or 0) * _PRICE_INPUT_PER_M  / 1_000_000
+            + (e.get("output_tokens") or 0) * _PRICE_OUTPUT_PER_M / 1_000_000
+            + (e.get("thinking_tokens") or 0) * _PRICE_THINK_PER_M / 1_000_000
         )
     return total
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FlaskConical, Play, Upload, BookOpen, AlertTriangle, ChevronRight, FileText } from 'lucide-react';
 import { useFetch, usePolling } from '../hooks/useFetch';
@@ -19,6 +19,18 @@ export function Curricula() {
 
   const [currTaskId, setCurrTaskId] = useState(null);
   const currStatus = usePolling(currTaskId ? `${API}/curricula/tasks/${currTaskId}` : null, 2000, !!currTaskId);
+
+  useEffect(() => {
+    if (ingestStatus?.status === 'done' || ingestStatus?.status === 'failed') {
+      refreshCourses();
+    }
+  }, [ingestStatus?.status]);
+
+  useEffect(() => {
+    if (currStatus?.status === 'done' || currStatus?.status === 'failed') {
+      refreshCourses();
+    }
+  }, [currStatus?.status]);
 
   const [minLessons, setMinLessons] = useState(15);
 

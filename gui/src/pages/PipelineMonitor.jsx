@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Video, Terminal, Play } from 'lucide-react';
+import { Video, Terminal, Play, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useFetch } from '../hooks/useFetch';
 
 const API = 'http://localhost:8000/api';
@@ -7,19 +7,25 @@ const API = 'http://localhost:8000/api';
 export function PipelineMonitor() {
   const [selectedCourse, setSelectedCourse] = useState('');
   const { data: courses } = useFetch(`${API}/courses`);
+  const { data: lessons, refresh: refreshLessons } = useFetch(selectedCourse ? `${API}/courses/${selectedCourse}/lessons` : null);
+  
+  const [activeLessonId, setActiveLessonId] = useState(null);
   const [logs, setLogs] = useState([]);
   
   useEffect(() => {
-    if (!selectedCourse) {
+    if (!activeLessonId) {
       setLogs([]);
       return;
     }
     
     setLogs([]);
-    const es = new EventSource(`${API}/logs/${selectedCourse}`);
+    const es = new EventSource(`${API}/logs/lessons/${activeLessonId}`);
     
     es.onmessage = (event) => {
-      setLogs(prev => [...prev, event.data].slice(-100)); // keep last 100 lines
+      setLogs(prev => [...prev, event.data].slice(-300)); // keep last 300 lines
+      if (event.data.includes("Pipeline finished")) {
+        refreshLessons();
+      }
     };
     
     es.onerror = () => {
@@ -27,77 +33,109 @@ export function PipelineMonitor() {
     };
 
     return () => es.close();
-  }, [selectedCourse]);
+  }, [activeLessonId]);
 
-  const handleStartGeneration = async () => {
-    if (!selectedCourse) return;
+  const handleStartGeneration = async (lesson) => {
+    if (lesson.status === 'done' || lesson.status === 'failed') {
+      if (!window.confirm(`Warning: Lesson "${lesson.title}" is currently marked as ${lesson.status.toUpperCase()}.\n\nGenerating it again will overwrite the existing video and files.\n\nAre you sure you want to proceed?`)) {
+        return;
+      }
+    }
+
     try {
-      await fetch(`${API}/courses/${selectedCourse}/generate`, { method: 'POST' });
+      setActiveLessonId(lesson.id);
+      await fetch(`${API}/lessons/${lesson.id}/generate`, { method: 'POST' });
+      // Poll a few times to refresh status
+      setTimeout(refreshLessons, 1000);
+      setTimeout(refreshLessons, 5000);
     } catch (e) {
       alert("Failed to start generation");
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'done': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
+      case 'failed': return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'pending': return <Clock className="w-4 h-4 text-zinc-500" />;
+      default: return <Loader2 className="w-4 h-4 text-yellow-500 animate-spin" />;
+    }
+  };
+
   return (
-    <div className="p-8 max-w-6xl mx-auto h-screen flex flex-col">
+    <div className="p-8 max-w-7xl mx-auto h-screen flex flex-col">
       <header className="flex items-center gap-3 mb-8 shrink-0">
         <Video className="w-6 h-6 text-zinc-400" />
         <h1 className="text-2xl font-semibold tracking-tight">Pipeline Monitor</h1>
       </header>
 
-      <div className="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
-        <div className="flex flex-col gap-6 w-full md:w-1/3 shrink-0">
-          <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
-            <h2 className="text-lg font-medium mb-2">Run Production Generation</h2>
-            <p className="text-sm text-zinc-400 mb-4">Start generating video assets for the next pending lesson.</p>
-            <div className="flex flex-col gap-4">
-              <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 focus:border-zinc-500">
-                <option value="">-- Select a course --</option>
-                {courses?.map(c => (
-                  <option key={c.id} value={c.id}>{c.title}</option>
-                ))}
-              </select>
-              <button disabled={!selectedCourse} onClick={handleStartGeneration} className="w-full flex items-center justify-center gap-2 bg-white text-black font-medium py-2 rounded-md hover:bg-zinc-200 disabled:opacity-50 transition-colors">
-                <Play className="w-4 h-4" /> Run Next Lesson
-              </button>
+      <div className="flex items-center gap-4 mb-6 shrink-0">
+        <select value={selectedCourse} onChange={e => { setSelectedCourse(e.target.value); setActiveLessonId(null); }} className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-zinc-500">
+          <option value="">-- Select a Course to Manage --</option>
+          {courses?.map(c => (
+            <option key={c.id} value={c.id}>{c.title}</option>
+          ))}
+        </select>
+      </div>
+
+      {!selectedCourse ? (
+        <div className="flex-1 flex items-center justify-center border border-dashed border-zinc-800 rounded-xl text-zinc-500">
+          Select a course from the dropdown above to view and manage its lessons.
+        </div>
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+          
+          {/* Left Column: Lesson Selector */}
+          <div className="flex flex-col w-full lg:w-1/2 shrink-0 border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/30">
+            <div className="bg-zinc-900/80 border-b border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0">
+              <span className="text-sm font-medium text-zinc-300">Course Lessons</span>
+              <span className="text-xs text-zinc-500">{lessons?.lessons?.length || 0} Total</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {!lessons ? (
+                <div className="p-4 text-center text-sm text-zinc-500">Loading lessons...</div>
+              ) : !lessons.lessons || lessons.lessons.length === 0 ? (
+                <div className="p-4 text-center text-sm text-zinc-500">No lessons found. Generate a curriculum first.</div>
+              ) : (
+                lessons.lessons.map(lesson => (
+                  <div key={lesson.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${activeLessonId === lesson.id ? 'bg-zinc-800/80 border-zinc-600' : 'bg-zinc-950/50 border-zinc-800/50 hover:border-zinc-700'}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {getStatusIcon(lesson.status)}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium text-zinc-200 truncate">{lesson.position}. {lesson.title}</span>
+                        <span className="text-xs text-zinc-500 font-mono">Status: {lesson.status}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => handleStartGeneration(lesson)} className="flex items-center gap-2 bg-white text-black text-xs font-medium px-3 py-1.5 rounded hover:bg-zinc-200 transition-colors shrink-0 ml-4">
+                      <Play className="w-3 h-3" /> Generate
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          <div className="bg-zinc-900/30 border border-zinc-800 p-6 rounded-xl">
-            <h2 className="text-lg font-medium mb-2">Run Automated Test</h2>
-            <p className="text-sm text-zinc-400 mb-4">Run the pipeline using cached LLM outputs from tests/fixtures to test rendering without spending API credits.</p>
-            <button onClick={async () => {
-              try {
-                const res = await fetch(`${API}/test/run`, {
-                  method: 'POST',
-                  headers: {'Content-Type': 'application/json'},
-                  body: JSON.stringify({ fixture_path: 'tests/fixtures/cpp_variables_lesson.json', force_restart: true, from_step: 'slides' })
-                });
-                const d = await res.json();
-                if(d.run_id) alert('Test pipeline started! Check backend console for logs.');
-              } catch(e) { alert('Failed to start test'); }
-            }} className="w-full flex items-center justify-center gap-2 border border-zinc-700 text-zinc-300 font-medium py-2 rounded-md hover:bg-zinc-800 transition-colors">
-              <Play className="w-4 h-4" /> Run Test (C++ Variables)
-            </button>
+          {/* Right Column: Live Logs */}
+          <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col min-w-0">
+            <div className="bg-zinc-900/80 border-b border-zinc-800 px-4 py-3 flex items-center gap-2 shrink-0">
+              <Terminal className="w-4 h-4 text-zinc-400" />
+              <span className="text-sm font-mono text-zinc-300">
+                Live Logs {activeLessonId ? `(Lesson ID: ${activeLessonId.slice(0, 8)}...)` : ''}
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-black font-mono text-[11px] sm:text-xs leading-relaxed text-green-500 whitespace-pre-wrap break-all">
+              {!activeLessonId ? (
+                <div className="text-zinc-600">Select a lesson and click "Generate" to stream production logs.</div>
+              ) : logs.length === 0 ? (
+                <div className="text-zinc-600">Waiting for logs...</div>
+              ) : (
+                logs.map((log, i) => <div key={i}>{log}</div>)
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col min-w-0">
-          <div className="bg-zinc-900/50 border-b border-zinc-800 px-4 py-3 flex items-center gap-2 shrink-0">
-            <Terminal className="w-4 h-4 text-zinc-400" />
-            <span className="text-sm font-mono text-zinc-300">Live Logs {selectedCourse ? `(${selectedCourse})` : ''}</span>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 bg-black font-mono text-xs leading-relaxed text-green-500 whitespace-pre-wrap break-all">
-            {!selectedCourse ? (
-              <div className="text-zinc-600">Select a course to stream production logs. (Test pipeline logs are written to backend console).</div>
-            ) : logs.length === 0 ? (
-              <div className="text-zinc-600">Waiting for logs...</div>
-            ) : (
-              logs.map((log, i) => <div key={i}>{log}</div>)
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

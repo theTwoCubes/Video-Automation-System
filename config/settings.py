@@ -10,7 +10,6 @@ class Settings(BaseSettings):
     TARGET_AUDIENCE: str = "beginners"
 
     OUTPUT_DIR: str = "output"
-    CHROMA_DIR: str = "data/chroma"
     SQLITE_PATH: str = "data/twocubes.db"
     USAGE_LOG_PATH: str = "data/usage.sqlite"
     PROMPTS_DIR: str = "prompts"
@@ -43,7 +42,7 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
     def ensure_dirs(self):
-        for d in [self.OUTPUT_DIR, self.CHROMA_DIR, "data", self.ASSETS_DIR]:
+        for d in [self.OUTPUT_DIR, "data", self.ASSETS_DIR]:
             Path(d).mkdir(parents=True, exist_ok=True)
 
 

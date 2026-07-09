@@ -26,7 +26,7 @@ class EdgeTTSProvider(TTSProvider):
         return output_path
 
     def synthesize_sync(self, text: str, output_path: str) -> str:
-        asyncio.run(self.synthesize(text, output_path))
+        asyncio.run(asyncio.wait_for(self.synthesize(text, output_path), timeout=60.0))
         return output_path
 
     @property
