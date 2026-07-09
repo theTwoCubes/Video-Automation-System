@@ -47,6 +47,8 @@ The slide_id format is "slide_001", "slide_002", etc. Assign them logically:
 - Code slides: 3-5 segments (describe before, during, after)
 - Summary slide: 1-2 segments
 
+CRITICAL INSTRUCTION ON DEPTH: The knowledge context provided may be brief or high-level. Do NOT limit your script to just summarizing it. You MUST expand on the context using your own expert knowledge to write a deep, thorough, perfectly explained technical script. Never hold back information just because the context didn't mention it.
+
 Output strictly valid JSON. No markdown. No commentary."""
 
 REVISION_SYSTEM = """You are a script editor for theTwoCubes Learning.

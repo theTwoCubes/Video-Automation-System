@@ -25,6 +25,7 @@ Rules:
 - Objectives must be specific and measurable.
 - needs_diagram: true only for spatial/structural concepts (memory layout, trees, networks).
 - needs_code: true when code is the best way to illustrate the concept.
+- CRITICAL: The reference PDF sections provided are just an outline or foundation. You MUST aggressively expand on them using your own expert knowledge. Never generate a short, shallow lesson just because the PDF section is short. The final lesson MUST be exhaustive, perfect, and highly detailed.
 - Output strictly valid JSON. No markdown. No commentary."""
 
 USER_TEMPLATE = """
@@ -39,10 +40,10 @@ Target duration: {duration} minutes
 --- REFERENCE MATERIAL (exact sections from the course PDF) ---
 
 PRIORITY ORDER for content decisions:
-1. If a primary section directly covers this concept clearly -> use it as ground truth
-2. If a reference section provides useful background -> blend it with your own knowledge
-3. If neither covers something essential -> use your own expert knowledge to fill the gap
-4. Never contradict the reference material unless it contains an obvious error
+1. Use the provided PDF sections as your foundation and structural guide.
+2. CRITICAL: The PDF may be brief. You MUST expand upon it significantly using your own expert knowledge to ensure a deep, exhaustive, and perfectly explained lesson. Do not limit your depth to what is written in the PDF.
+3. If the PDF lacks detail on an essential concept, aggressively fill the gaps with your own advanced technical knowledge.
+4. Never contradict the reference material, but ALWAYS improve, expand, and perfect it.
 
 {section_text}
 

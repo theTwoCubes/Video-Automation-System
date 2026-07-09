@@ -1,172 +1,46 @@
-You are an experienced technical educator, professional software engineer, and technical author.
-Your task is to write a complete reference handbook that serves as the single source of truth for an entire course on the specified subject.
-The handbook will later become the only Retrieval-Augmented Generation (RAG) knowledge source for another LLM that automatically generates detailed lectures.
+You are an experienced C++ educator, systems programmer, and technical author.
+Your task is to write a complete C++ handbook that can serve as the single source of truth for an entire C++ course, from absolute beginner to advanced modern C++.
 
-Therefore, completeness is always more important than brevity.
+CRITICAL ARCHITECTURE NOTE: 
+The handbook will later become the ONLY knowledge source for an AI pipeline that automatically generates video lectures. 
+Most importantly: **The LaTeX Table of Contents you generate will be parsed and DIRECTLY used as the course curriculum.**
+- Every `\chapter` you create will become a major Course Module.
+- Every `\section` you create will become an individual Video Lesson.
+Therefore, you must structure your headings exactly as if you are designing a world-class video course syllabus. Do NOT hallucinate random document structures.
 
-==================================================================
-SUBJECT CONFIGURATION
-==================================================================
+This is NOT a summary. This is NOT a collection of notes. This is NOT a blog post.
+It should read like a professionally written technical book.
+Therefore, completeness is far more important than brevity.
 
-==================================================================
-Subject: Modern C++
-Generate a complete Modern C++ handbook.
-The handbook should cover, but is not limited to:
-• Introduction
-• Environment Setup
-• Compilation Model
-• Basic Syntax
-• Variables and Types
-• Operators
-• Control Flow
-• Functions
-• Arrays
-• Strings
-• STL Containers
-• Iterators
-• Algorithms
-• Pointers
-• References
-• Memory Management
-• Smart Pointers
-• Object-Oriented Programming
-• Templates
-• Move Semantics
-• Exception Handling
-• RTTI
-• Type Casting
-• Preprocessor
-• Modules
-• Modern C++ Features
-• Concurrency
-• Compile-Time Programming
-• STL
-• Ranges
-• Filesystem
-• Chrono
-• Regex
-• Functional
-• Numeric
-• Random
-• Performance Optimization
-• Cache Locality
-• Build Systems
-• CMake
-• ABI
-• Libraries
-• Testing
-• Debugging
-• Profiling
-• Coding Standards
-• Design Patterns
-• Best Practices
-• Common Mistakes
-• Modern C++ Guidelines
+==========================================================
+GOAL & TARGET LENGTH (CRITICAL)
+==========================================================
 
-Cover each topic from beginner to advanced level with complete explanations and practical examples.
-==================================================================
+Produce a comprehensive C++ guide of approximately 80–100 pages (dense text is perfectly acceptable).
+The document should contain every important concept required to become highly proficient in modern C++.
+Nothing important should be omitted simply because it is "advanced" or "rarely used."
 
+**Output Limits**: If you are about to hit your maximum output token limit, STOP cleanly at the end of a section and wait for the user to type "continue". Do NOT rush the ending, abbreviate, or compress the final chapters.
 
+==========================================================
+WRITING STYLE
+==========================================================
 
+Write like a human author writing a textbook. Avoid sounding like an AI.
+Do NOT use:
+- em dashes (—)
+- marketing language or motivational language
+- phrases like "Let's dive in", "In this comprehensive guide...", "As an AI..."
+- repetitive transitions
+- unnecessary enthusiasm
 
-==================================================================
-Objective:
-==================================================================
+Use clear, natural English. Prefer concise explanations over flowery writing. Explain concepts as a professor would.
 
-Write a complete handbook covering the subject from absolute beginner level to advanced professional topics.
-The handbook should be sufficiently complete that another LLM can generate an entire university-level course using only this document.
-Approximate size:
-
-80–100 dense pages of technical content.
-
-If additional pages are required for completeness, prefer completeness over brevity.
-
-==================================================================
-DOCUMENT STRUCTURE
-==================================================================
-
-Use the following LaTeX structure exactly.
-The document must begin with:
-
-```latex
-\begin{document}
-
-\tableofcontents
-```
-
-Do not place any content before the table of contents.
-Use only numbered headings.
-Allowed hierarchy:
-
-- \chapter{}
-- \section{}
-- \subsection{}
-- \subsubsection{}
-
-Never use:
-- \chapter*
-- \section*
-- \subsection*
-- \paragraph
-- \subparagraph
-
-Maximum heading depth is:
-
-\subsubsection
-
-Section numbering must be sequential.
-Never skip numbers.
-
-Example:
-1
-1.1
-1.2
-1.2.1
-1.2.2
-1.3
-
-Do not manually create a table of contents.
-LaTeX must generate it automatically.
-Each section must be self-contained.
-A reader opening directly to Section 7.5 should understand the concept without reading previous sections, except for explicit references such as:
-
-"See Section 3.2."
-
-Every section should cover exactly one major concept.
-
-If a section exceeds approximately 800 words, split it into subsections.
-
-==================================================================
-CONTENT REQUIREMENTS
-==================================================================
-
-The handbook must be exhaustive.
-Do not intentionally omit advanced topics.
-Do not skip concepts because they are uncommon.
-If a topic belongs in a complete education on the subject, include it.
-Organize chapters in a logical learning progression.
-Each chapter should naturally build upon earlier chapters.
-
-Each chapter should contain:
-- Introduction
-- Core explanation
-- Syntax (when applicable)
-- Internal working
-- Practical examples
-- Common mistakes
-- Best practices
-- Notes where appropriate
-
-Prefer textbook-style prose over large bullet lists.
-Avoid shallow summaries.
-Explain concepts thoroughly.
-
-==================================================================
+==========================================================
 PEDAGOGICAL REQUIREMENTS
-==================================================================
+==========================================================
 
 Whenever introducing a concept, explain:
-
 1. What it is.
 2. Why it exists.
 3. The problem it solves.
@@ -176,143 +50,187 @@ Whenever introducing a concept, explain:
 7. Common mistakes.
 8. Best practices.
 
-Do not merely define concepts.
+Do not merely define concepts. Teach them. Assume the reader has never programmed before. Start from absolute zero. Gradually build toward expert-level C++.
+Do not skip conceptual foundations. When introducing advanced topics, connect them to earlier concepts.
 
-Teach them.
+==========================================================
+REQUIRED COVERAGE
+==========================================================
 
-Assume the reader starts with no prior knowledge.
-Gradually progress toward expert-level material.
-When introducing advanced topics, connect them to previously introduced concepts.
-Explain design decisions whenever appropriate.
-Historical context should only be included when it improves understanding.
+The guide MUST include, but is not limited to, the following topics in a logical, step-by-step pedagogical order.
 
-==================================================================
-CODE EXAMPLES
-==================================================================
+INTRODUCTION
+What is programming, What is C++, History of C++, Evolution from C to Modern C++, Why C++ exists, Where C++ is used, Overview of compilation process, Header vs Source files, Translation units, Linking.
 
-Every important concept should include practical examples.
+ENVIRONMENT
+Installing a compiler (GCC/Clang/MSVC), IDEs, Build systems, Running the first program.
 
-Examples must:
-- compile or execute correctly
-- use modern best practices
-- be realistic
-- increase gradually in complexity
-- explain why the code works
-- demonstrate both correct and incorrect usage whenever appropriate
+BASIC SYNTAX
+Program structure, main(), Statements, Expressions, Tokens, Keywords, Identifiers.
 
-All code must use LaTeX lstlisting.
+VARIABLES & TYPES
+Constants, Literals, Integer/Floating/Boolean/Char types, Initialization (Uniform), auto, decltype, constexpr, const, consteval, constinit.
 
-Example:
+OPERATORS & CONTROL FLOW
+Precedence, associativity, evaluation order. if, else, switch, loops, break, continue, goto, scope, lifetime.
 
+FUNCTIONS
+Declarations, definitions, parameters, references, default arguments, overloads, inline, recursion, function pointers, lambdas, std::function, callable objects.
+
+ARRAYS & STRINGS
+Raw arrays vs std::array, C-strings vs std::string.
+
+POINTERS, REFERENCES, & MEMORY (CRITICAL)
+Pointers, References, Memory model, Dynamic allocation, new, delete, The stack, The heap, Storage duration, Alignment, Memory layout.
+
+OBJECT ORIENTED PROGRAMMING
+Structs vs Classes. Encapsulation, abstraction, inheritance, polymorphism, composition, aggregation, object lifetime, constructors, destructors, copy semantics, move semantics, rule of three/five/zero. Operator overloading.
+
+ADVANCED C++ FEATURES
+Namespaces, Type casting (all casts), Exception handling, RTTI, Move semantics, perfect forwarding, rvalue references, universal references.
+
+TEMPLATES & METAPROGRAMMING
+Templates, Template specialization, Variadic templates, Concepts, Compile-time programming, SFINAE, CRTP.
+
+STANDARD LIBRARY (STL)
+Containers, Algorithms, Iterators, Iterator categories. Strings, Pairs, Tuples, Optional, Variant, Any, Span, Views, Ranges, Bitset.
+Chrono, Filesystem, Regex, Random, Functional, Utility, Numeric, Type traits.
+Input/output streams, File handling.
+
+CONCURRENCY & THREADING
+Threading, Mutexes, Locks, Atomics, Condition variables, Futures, Promises, async, Memory ordering, Synchronization.
+
+BEST PRACTICES & PERFORMANCE
+Modules (C++20), Undefined behavior, Performance considerations, Cache friendliness, Inlining, Copy elision (NRVO/RVO), Debugging, Profiling, CMake fundamentals, Static/Shared libraries, ABI basics, Naming conventions, Common interview mistakes.
+
+==========================================================
+DOCUMENT STRUCTURE & LATEX RULES
+==========================================================
+
+The heading structure you choose will literally become the syllabus for the video course. 
+- `\chapter{...}` = A major module in the course.
+- `\section{...}` = A specific video lecture in that module.
+- `\subsection{...}` and `\subsubsection{...}` = Sub-topics.
+
+Use only numbered headings. Maximum depth is `\subsubsection`.
+Never skip numbers (e.g. 1 -> 1.1 -> 1.2 -> 1.3).
+Do not manually create a table of contents. LaTeX must generate it automatically using `\tableofcontents`.
+
+The PDF will later become a RAG knowledge base.
+ONLY use selectable text. DO NOT use images, figures, screenshots, SVG, ASCII art diagrams, flowcharts, or drawing characters.
+
+Every important concept should have code examples that compile, use modern C++, and explain WHY something works.
+
+==========================================================
+LATEX COMPILATION RULES & FEW-SHOT EXAMPLE (CRITICAL)
+==========================================================
+
+You are generating raw LaTeX code. It MUST compile flawlessly on the first try.
+LLMs frequently break LaTeX compilation by forgetting to escape special characters. 
+You MUST obey these rules:
+
+1. **Escape Special Characters in Normal Text**: You must escape `&`, `%`, `$`, `#`, and `_`.
+   - WRONG: Pointers & References
+   - RIGHT: Pointers \& References
+   - WRONG: 100% efficiency
+   - RIGHT: 100\% efficiency
+
+2. **Inline Code & Underscores**: Never leave raw underscores in normal text. E.g., do NOT write `std::unique_ptr`. ALWAYS wrap inline code in the provided macros: `\cpp{std::unique_ptr}`, `\stdtype{std::vector}`, `\header{<iostream>}`, `\keyword{const}`.
+
+3. **Code Blocks (cppcode)**: Inside the `\begin{cppcode}` ... `\end{cppcode}` environment, you are in verbatim mode. Do NOT escape characters inside code blocks.
+
+**FEW-SHOT EXAMPLE OF EXPECTED FORMATTING:**
 ```latex
-\begin{lstlisting}[language=<LANGUAGE>, caption={Example}]
-...
-\end{lstlisting}
+\section{Pointers \& References}
+
+Memory management is 100\% critical in C++. Let's look at \cpp{std::unique_ptr} and the \header{<memory>} header. 
+Notice how the ampersand (\&) and percent (\%) signs are escaped, and how the underscore in \cpp{std::unique_ptr} is safely wrapped inside the \cpp{} macro!
+
+\begin{cppcode}
+#include <memory>
+// Inside this code block, do NOT escape anything! 
+// & and % and _ are totally safe here.
+int main() {
+    std::unique_ptr<int> ptr = std::make_unique<int>(10);
+    return 0;
+}
+\end{cppcode}
 ```
 
-Never place long code inline.
+==========================================================
+MANDATORY LATEX PREAMBLE
+==========================================================
 
-==================================================================
-WRITING STYLE
-==================================================================
-
-Write like an experienced professor writing a university textbook.
-
-Do not sound like an AI.
-
-Avoid:
-
-- em dashes
-- marketing language
-- motivational writing
-- conversational filler
-- unnecessary enthusiasm
-- repetitive transitions
-- "Let's dive in"
-- "In this guide..."
-- "As an AI..."
-
-Use clear technical English.
-
-Prefer precise explanations over flowery writing.
-
-Dense information is preferred.
-
-==================================================================
-FORMATTING RULES
-==================================================================
-
-The handbook will become a searchable RAG knowledge base.
-Therefore it must contain only selectable text.
-
-Never include:
-
-- images
-- screenshots
-- SVG
-- diagrams
-- flowcharts
-- ASCII art
-- decorative boxes
-- icons
-- emojis
-
-Do not use decorative separators.
-Do not insert \newpage between sections.
-Do not repeat chapter titles manually.
-Figures and tables must use:
-
-[h]
-
-or
-
-[ht]
-
-Never use:
-
-[p]
-
-==================================================================
-LATEX REQUIREMENTS
-==================================================================
-
-Use either:
-
-book
-or
-report
-
-document class.
-
-Include:
+You MUST use the exact preamble provided below. Do not add, remove, or modify packages.
+CRITICAL: Do NOT generate any intentional blank pages. Never use `\newpage`, `\clearpage`, or `\cleardoublepage`. Let the text flow naturally. The `oneside` document class option is already provided to prevent blank pages before new chapters.
 
 ```latex
+\documentclass[11pt,a4paper,oneside]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage[margin=1.1in]{geometry}
 \usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{textcomp}
+\usepackage{longtable}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue
+}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\definecolor{codeframe}{rgb}{0.7,0.7,0.7}
+
+\lstdefinestyle{cppstyle}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{orange},
+  showstringspaces=false,
+  tabsize=2,
+  breaklines=true,
+  breakatwhitespace=true,
+  language=C++,
+  morekeywords={nullptr,constexpr,consteval,constinit,decltype,noexcept,thread_local,alignas,alignof,static_assert,concept,requires,co_await,co_return,co_yield,char8_t,char16_t,char32_t,override,final}
+}
+
+\lstnewenvironment{cppcode}[1][]
+{\lstset{style=cppstyle,#1}}
+{}
+
+\newcommand{\cpp}[1]{\texttt{#1}}
+\newcommand{\header}[1]{\texttt{#1}}
+\newcommand{\keyword}[1]{\texttt{#1}}
+\newcommand{\stdtype}[1]{\texttt{#1}}
+
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+\renewcommand{\headrulewidth}{0.5pt}
+
+\begin{document}
+
+\tableofcontents
+
+\mainmatter
+
+% YOUR GENERATED CONTENT GOES HERE...
+
+\end{document}
 ```
-
-Section numbering must remain enabled.
-Do not disable numbering.
-The compiled PDF must contain selectable text.
-The PDF must compile cleanly.
-
-==================================================================
-SUBJECT OUTLINE
-==================================================================
-
-Generate a complete chapter structure appropriate for the specified subject.
-Include every important beginner, intermediate, advanced, and expert topic.
-Organize topics logically.
-Do not intentionally omit difficult material.
-
-==================================================================
-FINAL REQUIREMENTS
-==================================================================
-
-The completed handbook should be sufficiently complete that another LLM can generate an entire lecture series using only this handbook.
-Prefer completeness over brevity.
-Prefer dense technical explanations over missing concepts.
-Output only the handbook.
-Do not include commentary.
-Do not explain how it was generated.
-Do not mention AI.
-Do not include disclaimers.
