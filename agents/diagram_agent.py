@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from agents.base_agent import BaseAgent
 
@@ -170,7 +169,6 @@ class DiagramAgent(BaseAgent):
         for diag_id, concept in diagram_refs.items():
             print(f"  Generating {diag_id}: {concept[:60]}")
             out_video = str(output_dir / f"{diag_id}.mp4")
-            out_png = str(output_dir / f"{diag_id}.png")
 
             # generate animated HTML via LLM
             html_content = self._generate_diagram_html(diag_id, lesson_title, concept)

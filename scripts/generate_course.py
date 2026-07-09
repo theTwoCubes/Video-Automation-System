@@ -17,7 +17,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config.settings import settings
 
 
 def _load_course(course_id: str) -> dict | None:
@@ -122,17 +121,31 @@ def main():
         print(f"{'='*60}")
 
         try:
+            # Load section declarations from curriculum plan
+            curriculum = json.loads(course.get("curriculum", "{}") or "{}")
+            proc_source_id = curriculum.get("source_id", "")
+            lecture_plan = next(
+                (lec for lec in curriculum.get("lectures", []) if lec.get("title") == title),
+                {}
+            )
+            primary_sections = lecture_plan.get("primary_sections", [])
+            reference_sections = lecture_plan.get("reference_sections", [])
+
             final = run_pipeline(
                 source_id=course.get("source_id", ""),
+                proc_source_id=proc_source_id,
+                primary_sections=primary_sections,
+                reference_sections=reference_sections,
                 course_id=args.course_id,
                 course_title=course.get("title", ""),
                 lesson_id=lid,
                 lesson_title=title,
                 lesson_position=pos,
-                topic_tags=json.loads(lesson.get("tags", "[]") or "[]"),
+                topic_tags=json.loads(lesson.get("topic_tags", "[]") or "[]"),
                 prerequisites=json.loads(lesson.get("prerequisites", "[]") or "[]"),
                 target_audience=course.get("target_audience", "beginners"),
-                estimated_duration_minutes=lesson.get("duration_minutes", 12),
+                estimated_duration_minutes=lesson.get("estimated_duration_minutes", 12),
+                difficulty=lesson.get("difficulty", "beginner"),
                 force_restart=args.force_restart,
                 previous_lesson_summary=prev_summary,
             )

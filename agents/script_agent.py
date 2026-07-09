@@ -1,7 +1,5 @@
 import json
-import re
 from agents.base_agent import BaseAgent
-from services.knowledge.ingestion import KnowledgeIngestionService
 
 STYLE_GUIDE = """
 STYLE GUIDE for theTwoCubes Learning:
@@ -69,8 +67,15 @@ USER_TEMPLATE = """
 Lesson plan:
 {lesson_plan}
 
-Supplementary reference from course knowledge base (treat as HINTS to enhance accuracy — do NOT be limited by it; use your own expert knowledge as the primary source and cross-check any claims from this context before including them):
-{rag_context}
+Supplementary reference from the course PDF (exact sections declared for this lecture):
+
+PRIORITY ORDER:
+1. If a section directly and clearly covers the concept -> use it as ground truth
+2. Use reference sections for background context only
+3. Fill any gaps with your own expert knowledge
+4. Never contradict the provided material
+
+{section_text}
 
 Write a complete script as JSON. MINIMUM {total_words} words total across all segments.
 Each narration segment must be 80-150 words (never under 60, never over 160).
@@ -113,36 +118,20 @@ Preserve all segment IDs, slide_ids, code_refs, and types exactly."""
 class ScriptAgent(BaseAgent):
     def __init__(self):
         super().__init__()
-        self.ingestion = KnowledgeIngestionService()
 
     def run(self, state: dict) -> dict:
         print(f"[ScriptAgent] Writing script for: {state['lesson_title']}")
 
-        source_ids = state.get("source_ids", [])
         lesson_id = state["lesson_id"]
         lesson_plan = state.get("lesson_plan", {})
         duration = lesson_plan.get("duration_estimate_minutes", 12)
         total_words = int(duration * 140)
-
-        key_concepts = lesson_plan.get("key_concepts", [state["lesson_title"]])
-        chunks = []
-        for concept in key_concepts[:4]:
-            chunks.extend(self.ingestion.query(source_ids, concept, n_results=3))
-
-        seen = set()
-        unique_chunks = []
-        for c in chunks:
-            key = c[:100]
-            if key not in seen:
-                seen.add(key)
-                unique_chunks.append(c)
-
-        rag_context = "\n\n---\n\n".join(unique_chunks[:10])
+        section_text = state.get("section_text", "No reference material available.")
 
         user_msg = USER_TEMPLATE.format(
             lesson_id=lesson_id,
-            lesson_plan=json.dumps(lesson_plan, indent=2)[:2500],
-            rag_context=rag_context[:2500],
+            lesson_plan=json.dumps(lesson_plan, indent=2)[:3000],
+            section_text=section_text[:4000],
             total_words=total_words,
             duration=duration,
         )

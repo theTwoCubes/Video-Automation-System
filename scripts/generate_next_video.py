@@ -14,18 +14,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from db.database import init_db, SessionLocal
 from db import models
 from pipelines.full_video_pipeline import run_pipeline
-from config.settings import settings
 
 app = typer.Typer()
 console = Console()
@@ -69,6 +66,17 @@ def main(
         source_id = course.source_id
         topic_tags = json.loads(lesson.topic_tags or "[]")
         prerequisites = json.loads(lesson.prerequisites or "[]")
+        difficulty = getattr(lesson, 'difficulty', 'beginner')
+
+        # Load section declarations from the curriculum plan
+        curriculum = json.loads(course.curriculum or "{}")
+        proc_source_id = curriculum.get("source_id", "")
+        lecture_plan = next(
+            (lec for lec in curriculum.get("lectures", []) if lec.get("title") == lesson.title),
+            {}
+        )
+        primary_sections = lecture_plan.get("primary_sections", [])
+        reference_sections = lecture_plan.get("reference_sections", [])
 
     finally:
         db.close()
@@ -93,6 +101,9 @@ def main(
     try:
         final_state = run_pipeline(
             source_id=source_id,
+            proc_source_id=proc_source_id,
+            primary_sections=primary_sections,
+            reference_sections=reference_sections,
             course_id=course_id,
             course_title=course.title,
             lesson_id=lesson.id,
@@ -102,6 +113,7 @@ def main(
             prerequisites=prerequisites,
             target_audience=course.target_audience,
             estimated_duration_minutes=lesson.estimated_duration_minutes,
+            difficulty=difficulty,
         )
 
         elapsed = time.time() - start_time

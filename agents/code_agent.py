@@ -1,6 +1,4 @@
-import json
 from agents.base_agent import BaseAgent
-from services.code_sandbox.executor import execute_code
 
 
 SYSTEM_PROMPT = """You are a code generation agent for theTwoCubes Learning.
@@ -41,7 +39,6 @@ class CodeAgent(BaseAgent):
         script = state.get("script", {})
         segments = script.get("segments", [])
         lesson_title = state["lesson_title"]
-        lesson_plan = state.get("lesson_plan", {})
 
         # determine primary language from topic tags
         tags = state.get("topic_tags", [])

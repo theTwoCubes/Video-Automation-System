@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import (
     String, Text, Integer, Float, Boolean, DateTime,
-    ForeignKey, JSON
+    ForeignKey
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from db.database import Base
@@ -17,12 +17,12 @@ class KnowledgeSource(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     name: Mapped[str] = mapped_column(String(255))
-    type: Mapped[str] = mapped_column(String(50))  # pdf | url | markdown | repo
+    type: Mapped[str] = mapped_column(String(50))  # pdf
     file_path: Mapped[str] = mapped_column(Text, nullable=True)
-    original_url: Mapped[str] = mapped_column(Text, nullable=True)
+    sections_path: Mapped[str] = mapped_column(Text, nullable=True)  # path to sections.json
+    toc_text: Mapped[str] = mapped_column(Text, nullable=True)       # synthesized TOC
+    section_count: Mapped[int] = mapped_column(Integer, default=0)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=True)
-    topic_tags: Mapped[str] = mapped_column(Text, default="[]")  # JSON list
-    chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -36,7 +36,7 @@ class Course(Base):
     description: Mapped[str] = mapped_column(Text, nullable=True)
     difficulty: Mapped[str] = mapped_column(String(20), default="mixed")
     target_audience: Mapped[str] = mapped_column(String(100), default="beginners")
-    source_ids: Mapped[str] = mapped_column(Text, default="[]")  # JSON list of source IDs
+    source_id: Mapped[str] = mapped_column(String(36), nullable=True)  # single PDF source
     curriculum: Mapped[str] = mapped_column(Text, default="{}")  # JSON
     status: Mapped[str] = mapped_column(String(20), default="draft")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

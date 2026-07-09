@@ -1,0 +1,318 @@
+You are an experienced technical educator, professional software engineer, and technical author.
+Your task is to write a complete reference handbook that serves as the single source of truth for an entire course on the specified subject.
+The handbook will later become the only Retrieval-Augmented Generation (RAG) knowledge source for another LLM that automatically generates detailed lectures.
+
+Therefore, completeness is always more important than brevity.
+
+==================================================================
+SUBJECT CONFIGURATION
+==================================================================
+
+==================================================================
+Subject: Modern C++
+Generate a complete Modern C++ handbook.
+The handbook should cover, but is not limited to:
+• Introduction
+• Environment Setup
+• Compilation Model
+• Basic Syntax
+• Variables and Types
+• Operators
+• Control Flow
+• Functions
+• Arrays
+• Strings
+• STL Containers
+• Iterators
+• Algorithms
+• Pointers
+• References
+• Memory Management
+• Smart Pointers
+• Object-Oriented Programming
+• Templates
+• Move Semantics
+• Exception Handling
+• RTTI
+• Type Casting
+• Preprocessor
+• Modules
+• Modern C++ Features
+• Concurrency
+• Compile-Time Programming
+• STL
+• Ranges
+• Filesystem
+• Chrono
+• Regex
+• Functional
+• Numeric
+• Random
+• Performance Optimization
+• Cache Locality
+• Build Systems
+• CMake
+• ABI
+• Libraries
+• Testing
+• Debugging
+• Profiling
+• Coding Standards
+• Design Patterns
+• Best Practices
+• Common Mistakes
+• Modern C++ Guidelines
+
+Cover each topic from beginner to advanced level with complete explanations and practical examples.
+==================================================================
+
+
+
+
+==================================================================
+Objective:
+==================================================================
+
+Write a complete handbook covering the subject from absolute beginner level to advanced professional topics.
+The handbook should be sufficiently complete that another LLM can generate an entire university-level course using only this document.
+Approximate size:
+
+80–100 dense pages of technical content.
+
+If additional pages are required for completeness, prefer completeness over brevity.
+
+==================================================================
+DOCUMENT STRUCTURE
+==================================================================
+
+Use the following LaTeX structure exactly.
+The document must begin with:
+
+```latex
+\begin{document}
+
+\tableofcontents
+```
+
+Do not place any content before the table of contents.
+Use only numbered headings.
+Allowed hierarchy:
+
+- \chapter{}
+- \section{}
+- \subsection{}
+- \subsubsection{}
+
+Never use:
+- \chapter*
+- \section*
+- \subsection*
+- \paragraph
+- \subparagraph
+
+Maximum heading depth is:
+
+\subsubsection
+
+Section numbering must be sequential.
+Never skip numbers.
+
+Example:
+1
+1.1
+1.2
+1.2.1
+1.2.2
+1.3
+
+Do not manually create a table of contents.
+LaTeX must generate it automatically.
+Each section must be self-contained.
+A reader opening directly to Section 7.5 should understand the concept without reading previous sections, except for explicit references such as:
+
+"See Section 3.2."
+
+Every section should cover exactly one major concept.
+
+If a section exceeds approximately 800 words, split it into subsections.
+
+==================================================================
+CONTENT REQUIREMENTS
+==================================================================
+
+The handbook must be exhaustive.
+Do not intentionally omit advanced topics.
+Do not skip concepts because they are uncommon.
+If a topic belongs in a complete education on the subject, include it.
+Organize chapters in a logical learning progression.
+Each chapter should naturally build upon earlier chapters.
+
+Each chapter should contain:
+- Introduction
+- Core explanation
+- Syntax (when applicable)
+- Internal working
+- Practical examples
+- Common mistakes
+- Best practices
+- Notes where appropriate
+
+Prefer textbook-style prose over large bullet lists.
+Avoid shallow summaries.
+Explain concepts thoroughly.
+
+==================================================================
+PEDAGOGICAL REQUIREMENTS
+==================================================================
+
+Whenever introducing a concept, explain:
+
+1. What it is.
+2. Why it exists.
+3. The problem it solves.
+4. How it works.
+5. When to use it.
+6. When not to use it.
+7. Common mistakes.
+8. Best practices.
+
+Do not merely define concepts.
+
+Teach them.
+
+Assume the reader starts with no prior knowledge.
+Gradually progress toward expert-level material.
+When introducing advanced topics, connect them to previously introduced concepts.
+Explain design decisions whenever appropriate.
+Historical context should only be included when it improves understanding.
+
+==================================================================
+CODE EXAMPLES
+==================================================================
+
+Every important concept should include practical examples.
+
+Examples must:
+- compile or execute correctly
+- use modern best practices
+- be realistic
+- increase gradually in complexity
+- explain why the code works
+- demonstrate both correct and incorrect usage whenever appropriate
+
+All code must use LaTeX lstlisting.
+
+Example:
+
+```latex
+\begin{lstlisting}[language=<LANGUAGE>, caption={Example}]
+...
+\end{lstlisting}
+```
+
+Never place long code inline.
+
+==================================================================
+WRITING STYLE
+==================================================================
+
+Write like an experienced professor writing a university textbook.
+
+Do not sound like an AI.
+
+Avoid:
+
+- em dashes
+- marketing language
+- motivational writing
+- conversational filler
+- unnecessary enthusiasm
+- repetitive transitions
+- "Let's dive in"
+- "In this guide..."
+- "As an AI..."
+
+Use clear technical English.
+
+Prefer precise explanations over flowery writing.
+
+Dense information is preferred.
+
+==================================================================
+FORMATTING RULES
+==================================================================
+
+The handbook will become a searchable RAG knowledge base.
+Therefore it must contain only selectable text.
+
+Never include:
+
+- images
+- screenshots
+- SVG
+- diagrams
+- flowcharts
+- ASCII art
+- decorative boxes
+- icons
+- emojis
+
+Do not use decorative separators.
+Do not insert \newpage between sections.
+Do not repeat chapter titles manually.
+Figures and tables must use:
+
+[h]
+
+or
+
+[ht]
+
+Never use:
+
+[p]
+
+==================================================================
+LATEX REQUIREMENTS
+==================================================================
+
+Use either:
+
+book
+or
+report
+
+document class.
+
+Include:
+
+```latex
+\usepackage{listings}
+```
+
+Section numbering must remain enabled.
+Do not disable numbering.
+The compiled PDF must contain selectable text.
+The PDF must compile cleanly.
+
+==================================================================
+SUBJECT OUTLINE
+==================================================================
+
+Generate a complete chapter structure appropriate for the specified subject.
+Include every important beginner, intermediate, advanced, and expert topic.
+Organize topics logically.
+Do not intentionally omit difficult material.
+
+==================================================================
+FINAL REQUIREMENTS
+==================================================================
+
+The completed handbook should be sufficiently complete that another LLM can generate an entire lecture series using only this handbook.
+Prefer completeness over brevity.
+Prefer dense technical explanations over missing concepts.
+Output only the handbook.
+Do not include commentary.
+Do not explain how it was generated.
+Do not mention AI.
+Do not include disclaimers.

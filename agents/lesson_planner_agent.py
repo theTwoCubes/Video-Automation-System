@@ -1,6 +1,10 @@
-import json
+"""
+Lesson Planner Agent — Deterministic Section-Based Architecture.
+
+Receives pre-loaded section text from the PDF processor.
+No embeddings, no vector search — the exact relevant sections are injected directly.
+"""
 from agents.base_agent import BaseAgent
-from services.knowledge.ingestion import KnowledgeIngestionService
 
 
 SYSTEM_PROMPT = """You are a lesson planner for theTwoCubes Learning.
@@ -18,7 +22,7 @@ Every lesson follows this exact structure:
 
 Rules:
 - Keep hooks engaging and non-generic. Never start with "In this lesson we will learn..."
-- objectives must be specific and measurable.
+- Objectives must be specific and measurable.
 - needs_diagram: true only for spatial/structural concepts (memory layout, trees, networks).
 - needs_code: true when code is the best way to illustrate the concept.
 - Output strictly valid JSON. No markdown. No commentary."""
@@ -26,14 +30,23 @@ Rules:
 USER_TEMPLATE = """
 Lesson: {title}
 Position: {position} in the course
-Topic tags: {tags}
-Prerequisites already covered: {prerequisites}
+Difficulty: {difficulty}
 Target audience: {audience}
 Target duration: {duration} minutes
 
 {continuity_block}
-Retrieved knowledge base context (SUPPLEMENTARY REFERENCE — use as hints to inform accuracy and depth; your primary knowledge source is your own expertise. Do not reproduce this text verbatim. If anything here conflicts with established facts, prefer your own knowledge):
-{rag_context}
+
+--- REFERENCE MATERIAL (exact sections from the course PDF) ---
+
+PRIORITY ORDER for content decisions:
+1. If a primary section directly covers this concept clearly -> use it as ground truth
+2. If a reference section provides useful background -> blend it with your own knowledge
+3. If neither covers something essential -> use your own expert knowledge to fill the gap
+4. Never contradict the reference material unless it contains an obvious error
+
+{section_text}
+
+--- END OF REFERENCE MATERIAL ---
 
 Generate a lesson plan matching this schema:
 {{
@@ -62,21 +75,19 @@ Generate a lesson plan matching this schema:
 class LessonPlannerAgent(BaseAgent):
     def __init__(self):
         super().__init__()
-        self.ingestion = KnowledgeIngestionService()
 
     def run(self, state: dict) -> dict:
         print(f"[LessonPlannerAgent] Planning: {state['lesson_title']}")
 
-        source_ids = state.get("source_ids", [])
         lesson_id = state["lesson_id"]
         title = state["lesson_title"]
-        tags = ", ".join(state.get("topic_tags", []))
-        prereqs = ", ".join(state.get("prerequisites", [])) or "None"
         audience = state.get("target_audience", "beginners")
         duration = state.get("estimated_duration_minutes", 12)
         position = state.get("lesson_position", 1)
+        difficulty = state.get("difficulty", "beginner")
+        section_text = state.get("section_text", "No reference material available.")
 
-        # A.3: Lesson continuity — inject previous lesson's summary
+        # Lesson continuity — inject previous lesson's summary
         prev_summary = state.get("previous_lesson_summary")
         if prev_summary:
             bullets = prev_summary.get("key_takeaways", [])
@@ -84,47 +95,38 @@ class LessonPlannerAgent(BaseAgent):
             continuity_block = (
                 f"PREVIOUS LESSON ({prev_title}) ALREADY COVERED — do NOT re-explain:\n"
                 + "\n".join(f"  - {b}" for b in bullets[:5])
-                + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n\n"
+                + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n"
             )
         else:
             continuity_block = ""
-
-        # RAG context for this specific topic
-        chunks = self.ingestion.query(source_ids, title, n_results=6)
-        rag_context = "\n\n---\n\n".join(chunks) if chunks else "No context available."
 
         user_msg = USER_TEMPLATE.format(
             lesson_id=lesson_id,
             title=title,
             position=position,
-            tags=tags,
-            prerequisites=prereqs,
+            difficulty=difficulty,
             audience=audience,
             duration=duration,
-            rag_context=rag_context[:5000],
+            section_text=section_text[:8000],  # hard cap to stay within context
             continuity_block=continuity_block,
         )
 
         lesson_plan = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
 
-        # guarantee required sections are always present
+        # Guarantee required sections are always present
         sections = lesson_plan.get("sections", [])
         section_types = {s.get("type") for s in sections}
 
         required = [
-            ("objectives", "objectives",
-             f"By the end of this lesson you will understand: {title}",
-             30, False, False),
-            ("summary", "summary",
-             "Key Takeaways", 60, False, False),
-            ("exercise", "exercise",
-             f"Practice challenge for {title}", 45, False, True),
+            ("objectives", "objectives_auto", f"By the end of this lesson you will understand: {title}", 30, False, False),
+            ("summary",    "summary_auto",    "Key Takeaways", 60, False, False),
+            ("exercise",   "exercise_auto",   f"Practice challenge for {title}", 45, False, True),
         ]
 
-        for sec_type, sec_id_prefix, title_str, dur, diag, code in required:
+        for sec_type, sec_id, title_str, dur, diag, code in required:
             if sec_type not in section_types:
                 sections.append({
-                    "id": f"{sec_id_prefix}_auto",
+                    "id": sec_id,
                     "title": title_str,
                     "type": sec_type,
                     "duration_seconds": dur,

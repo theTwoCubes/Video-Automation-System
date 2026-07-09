@@ -1,4 +1,4 @@
-from typing import Optional, List, Any
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
@@ -88,7 +88,13 @@ class SEOMetadata(BaseModel):
 
 
 class PipelineState(TypedDict):
-    source_ids: List[str]
+    # Knowledge source
+    source_id: str                    # DB KnowledgeSource.id
+    proc_source_id: str               # hash-based ID in data/processed/
+    primary_sections: List[str]       # section IDs declared by curriculum LLM
+    reference_sections: List[str]     # supporting section IDs
+    section_text: str                 # pre-loaded section text ready to inject
+    # Course + lesson metadata
     course_id: str
     course_title: str
     lesson_id: str
@@ -98,24 +104,24 @@ class PipelineState(TypedDict):
     prerequisites: List[str]
     target_audience: str
     estimated_duration_minutes: int
-
+    difficulty: str
+    previous_lesson_summary: Optional[dict]
+    # Pipeline outputs
     lesson_plan: Optional[dict]
     script: Optional[dict]
     code_examples: Optional[List[dict]]
     diagrams: Optional[List[dict]]
     slide_contents: Optional[List[dict]]
-
     audio_paths: Optional[List[str]]
     slide_image_paths: Optional[List[str]]
     slide_id_to_path: Optional[dict]
     diagram_image_paths: Optional[dict]
     video_path: Optional[str]
     thumbnail_path: Optional[str]
-
     qa_report: Optional[dict]
     seo_metadata: Optional[dict]
+    quiz_questions: Optional[List[dict]]
     subtitle_srt: Optional[str]
-
     output_dir: str
     error: Optional[str]
     retry_count: int

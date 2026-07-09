@@ -62,34 +62,22 @@ def list_courses():
         for c in courses:
             lessons = db.query(models.Lesson).filter(models.Lesson.course_id == c.id).all()
             done = sum(1 for l in lessons if l.status == "done")
-            sources_data = []
-            if c.source_ids:
-                try:
-                    s_ids = json.loads(c.source_ids)
-                except:
-                    s_ids = []
-                for sid in s_ids:
-                    src = db.get(models.KnowledgeSource, sid)
-                    if src:
-                        tags_parsed = []
-                        try:
-                            tags_parsed = json.loads(src.topic_tags) if src.topic_tags else []
-                        except:
-                            pass
-                        sources_data.append({
-                            "id": src.id,
-                            "name": src.name,
-                            "type": src.type,
-                            "chunk_count": src.chunk_count,
-                            "status": src.status,
-                            "topic_tags": tags_parsed
-                        })
-
+            source_data = None
+            if c.source_id:
+                src = db.get(models.KnowledgeSource, c.source_id)
+                if src:
+                    source_data = {
+                        "id": src.id,
+                        "name": src.name,
+                        "section_count": src.section_count,
+                        "status": src.status,
+                    }
             result.append({
                 "id": c.id,
                 "title": c.title,
+                "topic": c.topic,
                 "target_audience": getattr(c, "target_audience", ""),
-                "sources": sources_data,
+                "source": source_data,
                 "total_lessons": len(lessons),
                 "done_lessons": done,
                 "pending_lessons": sum(1 for l in lessons if l.status == "pending"),
@@ -196,23 +184,19 @@ def get_slides(lesson_id: str):
         db.close()
 
 
-#  Knowledge Ingestion 
-
-class IngestRequest(BaseModel):
-    source: str
-    name: str
-    source_type: str = "pdf"
-    tags: str = ""
+# ---- PDF Processing (replaces old ingestion + ChromaDB) ---- #
 
 @app.post("/api/courses/{course_id}/source")
-def add_knowledge_source(
-    course_id: str, 
+def add_pdf_source(
+    course_id: str,
     background_tasks: BackgroundTasks,
     name: str = Form(...),
-    source_type: str = Form(...),
-    source: str = Form(None),
-    file: UploadFile = File(None)
+    file: UploadFile = File(...),
 ):
+    """
+    Upload a single PDF to a course. Processes it into a section index.
+    This is the ONLY way to add a knowledge source to a course.
+    """
     db = _db()
     if not db:
         raise HTTPException(status_code=503, detail="DB unavailable")
@@ -221,59 +205,60 @@ def add_knowledge_source(
         course = db.get(models.Course, course_id)
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
-        topic = course.topic
     finally:
         db.close()
 
-    task_id = f"ingest_{datetime.now(timezone.utc).strftime('%H%M%S')}"
+    # Save uploaded PDF
+    import shutil
+    upload_dir = Path("data/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = file.filename.replace(" ", "_")
+    file_path = upload_dir / f"{course_id}_{safe_name}"
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    task_id = f"proc_{datetime.now(timezone.utc).strftime('%H%M%S')}"
     _ingest_tasks[task_id] = {"status": "running", "source_id": None, "error": None}
 
-    # If it's a PDF upload, save it to a temporary file
-    final_source = source
-    if source_type == "pdf" and file:
-        import shutil
-        upload_dir = Path("data/uploads")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        file_path = upload_dir / f"{task_id}_{file.filename}"
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        final_source = str(file_path.absolute())
-
-    def _do_ingest():
+    def _do_process():
         try:
-            from services.knowledge.ingestion import KnowledgeIngestionService
-            svc = KnowledgeIngestionService()
-            tag_list = [topic.lower()]
-            sid = svc.ingest(
-                name=name,
-                source_type=source_type,
-                path_or_url=final_source,
-                topic_tags=tag_list,
-            )
-            # Link to course
-            db2 = _db()
-            if db2:
-                from db import models
-                c = db2.get(models.Course, course_id)
-                if c:
-                    import json
-                    try:
-                        s_ids = json.loads(c.source_ids) if c.source_ids else []
-                    except:
-                        s_ids = []
-                    s_ids.append(sid)
-                    c.source_ids = json.dumps(s_ids)
-                    db2.commit()
-                db2.close()
+            from services.knowledge.pdf_processor import PDFProcessor
+            from db.database import SessionLocal
+            from db import models as m
+            processor = PDFProcessor()
+            sections, toc_text, proc_source_id = processor.process(str(file_path))
 
-            _ingest_tasks[task_id]["status"] = "done"
-            _ingest_tasks[task_id]["source_id"] = sid
+            db2 = SessionLocal()
+            try:
+                # Create or update KnowledgeSource record
+                src = m.KnowledgeSource(
+                    name=name,
+                    type="pdf",
+                    file_path=str(file_path),
+                    sections_path=str(Path("data/processed") / proc_source_id / "sections.json"),
+                    toc_text=toc_text,
+                    section_count=len(sections),
+                    status="ready",
+                )
+                db2.add(src)
+                # Link to course
+                c = db2.get(m.Course, course_id)
+                if c:
+                    c.source_id = src.id
+                db2.commit()
+                _ingest_tasks[task_id]["status"] = "done"
+                _ingest_tasks[task_id]["source_id"] = src.id
+                _ingest_tasks[task_id]["section_count"] = len(sections)
+            finally:
+                db2.close()
         except Exception as e:
             _ingest_tasks[task_id]["status"] = "failed"
             _ingest_tasks[task_id]["error"] = str(e)
+            print(f"[ProcessPDF] ERROR: {e}")
 
-    background_tasks.add_task(_do_ingest)
+    background_tasks.add_task(_do_process)
     return {"task_id": task_id, "status": "started"}
+
 
 @app.get("/api/ingest/{task_id}")
 def get_ingest_status(task_id: str):
@@ -282,37 +267,60 @@ def get_ingest_status(task_id: str):
     return _ingest_tasks[task_id]
 
 
-class QueryRequest(BaseModel):
-    query: str
+# ---- Section Browser (replaces old query endpoint) ---- #
 
-@app.post("/api/courses/{course_id}/query")
-def query_knowledge(course_id: str, req: QueryRequest):
+@app.get("/api/courses/{course_id}/sections")
+def list_sections(course_id: str):
+    """Return all section IDs and titles for a course's processed PDF."""
     db = _db()
     if not db:
         raise HTTPException(status_code=503, detail="DB unavailable")
     try:
         from db import models
         course = db.get(models.Course, course_id)
-        import json
-        try:
-            s_ids = json.loads(course.source_ids) if course.source_ids else []
-        except:
-            s_ids = []
-            
-        if not course or not s_ids:
-            raise HTTPException(status_code=400, detail="Course has no knowledge source")
-        
-        if not req.query.strip():
-            return {"chunks": []}
-            
-        from services.knowledge.ingestion import KnowledgeIngestionService
-        svc = KnowledgeIngestionService()
-        
-        chunks = svc.query(s_ids, req.query, n_results=3)
-        
-        return {"chunks": chunks}
+        if not course or not course.source_id:
+            raise HTTPException(status_code=400, detail="Course has no PDF source")
+        src = db.get(models.KnowledgeSource, course.source_id)
+        if not src or not src.sections_path:
+            raise HTTPException(status_code=400, detail="PDF not yet processed")
     finally:
         db.close()
+
+    from services.knowledge.pdf_processor import PDFProcessor
+    # Derive source_id from sections_path (parent dir name)
+    proc_source_id = Path(src.sections_path).parent.name
+    processor = PDFProcessor()
+    section_ids = processor.list_section_ids(proc_source_id)
+    sections_data = json.loads(Path(src.sections_path).read_text(encoding="utf-8"))
+    return {
+        "section_count": len(section_ids),
+        "sections": [
+            {"id": sid, "title": sections_data[sid]["title"], "children": sections_data[sid]["children"]}
+            for sid in section_ids
+        ]
+    }
+
+
+@app.get("/api/courses/{course_id}/sections/{section_id}")
+def get_section_text(course_id: str, section_id: str):
+    """Return the full text of a specific section for preview."""
+    db = _db()
+    if not db:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        from db import models
+        course = db.get(models.Course, course_id)
+        if not course or not course.source_id:
+            raise HTTPException(status_code=400, detail="Course has no PDF source")
+        src = db.get(models.KnowledgeSource, course.source_id)
+    finally:
+        db.close()
+
+    proc_source_id = Path(src.sections_path).parent.name
+    from services.knowledge.pdf_processor import PDFProcessor
+    processor = PDFProcessor()
+    text = processor.get_sections(proc_source_id, [section_id])
+    return {"section_id": section_id, "text": text}
 
 
 #  Curriculum Generation 
@@ -329,16 +337,12 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
     try:
         from db import models
         course = db.get(models.Course, req.course_id)
-        import json
-        try:
-            s_ids = json.loads(course.source_ids) if course.source_ids else []
-        except:
-            s_ids = []
-            
-        if not course or not s_ids:
-            raise HTTPException(status_code=400, detail="Course or knowledge source not found")
-            
-        source_ids = s_ids
+        if not course or not course.source_id:
+            raise HTTPException(status_code=400, detail="Course has no PDF source attached. Upload a PDF first.")
+        src = db.get(models.KnowledgeSource, course.source_id)
+        if not src or src.status != "ready":
+            raise HTTPException(status_code=400, detail="PDF is not yet processed.")
+        proc_source_id = Path(src.sections_path).parent.name
         topic = course.topic
         target_audience = course.target_audience
     finally:
@@ -350,31 +354,50 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
     def _do_generate():
         try:
             from agents.curriculum_agent import CurriculumAgent
+            from db.database import SessionLocal
+            from db import models as m
             agent = CurriculumAgent()
             state = {
-                "source_ids": source_ids,
+                "source_id": proc_source_id,
                 "topic": topic,
                 "target_audience": target_audience,
                 "min_lessons": req.min_lessons,
             }
             res = agent.run(state)
-            
-            # Save curriculum to DB automatically
-            db2 = _db()
-            if db2:
-                from db import models
-                c = db2.get(models.Course, req.course_id)
+            curriculum = res.get("curriculum", {})
+            lectures = curriculum.get("lectures", [])
+
+            db2 = SessionLocal()
+            try:
+                c = db2.get(m.Course, req.course_id)
                 if c:
-                    curr = res.get("curriculum", {})
-                    c.curriculum = json.dumps(curr)
+                    c.curriculum = json.dumps(curriculum)
+                    # Create Lesson rows from the lecture plan
+                    # Clear old lessons first
+                    db2.query(m.Lesson).filter(m.Lesson.course_id == req.course_id).delete()
+                    for lec in lectures:
+                        lesson = m.Lesson(
+                            course_id=req.course_id,
+                            title=lec["title"],
+                            position=lec["position"],
+                            topic_tags=json.dumps(lec.get("topic_tags", [])),
+                            difficulty=lec.get("difficulty", "beginner"),
+                            estimated_duration_minutes=lec.get("estimated_minutes", 12),
+                            prerequisites=json.dumps(lec.get("prerequisites", [])),
+                            status="pending",
+                        )
+                        db2.add(lesson)
                     db2.commit()
+            finally:
                 db2.close()
 
             _curricula_tasks[task_id]["status"] = "done"
-            _curricula_tasks[task_id]["curriculum"] = res.get("curriculum")
+            _curricula_tasks[task_id]["curriculum"] = curriculum
+            _curricula_tasks[task_id]["lecture_count"] = len(lectures)
         except Exception as e:
             _curricula_tasks[task_id]["status"] = "failed"
             _curricula_tasks[task_id]["error"] = str(e)
+            print(f"[CurriculumGen] ERROR: {e}")
 
     background_tasks.add_task(_do_generate)
     return {"task_id": task_id, "status": "started"}

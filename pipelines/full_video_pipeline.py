@@ -1,5 +1,4 @@
 import json
-import uuid
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Literal
@@ -140,6 +139,8 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
         "lesson_id": state["lesson_id"],
         "lesson_title": state["lesson_title"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "primary_sections": state.get("primary_sections", []),
+        "reference_sections": state.get("reference_sections", []),
         "video_path": state.get("video_path", ""),
         "thumbnail_path": state.get("thumbnail_path", ""),
         "qa_score": state.get("qa_report", {}).get("score", 0),
@@ -157,6 +158,10 @@ def node_save_outputs(state: PipelineState) -> PipelineState:
     summary_path = output_dir / "lesson_summary.json"
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
+
+    # Save exact injected context for tracing
+    if state.get("section_text"):
+        (output_dir / "reference_material.txt").write_text(state["section_text"], encoding="utf-8")
 
     if state.get("script"):
         with open(output_dir / "script.json", "w", encoding="utf-8") as f:
@@ -236,6 +241,9 @@ def build_pipeline() -> StateGraph:
 
 def run_pipeline(
     source_id: str,
+    proc_source_id: str,
+    primary_sections: list[str],
+    reference_sections: list[str],
     course_id: str,
     course_title: str,
     lesson_id: str,
@@ -247,6 +255,7 @@ def run_pipeline(
     estimated_duration_minutes: int = 12,
     force_restart: bool = False,
     previous_lesson_summary: dict | None = None,
+    difficulty: str = "beginner",
 ) -> PipelineState:
 
     output_dir = str(
@@ -275,8 +284,22 @@ def run_pipeline(
                     
         print("[Pipeline] Cleared checkpoints and old media for fresh run.")
 
+    # Pre-load section text from the processed PDF (deterministic, no embeddings)
+    from services.knowledge.pdf_processor import PDFProcessor
+    processor = PDFProcessor()
+    all_section_ids = primary_sections + [s for s in reference_sections if s not in primary_sections]
+    try:
+        section_text = processor.get_sections(proc_source_id, all_section_ids)
+    except Exception as e:
+        print(f"[Pipeline] WARNING: Could not load section text: {e}")
+        section_text = "No reference material available."
+
     initial_state: PipelineState = {
         "source_id": source_id,
+        "proc_source_id": proc_source_id,
+        "primary_sections": primary_sections,
+        "reference_sections": reference_sections,
+        "section_text": section_text,
         "course_id": course_id,
         "course_title": course_title,
         "lesson_id": lesson_id,
@@ -286,6 +309,7 @@ def run_pipeline(
         "prerequisites": prerequisites,
         "target_audience": target_audience,
         "estimated_duration_minutes": estimated_duration_minutes,
+        "difficulty": difficulty,
         "previous_lesson_summary": previous_lesson_summary,
         "lesson_plan": None,
         "script": None,
