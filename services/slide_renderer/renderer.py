@@ -46,43 +46,59 @@ class SlideRenderer:
             **data,
         )
 
-    async def render_slide_async(self, slide_data: dict, output_path: str, slide_index: int = 0, total_slides: int = 0) -> str:
-        from playwright.async_api import async_playwright
+    async def render_slide_async(
+        self, slide_data: dict, output_path: str,
+        slide_index: int = 0, total_slides: int = 0,
+        browser=None,
+    ) -> str:
         html = self._render_html(slide_data, slide_index, total_slides)
-        async with async_playwright() as p:
-            browser = await p.chromium.launch()
+        if browser is not None:
             page = await browser.new_page(
                 viewport={"width": settings.SLIDE_WIDTH, "height": settings.SLIDE_HEIGHT}
             )
-            await page.set_content(html, wait_until="domcontentloaded")
-            # wait for adaptive font JS to complete
-            try:
-                await page.wait_for_function("document.readyState === 'complete'", timeout=5000)
-            except Exception:
-                pass
+            await page.set_content(html, wait_until="networkidle")
             await page.screenshot(path=output_path, type="png", full_page=False)
-            await browser.close()
+            await page.close()
+            return output_path
+        # fallback: own browser context
+        from playwright.async_api import async_playwright
+        async with async_playwright() as p:
+            b = await p.chromium.launch()
+            page = await b.new_page(
+                viewport={"width": settings.SLIDE_WIDTH, "height": settings.SLIDE_HEIGHT}
+            )
+            await page.set_content(html, wait_until="networkidle")
+            await page.screenshot(path=output_path, type="png", full_page=False)
+            await b.close()
         return output_path
 
+    async def _render_slides_async(self, slides: list, output_dir: str) -> list:
+        """Render all slides in a single shared Playwright browser session."""
+        from playwright.async_api import async_playwright
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        total = len(slides)
+        paths = []
+        async with async_playwright() as p:
+            browser = await p.chromium.launch()
+            for i, slide_data in enumerate(slides):
+                out = str(Path(output_dir) / f"slide_{i:04d}.png")
+                await self.render_slide_async(slide_data, out, slide_index=i, total_slides=total, browser=browser)
+                paths.append(out)
+                print(f"  Rendered slide {i + 1}/{total}")
+            await browser.close()
+        return paths
+
     def render_slide(self, slide_data: dict, output_path: str, slide_index: int = 0, total_slides: int = 0) -> str:
+        return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
+
+    def render_slides(self, slides: list[dict], output_dir: str) -> list[str]:
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import nest_asyncio
                 nest_asyncio.apply()
-                return loop.run_until_complete(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
+                return loop.run_until_complete(self._render_slides_async(slides, output_dir))
             else:
-                return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
+                return asyncio.run(self._render_slides_async(slides, output_dir))
         except Exception:
-            return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
-
-    def render_slides(self, slides: list[dict], output_dir: str) -> list[str]:
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
-        total = len(slides)
-        paths = []
-        for i, slide_data in enumerate(slides):
-            out = str(Path(output_dir) / f"slide_{i:04d}.png")
-            self.render_slide(slide_data, out, slide_index=i, total_slides=total)
-            paths.append(out)
-            print(f"  Rendered slide {i + 1}/{total}")
-        return paths
+            return asyncio.run(self._render_slides_async(slides, output_dir))

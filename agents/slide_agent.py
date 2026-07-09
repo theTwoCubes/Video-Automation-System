@@ -5,13 +5,14 @@ from services.slide_validator.validator import validate_slides, auto_fix_slides,
 
 # Layout -> default transition when this slide is shown after a non-code slide
 LAYOUT_TRANSITIONS = {
-    "title":          "zoomin",
+    "title":          "fade",
     "code":           "wipeleft",
     "terminal":       "wipeleft",
     "comparison":     "slideleft",
     "error_fix":      "slideleft",
-    "summary":        "fadeblack",
-    "exercise":       "slideleft",
+    "summary":        "fade",
+    "exercise":       "fade",
+    "definition":     "fade",
     "default":        "fade",
 }
 
@@ -26,18 +27,35 @@ SLIDE QUALITY RULES:
   GOOD: "C++ compiles to native machine code — runs 10-100x faster than interpreted languages"
   BAD: "Variables store data"
   GOOD: "int x = 42; // 4 bytes on stack, address ~0x7ffe12345678"
-- Code slides: show COMPLETE, runnable code. Never use placeholder "...".
+- Code slides: show COMPLETE, runnable code. Never use placeholder \"...\".
 - Headlines: clear and specific. Max 8 words.
-- Max 5 bullets. Each bullet max 12 words. Dense, punchy.
+- Max 5 bullets. Each bullet max 14 words. Dense, punchy.
 - Use the tag field for context (HOOK, CONCEPT, DEEP DIVE, CODE, MISTAKES, SUMMARY, EXERCISE).
 
-LAYOUTS:
+LAYOUT DIVERSITY RULES (CRITICAL — enforce these strictly):
+- No more than 40% of all slides may use the 'content' layout.
+- Every lesson MUST have at least one 'two_column' or 'numbered_steps' slide.
+- Use 'definition' for slides that introduce a single precise concept.
+- Use 'numbered_steps' when there is a sequence of 3+ ordered actions.
+- Use 'two_column' for before/after, wrong/right, old/new comparisons.
+- Use 'error_fix' when showing a common mistake and its correction.
+- Use 'terminal' for command-line demos and shell output.
+- Use 'code' only when showing actual runnable code samples.
+- 'summary' layout ALWAYS for the final takeaways slide — never use 'content'.
+- 'exercise' layout for challenge slides.
+
+ALL AVAILABLE LAYOUTS:
 - title: opening slide (lesson_number + headline + subtitle)
 - content: headline + bullets (concept explanations)
-- code: headline + actual runnable code
-- two_column: headline + left_bullets + right_bullets (comparisons)
-- summary: Key Takeaways with 3 specific bullets
-- exercise: challenge prompt
+- code: headline + code_content (runnable code) + code_language
+- two_column: headline + left_label + left_bullets + right_label + right_bullets
+- numbered_steps: headline + bullets (shown as numbered circles)
+- summary: Key Takeaways with checkmarks (3-5 specific bullets)
+- exercise: challenge prompt with numbered tasks
+- definition: single concept as an equation or precise statement
+- terminal: command-line demo with $ prompts and output
+- error_fix: side-by-side mistake vs correct code
+- comparison: side-by-side any two alternatives
 
 Output STRICTLY valid JSON. No markdown. No commentary."""
 
@@ -59,17 +77,23 @@ Code examples available:
 Rules:
 - slide_001 is ALWAYS the title layout.
 - Generate EXACTLY {slide_count} slides — one per slide_id listed above.
+- DIVERSITY: max 40% content layout. Force at least 1 two_column or numbered_steps.
 - Each slide headline must be specific to that segment's content.
 - For code layout: use the actual code from code examples.
-- Summary slide: bullets must list 3 specific things learned.
-- Exercise slide: give a concrete challenge with specific requirements.
+- For two_column: fill both left_bullets and right_bullets with 3-4 items each.
+- For numbered_steps: bullets are the steps (shown with numbers).
+- For definition: bullets[0] is the equation/statement, bullets[1] is the explanation.
+- For error_fix: left_bullets = broken code lines, right_bullets = fixed code lines.
+- For terminal: bullets = command lines (lines starting with # are comments/output).
+- Summary slide: bullets must list 3-5 specific concrete things the viewer now knows.
+- Exercise slide: bullets list 2-3 specific tasks with concrete requirements.
 
 Output JSON:
 {{
   "slides": [
     {{
       "id": "slide_001",
-      "layout": "title|content|code|two_column|summary|exercise",
+      "layout": "title|content|code|two_column|numbered_steps|summary|exercise|definition|terminal|error_fix|comparison",
       "headline": "string (specific, max 8 words)",
       "subtitle": "string (title layout only)",
       "bullets": ["concrete bullet", ...],
@@ -78,8 +102,10 @@ Output JSON:
       "left_label": "",
       "right_label": "",
       "code_content": "complete runnable code (code layout only)",
+      "code_language": "cpp",
       "tag": "HOOK|CONCEPT|DEEP DIVE|CODE|MISTAKES|SUMMARY|EXERCISE",
-      "lesson_number": {position}
+      "lesson_number": {position},
+      "transition_hint": "fade"
     }}
   ]
 }}

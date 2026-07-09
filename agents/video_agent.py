@@ -1,9 +1,9 @@
 """
 VideoAgent — composes the final lesson video from slides + audio.
 
-New features:
-- B.2: Per-layout slide transitions from slide_contents.transition_hint
-- E.2: Video quality validation via ffprobe after composition
+Features:
+- Per-layout slide transitions from slide_contents.transition_hint
+- Video quality validation via ffprobe after composition
 - Code reveal animation integration
 - Subtitle .srt generation
 """
@@ -39,7 +39,6 @@ def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> s
         end   = _seconds_to_srt_time(cursor + dur)
         text  = seg.get("text", "").strip().replace("[PAUSE]", "")
 
-        # wrap at ~80 chars
         if len(text) > 80:
             words = text.split()
             lines, cur_line, cur_len = [], [], 0
@@ -70,6 +69,44 @@ class VideoAgent(BaseAgent):
             self._renderer = SlideRenderer()
         return self._renderer
 
+    def _build_pairs(
+        self,
+        segments: list,
+        slide_id_to_path: dict,
+        slide_contents: list,
+        audio_paths: list,
+        fallback_img: str = None,
+    ) -> tuple:
+        """
+        Build (slide_image_path, [audio_paths]) pairs and transition hints.
+        Returns (aligned_pairs, transition_hints).
+        """
+        narration_segs = [
+            s for s in segments
+            if s.get("type") in ("narration", "code_demo") and s.get("text", "").strip()
+        ]
+        slide_content_map = {s.get("id", ""): s for s in slide_contents}
+        slide_paths_list = list(slide_id_to_path.values())
+        fb = fallback_img or (slide_paths_list[-1] if slide_paths_list else "")
+
+        slide_audio_map: dict = OrderedDict()
+        for i, seg in enumerate(narration_segs):
+            if i >= len(audio_paths):
+                break
+            sid = seg.get("slide_id", "slide_001")
+            slide_audio_map.setdefault(sid, []).append(audio_paths[i])
+
+        aligned_pairs = []
+        transition_hints = []
+        for slide_id, audios in slide_audio_map.items():
+            img = slide_id_to_path.get(slide_id, fb)
+            if not Path(img).exists():
+                img = fb
+            aligned_pairs.append((img, audios))
+            sd = slide_content_map.get(slide_id, {})
+            transition_hints.append(sd.get("transition_hint", "fade"))
+        return aligned_pairs, transition_hints
+
     def run(self, state: dict) -> dict:
         print("[VideoAgent] Composing final video...")
 
@@ -98,7 +135,6 @@ class VideoAgent(BaseAgent):
             state["error"] = "No audio segments."
             return state
 
-        # build quick lookups
         slide_content_map = {s.get("id", ""): s for s in slide_contents}
 
         narration_segs = [
@@ -106,34 +142,23 @@ class VideoAgent(BaseAgent):
             if s.get("type") in ("narration", "code_demo") and s.get("text", "").strip()
         ]
 
-        # group audio by slide_id
-        slide_audio_map = OrderedDict()
-        for i, seg in enumerate(narration_segs):
-            if i >= len(audio_paths):
-                break
-            sid = seg.get("slide_id", "slide_001")
-            slide_audio_map.setdefault(sid, []).append(audio_paths[i])
-
-        if not slide_audio_map:
-            state["error"] = "Could not map audio to slides."
-            return state
-
         fallback_img = slide_paths[-1]
-        aligned_pairs = []
-        pair_slide_ids = []
-        transition_hints = []
-
-        for slide_id, audios in slide_audio_map.items():
-            img = slide_id_to_path.get(slide_id, fallback_img)
-            if not Path(img).exists():
-                img = fallback_img
-            aligned_pairs.append((img, audios))
-            pair_slide_ids.append(slide_id)
-            # pull transition_hint from slide_contents
-            slide_data = slide_content_map.get(slide_id, {})
-            transition_hints.append(slide_data.get("transition_hint", "fade"))
+        aligned_pairs, transition_hints = self._build_pairs(
+            segments, slide_id_to_path, slide_contents, audio_paths, fallback_img
+        )
+        pair_slide_ids = [
+            list(slide_id_to_path.keys())[
+                next((j for j, p in enumerate(slide_id_to_path.values()) if p == img), 0)
+            ]
+            if img in list(slide_id_to_path.values()) else ""
+            for img, _ in aligned_pairs
+        ]
 
         print(f"  {len(aligned_pairs)} slide groups, {len(audio_paths)} total audio segments")
+
+        if not aligned_pairs:
+            state["error"] = "Could not map audio to slides."
+            return state
 
         # build code reveal animations
         prebuilt_segments = {}
@@ -146,17 +171,35 @@ class VideoAgent(BaseAgent):
 
         output_path = str(Path(output_dir) / f"{lesson_id}_final.mp4")
 
-        # compute expected duration from audio files for quality validation
+        # expected duration for quality validation
         expected_dur = sum(
             self._audio_dur(a) for auds in [p[1] for p in aligned_pairs] for a in auds
         )
 
         try:
+            profile = state.get("profile", {})
+            p_music = profile.get("music", {})
+            p_slides = profile.get("slides", {})
+            p_rendering = profile.get("rendering", {})
+            
+            use_intro = p_music.get("use_intro", False)
+            use_outro = p_music.get("use_outro", False)
+            
             compose_video_aligned(
                 aligned_pairs,
                 output_path,
+                fps=p_rendering.get("fps", 30),
                 prebuilt_segments=prebuilt_segments,
                 transition_hints=transition_hints,
+                animation_preset=p_slides.get("animation_preset", "smooth"),
+                ken_burns=p_slides.get("ken_burns", False),
+                music_track=p_music.get("bg_track", ""),
+                bg_volume=p_music.get("bg_volume", 0.5),
+                ducking_ratio=p_music.get("ducking_ratio", 8.0),
+                intro_sting=p_music.get("intro_sting", "") if use_intro else "",
+                outro_music=p_music.get("outro_music", "") if use_outro else "",
+                lesson_title=state.get("lesson_title", "Untitled Lesson"),
+                renderer=self._get_renderer(),
             )
             state["video_path"] = output_path
             size_mb = Path(output_path).stat().st_size / (1024 * 1024)
@@ -166,7 +209,7 @@ class VideoAgent(BaseAgent):
             state["error"] = str(e)
             return state
 
-        # E.2: video quality validation
+        # video quality validation
         try:
             from services.video_composer.validator import validate_video
             from services.video_composer.composer import _get_ffmpeg
@@ -224,7 +267,7 @@ class VideoAgent(BaseAgent):
         prebuilt = {}
 
         for i, (slide_img, audio_files) in enumerate(aligned_pairs):
-            sid = pair_slide_ids[i]
+            sid = pair_slide_ids[i] if i < len(pair_slide_ids) else ""
             slide_data = slide_content_map.get(sid, {})
 
             if slide_data.get("layout") != "code":

@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Curricula } from './pages/Curricula';
 import { PipelineMonitor } from './pages/PipelineMonitor';
+import { TestingStudio } from './pages/TestingStudio';
 import './index.css';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/curricula/:courseId" element={<Curricula />} />
             <Route path="/pipeline" element={<PipelineMonitor />} />
+            <Route path="/testing" element={<TestingStudio />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

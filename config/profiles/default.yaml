@@ -1,0 +1,28 @@
+# Default rendering profile — balanced quality and speed
+name: "default"
+description: "Standard quality profile with background music and smooth transitions"
+
+voice:
+  name: "en-US-AndrewNeural"
+  rate: "+0%"
+  pitch: "+0Hz"
+
+music:
+  bg_track: "assets/music/bg_track.mp3"
+  intro_sting: "assets/music/intro_sting.mp3"
+  outro_music: "assets/music/outro_music.mp3"
+  bg_volume: 0.5
+  ducking_ratio: 8.0
+  use_intro: true
+  use_outro: true
+
+slides:
+  theme: "dark"
+  animation_preset: "smooth"
+  ken_burns: false
+
+rendering:
+  fps: 30
+  crf: 22
+  preset: "fast"
+  bitrate: "8000k"

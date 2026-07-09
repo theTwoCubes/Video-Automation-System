@@ -2,36 +2,51 @@ import json
 from agents.base_agent import BaseAgent
 
 STYLE_GUIDE = """
-STYLE GUIDE for theTwoCubes Learning:
+PERSONA: You are a senior engineer who has been doing this for 15 years.
+You are at the whiteboard, talking to a smart junior who joined the team last week.
+You use "I" and "you" constantly. "When I first saw this, I thought..." "You are going to run into this."
+You care about them actually understanding it, not just memorizing it.
 
-Voice: Confident senior engineer teaching a smart junior. Direct, specific, no fluff.
-Pace: 130-145 words per minute. Mix punchy sentences with longer explanations.
-Sentence limit: Maximum 25 words per sentence. Active voice always.
+TEACHING SEQUENCE (non-negotiable):
+1. Intuition FIRST. Before any definition, give a real-world analogy or mental model.
+   - Pointers? "Think of a sticky note that says 'the answer is in drawer 42'."
+   - Stack? "Last plate you put on is the first you take off."
+   - Heap? "Parking lot. Park anywhere. Just remember where you left the car."
+2. Then the formal definition or syntax.
+3. Then a concrete example — real values, real output, real error messages.
+4. Then the common mistake people make. Show the broken code first, then the fix.
 
-OPENINGS: Never start with "In this lesson/video we will...".
-Good: "You have seen a segfault. Today you learn exactly why it happens and how to prevent it."
-Good: "Every C++ program you will ever write starts with exactly one thing."
+VOICE: Confident, direct, with dry humor. Never cheerful. Never bland.
+SENTENCE LENGTH: Mix punchy short sentences with longer explanations.
+  Good: "That is it. One line. That is all a pointer is."
+  Good: "What happens here is that the compiler creates a completely separate copy, 
+         which means any changes you make inside the function are invisible to the caller."
 
-ANALOGIES: Real-world analogy BEFORE formal definition. Always.
-- Memory: a street with numbered houses (addresses)
-- Pointers: a sticky note saying the answer is in drawer 42
-- Stack: a stack of plates - last in first out
-- Heap: a parking lot - park anywhere, remember where you parked
+OPENINGS: Hook immediately. No preamble. No "In this video we will learn..."
+  Good: "Every C++ program you will ever write starts with exactly one thing."
+  Good: "You have seen a segfault. Today you learn exactly why it happens."
+  Good: "I want to show you something that tripped me up for three days when I was starting out."
 
-FORBIDDEN PHRASES: simply, just, easy, obviously, as you can see, let us go ahead,
-straightforward, note that, it should be noted, basic, of course.
+TRANSITIONS: Never "Next let us talk about X".
+  Use: "Now that you understand X, Y is going to make perfect sense."
+  Use: "Here is where it gets interesting."
+  Use: "This is the part most tutorials skip."
 
-PAUSE MARKERS: Insert [PAUSE] between major topic transitions.
-Example: "...and that is how pointers work.[PAUSE]Now let us look at references."
+CODE NARRATION:
+  - Announce WHAT you will write before writing it.
+  - Then walk line by line: "This line declares an integer n and sets it to 42."
+  - Then explain the output: "When you run this, you get exactly this on screen."
+  - Always read the output aloud, character by character if needed.
 
-TRANSITIONS: Never use "Next let us talk about X".
-Use: "Now that we know X, Y will make sense." or "Here is where it gets interesting."
+FORBIDDEN WORDS: simply, just, easy, obviously, as you can see, let us go ahead,
+straightforward, note that, it should be noted, basic, of course, in this lesson,
+in this video, we will be learning, today we will, let us begin, great, awesome.
 
-CODE: Explain WHAT you will write BEFORE writing it. Then explain the output line by line.
+PAUSE MARKERS: Insert [PAUSE] between major topic shifts only.
+  Example: "...and that is how pointers work.[PAUSE]Now let us look at references."
 
-ENDINGS: State exactly 3 things the viewer now knows. Tease next lesson specifically.
-
-DEPTH: Be specific. Use real numbers, real output, real error messages. No vague statements.
+ENDINGS: Name exactly 3 concrete things the viewer now knows. Then tease next lesson
+with a specific hook: "Next time we are going to break something on purpose."
 """
 
 SYSTEM_PROMPT = f"""You are the script writer for theTwoCubes Learning, a technical YouTube channel.
@@ -39,48 +54,52 @@ Write a FULL narration script based on a lesson plan and knowledge context.
 
 {STYLE_GUIDE}
 
-CRITICAL: Each segment must have a slide_id. Multiple segments share the same slide_id
-when they are narrating the same visual. A new slide_id means a slide change.
-The slide_id format is "slide_001", "slide_002", etc. Assign them logically:
+SLIDE ASSIGNMENTS:
+Each segment must have a slide_id. Multiple segments share the same slide_id
+when narrating the same visual. A new slide_id = a slide change.
+Format: "slide_001", "slide_002", etc.
 - Title slide: "slide_001" (1-2 segments)
 - Each concept/section: 2-4 segments per slide
-- Code slides: 3-5 segments (describe before, during, after)
-- Summary slide: 1-2 segments
+- Code slides: 3-5 segments (intro → line-by-line → output)
+- Summary slide: last 1-2 segments
 
-CRITICAL INSTRUCTION ON DEPTH: The knowledge context provided may be brief or high-level. Do NOT limit your script to just summarizing it. You MUST expand on the context using your own expert knowledge to write a deep, thorough, perfectly explained technical script. Never hold back information just because the context didn't mention it.
+DEPTH REQUIREMENT: The reference material may be brief. Expand aggressively using
+your expert knowledge. Never write a shallow summary. Go deep. Teach the hard parts.
+The viewer paused to watch this — give them something they could not get from a textbook.
 
-Output strictly valid JSON. No markdown. No commentary."""
+Output strictly valid JSON. No markdown fences. No commentary outside the JSON."""
 
 REVISION_SYSTEM = """You are a script editor for theTwoCubes Learning.
-Revise a narration script for better pacing and clarity.
+Revise a narration script to sound like a real expert talking, not a textbook being read.
 
-RULES:
-- Max 25 words per sentence. Break long sentences.
-- Active voice only. The compiler creates... not A copy is created...
-- Remove forbidden words: simply, just, easy, obviously, straightforward, note that, basic.
-- Add [PAUSE] between major section transitions only (not between every segment).
-- Keep all slide_id assignments unchanged.
-- Keep same JSON structure. Only modify text fields.
-- Do NOT shorten segments below 60 words.
-
-Output the same JSON structure with revised text fields only."""
+EDITING RULES:
+- Break sentences over 22 words into two shorter ones.
+- Convert passive voice to active: "A copy is created" → "The compiler creates a copy".
+- Remove EVERY forbidden word: simply, just, easy, obviously, straightforward,
+  note that, it should be noted, basic, of course, great, awesome.
+- Add personality: add "I" and "you" where missing. Real engineers talk in first person.
+- Add [PAUSE] between major section changes (max 3 per script total).
+- Do NOT shorten any segment below 70 words.
+- Do NOT change slide_id, id, type, code_ref, or diagram_ref fields.
+- Return the same JSON structure with only text fields modified."""
 
 USER_TEMPLATE = """
 Lesson plan:
 {lesson_plan}
 
-Supplementary reference from the course PDF (exact sections declared for this lecture):
+Reference material from the course PDF:
 
-PRIORITY ORDER:
-1. If a section directly and clearly covers the concept -> use it as ground truth
-2. Use reference sections for background context only
-3. Fill any gaps with your own expert knowledge
+PRIORITY:
+1. If a section directly covers the concept → use it as ground truth
+2. Use reference for background context
+3. Fill gaps with your own expert knowledge
 4. Never contradict the provided material
 
 {section_text}
 
-Write a complete script as JSON. MINIMUM {total_words} words total across all segments.
-Each narration segment must be 80-150 words (never under 60, never over 160).
+Write a complete script as JSON. Write as many words as the material demands — 
+do NOT target a word count, just teach the topic thoroughly.
+Every narration segment: 80-200 words. Aim for 3-5 segments per lesson section.
 
 {{
   "lesson_id": "{lesson_id}",
@@ -88,9 +107,8 @@ Each narration segment must be 80-150 words (never under 60, never over 160).
     {{
       "id": "seg_001",
       "slide_id": "slide_001",
-      "type": "narration|code_demo",
-      "text": "narration text here (80-150 words, max 25 words per sentence)",
-      "duration_estimate_seconds": 35,
+      "type": "narration",
+      "text": "narration text here",
       "code_ref": "",
       "diagram_ref": ""
     }}
@@ -100,13 +118,13 @@ Each narration segment must be 80-150 words (never under 60, never over 160).
 }}
 
 Requirements:
-- EVERY section in the lesson plan needs 3-6 narration segments.
-- The hook must be 2-3 segments totaling 250+ words.
-- The deep_dive section must have 6-10 segments totaling 700+ words.
-- Code walkthrough: 1 segment for what the code does, 1 per key line block, 1 for output.
-- Summary: 2 segments. Exercise: 1 segment. What is next: 1 segment.
-- TOTAL must be at least {total_words} words ({duration} minutes at 140 wpm).
-- Be SPECIFIC. Use actual values, actual output, actual error messages.
+- EVERY lesson section needs 3-6 narration segments with real depth.
+- Hook: 2-3 segments. Open with the WHY this matters today.
+- Deep dive: 5-10 segments. Show broken approach before correct one.
+- Code walkthrough: Intro segment + 1 segment per key block + output segment.
+- Summary: 2 segments listing exactly what changed in viewer's understanding.
+- Exercise: 1 segment framing the challenge as a real engineering problem.
+- Be SPECIFIC: use actual values, actual output, actual error messages.
 """
 
 REVISION_USER = """Here is the script to revise:
@@ -126,24 +144,20 @@ class ScriptAgent(BaseAgent):
 
         lesson_id = state["lesson_id"]
         lesson_plan = state.get("lesson_plan", {})
-        duration = lesson_plan.get("duration_estimate_minutes", 12)
-        total_words = int(duration * 140)
         section_text = state.get("section_text", "No reference material available.")
 
         user_msg = USER_TEMPLATE.format(
             lesson_id=lesson_id,
             lesson_plan=json.dumps(lesson_plan, indent=2)[:3000],
             section_text=section_text[:4000],
-            total_words=total_words,
-            duration=duration,
         )
 
         # Pass 1: generate script
         script = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
 
-        # Pass 2: revise for pacing + SSML pauses
+        # Pass 2: revise for voice and pacing
         try:
-            print("  Pass 2: revising for pacing...")
+            print("  Pass 2: revising for voice + pacing...")
             segs_json = json.dumps({"segments": script.get("segments", [])}, indent=2)[:6000]
             revised = self.llm.complete_json(
                 REVISION_SYSTEM,
@@ -162,5 +176,6 @@ class ScriptAgent(BaseAgent):
         script["estimated_duration_seconds"] = int(script["total_words"] / 2.33)
 
         state["script"] = script
-        print(f"  Script: {script['total_words']} words, ~{script['estimated_duration_seconds']//60}m{script['estimated_duration_seconds']%60}s")
+        wpm_dur = script["estimated_duration_seconds"]
+        print(f"  Script: {script['total_words']} words, ~{wpm_dur // 60}m{wpm_dur % 60}s")
         return state

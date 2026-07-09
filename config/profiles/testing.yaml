@@ -1,0 +1,28 @@
+# Testing profile — ultra-fast rendering for design iteration
+name: "testing"
+description: "Ultra-fast render for testing slide design and audio. No music, minimal transitions."
+
+voice:
+  name: "en-US-AndrewNeural"
+  rate: "+5%"
+  pitch: "+0Hz"
+
+music:
+  bg_track: ""
+  intro_sting: ""
+  outro_music: ""
+  bg_volume: 0.0
+  ducking_ratio: 1.0
+  use_intro: false
+  use_outro: false
+
+slides:
+  theme: "dark"
+  animation_preset: "minimal"
+  ken_burns: false
+
+rendering:
+  fps: 24
+  crf: 28
+  preset: "ultrafast"
+  bitrate: "2000k"

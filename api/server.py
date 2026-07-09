@@ -679,3 +679,228 @@ async def get_lesson_logs(lesson_id: str):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "version": "2.1"}
+
+
+# ──────────────────────── PROFILES ────────────────────────
+
+@app.get("/api/profiles")
+def list_profiles_endpoint():
+    from config.profile_loader import list_profiles
+    return list_profiles()
+
+
+@app.get("/api/profiles/{name}")
+def get_profile(name: str):
+    from config.profile_loader import load_profile
+    return load_profile(name)
+
+
+class ProfileSaveRequest(BaseModel):
+    data: dict
+
+
+@app.put("/api/profiles/{name}")
+def save_profile_endpoint(name: str, req: ProfileSaveRequest):
+    from config.profile_loader import save_profile as _save
+    path = _save(name, req.data)
+    return {"saved": str(path)}
+
+
+@app.delete("/api/profiles/{name}")
+def delete_profile_endpoint(name: str):
+    from config.profile_loader import delete_profile as _del
+    ok = _del(name)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Cannot delete default profile")
+    return {"deleted": name}
+
+
+# ──────────────────────── VOICES ────────────────────────
+
+@app.get("/api/voices")
+def list_voices():
+    from config.profile_loader import get_voice_options
+    return get_voice_options()
+
+
+class VoicePreviewRequest(BaseModel):
+    voice: str
+    text: str = "Welcome to theTwoCubes Learning. Let us explore pointers in C plus plus."
+    rate: str = "+0%"
+
+
+@app.post("/api/voices/preview")
+async def preview_voice(req: VoicePreviewRequest):
+    import tempfile
+    from fastapi.responses import FileResponse
+    try:
+        import edge_tts
+    except ImportError:
+        raise HTTPException(status_code=500, detail="edge-tts not installed")
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+        out_path = f.name
+    try:
+        communicate = edge_tts.Communicate(req.text, req.voice, rate=req.rate)
+        await communicate.save(out_path)
+        return FileResponse(out_path, media_type="audio/mpeg", filename="preview.mp3")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ──────────────────────── LESSONS (Testing Studio picker) ────────────────────────
+
+@app.get("/api/lessons/rendered")
+def list_rendered_lessons():
+    results = []
+    output_root = ROOT / "output"
+    if not output_root.exists():
+        return results
+    for course_dir in sorted(output_root.iterdir()):
+        if not course_dir.is_dir():
+            continue
+        for lesson_dir in sorted(course_dir.iterdir()):
+            if not lesson_dir.is_dir():
+                continue
+            cp_dir = lesson_dir / "checkpoints"
+            if not (cp_dir / "generate_slides.json").exists():
+                continue
+            lesson_id = lesson_dir.name.split("_", 1)[1] if "_" in lesson_dir.name else lesson_dir.name
+            title = "Unknown"
+            try:
+                plan_cp = cp_dir / "lesson_planner.json"
+                if plan_cp.exists():
+                    plan = json.loads(plan_cp.read_text(encoding="utf-8"))
+                    title = plan.get("lesson_title", plan.get("title", title))
+            except Exception:
+                pass
+            has_video = bool(list(lesson_dir.glob("*_final.mp4"))) or (lesson_dir / "lesson_rerendered.mp4").exists()
+            results.append({
+                "lesson_id": lesson_id,
+                "course_dir": course_dir.name,
+                "lesson_dir": lesson_dir.name,
+                "title": title,
+                "has_video": has_video,
+                "checkpoints": [f.stem for f in sorted(cp_dir.glob("*.json"))],
+            })
+    return results
+
+
+@app.get("/api/lessons/{lesson_id}/slides")
+def get_lesson_slides(lesson_id: str):
+    output_root = ROOT / "output"
+    for course_dir in output_root.iterdir():
+        if not course_dir.is_dir():
+            continue
+        for lesson_dir in course_dir.iterdir():
+            if lesson_id not in lesson_dir.name:
+                continue
+            slides_dir = lesson_dir / "slides"
+            if slides_dir.exists():
+                paths = sorted(slides_dir.glob("*.png"))
+                return [str(p.relative_to(ROOT)).replace("\\", "/") for p in paths]
+    raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+
+
+@app.get("/api/lessons/{lesson_id}/video")
+def get_lesson_video_path(lesson_id: str):
+    output_root = ROOT / "output"
+    for course_dir in output_root.iterdir():
+        if not course_dir.is_dir():
+            continue
+        for lesson_dir in course_dir.iterdir():
+            if lesson_id not in lesson_dir.name:
+                continue
+            p = lesson_dir / "lesson_rerendered.mp4"
+            if p.exists():
+                return {"path": str(p.relative_to(ROOT)).replace("\\", "/")}
+            for vp in lesson_dir.glob("*_final.mp4"):
+                return {"path": str(vp.relative_to(ROOT)).replace("\\", "/")}
+    raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} video not found")
+
+
+# ──────────────────────── RERENDER ────────────────────────
+
+_rerender_tasks: dict = {}
+
+
+class RerenderRequest(BaseModel):
+    lesson_id: str
+    steps: str = "all"
+    profile: str = "testing"
+    voice: str = ""
+    music: str = ""
+
+
+def _run_rerender(task_id: str, req: RerenderRequest):
+    _rerender_tasks[task_id] = {
+        "status": "running", "log": [],
+        "started_at": datetime.now(timezone.utc).isoformat()
+    }
+    log = _rerender_tasks[task_id]["log"]
+    try:
+        cmd = [
+            sys.executable,
+            str(ROOT / "scripts" / "rerender_lesson.py"),
+            "--lesson-id", req.lesson_id,
+            "--steps", req.steps,
+            "--profile", req.profile,
+        ]
+        if req.voice:
+            cmd += ["--voice", req.voice]
+        if req.music:
+            cmd += ["--music", req.music]
+        proc = subprocess.Popen(
+            cmd, cwd=str(ROOT),
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
+        )
+        for line in proc.stdout:
+            log.append(line.rstrip())
+        proc.wait()
+        _rerender_tasks[task_id]["status"] = "done" if proc.returncode == 0 else "error"
+        _rerender_tasks[task_id]["returncode"] = proc.returncode
+    except Exception as e:
+        _rerender_tasks[task_id]["status"] = "error"
+        log.append(f"Exception: {e}")
+    _rerender_tasks[task_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+
+@app.post("/api/rerender")
+def start_rerender(req: RerenderRequest, background_tasks: BackgroundTasks):
+    import uuid
+    task_id = "rr_" + uuid.uuid4().hex[:8]
+    background_tasks.add_task(_run_rerender, task_id, req)
+    return {"task_id": task_id}
+
+
+@app.get("/api/rerender/{task_id}")
+def get_rerender_status(task_id: str):
+    if task_id not in _rerender_tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return _rerender_tasks[task_id]
+
+
+@app.get("/api/rerender/{task_id}/stream")
+async def stream_rerender_log(task_id: str):
+    import asyncio
+    from fastapi.responses import StreamingResponse
+
+    async def generator():
+        sent = 0
+        while True:
+            task = _rerender_tasks.get(task_id)
+            if not task:
+                yield 'data: {"error": "not found"}\n\n'
+                return
+            log = task.get("log", [])
+            while sent < len(log):
+                import json as _json
+                yield f"data: {_json.dumps({'line': log[sent]})}\n\n"
+                sent += 1
+            if task.get("status") in ("done", "error"):
+                import json as _json
+                yield f"data: {_json.dumps({'status': task['status']})}\n\n"
+                return
+            await asyncio.sleep(0.3)
+
+    return StreamingResponse(generator(), media_type="text/event-stream")

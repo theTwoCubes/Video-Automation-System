@@ -19,15 +19,10 @@ class ThumbnailAgent(BaseAgent):
         # derive a short topic label from tags
         topic = tags[0].upper() if tags else "CS"
 
-        # shorten title for thumbnail if too long
-        display_title = lesson_title
-        if len(lesson_title) > 40:
-            display_title = lesson_title[:37] + "..."
-
         out_path = str(Path(output_dir) / "thumbnail.jpg")
 
         self.generator.generate(
-            title=display_title,
+            title=lesson_title,
             topic=topic,
             lesson_number=lesson_position,
             output_path=out_path,

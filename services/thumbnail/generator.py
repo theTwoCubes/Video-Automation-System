@@ -100,9 +100,23 @@ class ThumbnailGenerator:
         topic_font = self._get_font(26, bold=True)
         draw.text((60, 130), topic.upper(), font=topic_font, fill=(*accent[:3], 180))
 
-        # main title (word-wrapped)
-        title_font = self._get_font(86, bold=True)
-        wrapped = textwrap.wrap(title, width=22)
+        # main title — adaptive font size based on title length
+        title_len = len(title)
+        if title_len <= 30:
+            font_size = 86
+            wrap_width = 20
+        elif title_len <= 50:
+            font_size = 72
+            wrap_width = 24
+        elif title_len <= 70:
+            font_size = 60
+            wrap_width = 28
+        else:
+            font_size = 48
+            wrap_width = 34
+
+        title_font = self._get_font(font_size, bold=True)
+        wrapped = textwrap.wrap(title, width=wrap_width)
         y_pos = 220
         for line in wrapped[:3]:  # max 3 lines
             # subtle shadow

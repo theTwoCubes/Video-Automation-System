@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FlaskConical, Video, Settings, HelpCircle, Box } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Video, Settings, HelpCircle, Beaker } from 'lucide-react';
 
 export function Sidebar() {
   return (
@@ -25,6 +25,9 @@ export function Sidebar() {
         </NavLink>
         <NavLink to="/pipeline" className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
           <Video className="w-4 h-4" /> Pipeline Monitor
+        </NavLink>
+        <NavLink to="/testing" className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-emerald-900/50 text-emerald-400' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'}`}>
+          <Beaker className="w-4 h-4" /> Testing Studio
         </NavLink>
       </div>
 

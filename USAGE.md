@@ -1,33 +1,45 @@
-# Usage & Future Improvements
+# Usage & Features
 
-## 1. Local Testing System
+## 1. Testing Studio (No-LLM Iteration)
 
-To rapidly iterate on the video generation logic (such as transitions, slide rendering, or audio padding) without incurring API costs or waiting for LLM generation, the system includes an **Automated Test Pipeline**.
+The system includes a dedicated **Testing Studio** in the GUI to rapidly iterate on video generation without incurring LLM API costs or waiting for text generation. 
 
-### Running Tests from the GUI
-1. Navigate to the **Pipeline Monitor** tab in the Dashboard.
-2. Click **Run Test (C++ Variables)** under the "Run Automated Test" section.
-3. The system will use cached LLM outputs (`tests/fixtures/cpp_variables_lesson.json`) to bypass the planning/scripting phases and directly execute the FFmpeg compilation and slide rendering.
+### Features of the Testing Studio
+1. **Checkpoint Resumption**: Select any previously generated lesson and reload its exact state (script, slide contents) from disk.
+2. **Granular Re-rendering**: Choose to re-render only the slides, re-synthesize the voice, or re-compose the final video.
+3. **Voice Previews**: Listen to 10-second previews of any configured Edge TTS voice before applying it to the full lesson.
+4. **Live Logs & Gallery**: Watch the FFmpeg compilation logs in real-time and review a gallery of generated slide images before finalizing.
 
-### Benefits of the Test System
-- **Speed**: Renders a complete video in seconds instead of minutes.
-- **Cost**: No LLM API calls are made.
-- **Stability**: Provides a deterministic baseline to verify FFmpeg transition math and visual styling.
+## 2. Configuration Profiles
+
+You can control nearly every aspect of the final video using YAML Configuration Profiles located in `config/profiles/`. 
+Profiles allow you to set:
+- **Voice**: Azure/Edge TTS voice ID, pitch, and rate.
+- **Music**: Background tracks, intro stings, outro music, and sidechain ducking ratios.
+- **Slides**: Visual themes, layout rules, animation presets (e.g. `smooth`, `dynamic`), and Ken Burns effects.
+- **Rendering**: Target FPS and CRF quality.
+
+## 3. Advanced Media Pipeline
+
+The `video_composer` implements several advanced FFmpeg techniques:
+- **Sidechain Audio Ducking**: Background music automatically lowers its volume when the TTS voice is speaking and rises during pauses.
+- **Intros & Outros**: Automated generation of branded title cards and subscribe screens, mixed with dedicated intro/outro audio stings.
+- **Slide Transitions**: Per-layout crossfades and dynamic wipes (e.g., sliding code panels).
+- **Code Reveals**: Syntax-highlighted code panels animate in progressively to match the narrator's pacing.
 
 ---
 
-## 2. Roadmap to a Production-Grade System
+## 4. Roadmap to a Production-Grade System
 
 While the current architecture is robust, the following improvements are planned to scale the system for enterprise-grade video production:
 
-### Phase A: Resiliency & Recovery
-- **Idempotent Pipeline Steps**: Currently, a failure in FFmpeg requires restarting the entire lesson generation. We will implement granular checkpointing so that if `VideoAgent` fails, it resumes exactly at the failed segment rather than re-rendering all slides.
+### Phase A: Resiliency & Distributed Computing
 - **Task Queues (Celery/Redis)**: Replace the in-memory FastAPI `BackgroundTasks` with a robust task queue to handle distributed rendering and survive server restarts.
+- **Cloud Rendering**: Offload FFmpeg composition and Playwright rendering to scalable serverless workers.
 
 ### Phase B: Advanced Media & Animation
 - **Dynamic B-Roll**: Integrate Pexels or Unsplash APIs to inject contextual B-Roll video during long stretches of talking head or summary slides.
 - **Complex Code Animations**: Migrate from static code highlights to dynamic AST-based typing animations (e.g., using Remotion or Manim).
-- **Audio Ducking**: Implement advanced audio ducking in `composer.py` to lower background music dynamically when the TTS voice speaks, and raise it during transitions.
 
 ### Phase C: Curriculum Intelligence
 - **Feedback Loops**: Allow the LLM to review the output of `test_summary.json` (QA scores) and self-correct subsequent lessons in the curriculum if they are too short or too dense.

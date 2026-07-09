@@ -7,10 +7,12 @@ An advanced, agentic pipeline for generating high-quality programming tutorial v
 - **Knowledge Ingestion**: Ingest PDFs, Markdown directories, or web pages into a ChromaDB vector store.
 - **Agentic Curriculum Generation**: LLM-driven generation of comprehensive multi-lesson courses with structured learning paths.
 - **Automated Video Production**: 
-  - Generates scripts and slide content.
+  - Generates scripts and slide content with diverse layouts.
   - Renders professional, high-contrast, Vercel/Stripe-styled slides.
-  - Automatically times audio (TTS) and composites transitions.
-- **GUI Dashboard**: A unified React frontend (Vite) and FastAPI backend to monitor pipelines, view logs, and manage curricula in real-time.
+  - Applies automated Ken Burns, dynamic crossfades, and sidechain audio ducking.
+  - Generates Branded Intros and Outros natively via FFmpeg.
+- **GUI Dashboard & Testing Studio**: A unified React frontend (Vite) and FastAPI backend to monitor pipelines, view logs, and manage curricula. Includes a Testing Studio to iterate on videos using local checkpoints without LLM costs.
+- **Configuration Profiles**: Control every parameter (voices, background music, transition timings, styling) via shareable YAML configurations.
 
 ## Tech Stack
 

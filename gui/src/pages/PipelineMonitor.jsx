@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Video, Terminal, Play, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
-import { useFetch } from '../hooks/useFetch';
+import { useFetch, usePolling } from '../hooks/useFetch';
 
 const API = 'http://localhost:8000/api';
 
 export function PipelineMonitor() {
   const [selectedCourse, setSelectedCourse] = useState('');
   const { data: courses } = useFetch(`${API}/courses`);
-  const { data: lessons, refresh: refreshLessons } = useFetch(selectedCourse ? `${API}/courses/${selectedCourse}/lessons` : null);
+  const lessons = usePolling(selectedCourse ? `${API}/courses/${selectedCourse}/lessons` : null, 3000);
   
   const [activeLessonId, setActiveLessonId] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -24,7 +24,7 @@ export function PipelineMonitor() {
     es.onmessage = (event) => {
       setLogs(prev => [...prev, event.data].slice(-300)); // keep last 300 lines
       if (event.data.includes("Pipeline finished")) {
-        refreshLessons();
+        // usePolling handles the refresh automatically every 3s
       }
     };
     
@@ -45,9 +45,6 @@ export function PipelineMonitor() {
     try {
       setActiveLessonId(lesson.id);
       await fetch(`${API}/lessons/${lesson.id}/generate`, { method: 'POST' });
-      // Poll a few times to refresh status
-      setTimeout(refreshLessons, 1000);
-      setTimeout(refreshLessons, 5000);
     } catch (e) {
       alert("Failed to start generation");
     }

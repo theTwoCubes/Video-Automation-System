@@ -1,0 +1,28 @@
+# No-music profile — for silent testing or accessibility
+name: "no_music"
+description: "No background music. Fastest for iteration."
+
+voice:
+  name: "en-US-AndrewNeural"
+  rate: "+0%"
+  pitch: "+0Hz"
+
+music:
+  bg_track: ""
+  intro_sting: ""
+  outro_music: ""
+  bg_volume: 0.0
+  ducking_ratio: 1.0
+  use_intro: false
+  use_outro: false
+
+slides:
+  theme: "dark"
+  animation_preset: "minimal"
+  ken_burns: false
+
+rendering:
+  fps: 30
+  crf: 24
+  preset: "ultrafast"
+  bitrate: "4000k"

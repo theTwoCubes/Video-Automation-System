@@ -66,22 +66,39 @@ def _concat_audio(audio_paths: List[str], output_path: Path, ffmpeg_exe: str) ->
     return _get_audio_duration(str(output_path), ffmpeg_exe)
 
 
-def _mix_background_music(video_path: str, output_path: str, ffmpeg_exe: str) -> str:
-    """Mix background music under narration at 8% volume, if bg_track.mp3 exists."""
-    bg = Path("assets/music/bg_track.mp3")
+def _apply_ducked_music(
+    video_path: str,
+    output_path: str,
+    ffmpeg_exe: str,
+    bg_track: str = "assets/music/bg_track.mp3",
+    bg_volume: float = 0.5,
+    ducking_ratio: float = 8.0,
+) -> str:
+    """
+    Mix background music with sidechain ducking.
+    Music automatically ducks when narration plays, rises during pauses.
+    Uses -stream_loop -1 to loop music without loading it all into memory.
+    """
+    bg = Path(bg_track)
     if not bg.exists():
+        print(f"  Background music not found: {bg_track}")
         return video_path
 
-    print("  Mixing background music...")
-    tmp = video_path + "_music_tmp.mp4"
+    print("  Mixing background music with sidechain ducking...")
+    tmp = str(Path(output_path).parent / "_music_tmp.mp4")
+    filter_complex = (
+        f"[1:a]volume={bg_volume}[bg_raw];"
+        f"[0:a]asplit=2[sc][main];"
+        f"[bg_raw][sc]sidechaincompress=threshold=0.02:ratio={ducking_ratio}:attack=100:release=1000[bg_ducked];"
+        f"[main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2[out_a]"
+    )
     cmd = [
         ffmpeg_exe, "-y",
         "-i", _fwd(Path(video_path)),
-        "-i", _fwd(bg),
-        "-filter_complex",
-        "[1:a]volume=0.08,aloop=loop=-1:size=2000000000[bg];[0:a][bg]amix=inputs=2:duration=first:dropout_transition=3[a]",
+        "-stream_loop", "-1", "-i", _fwd(bg),
+        "-filter_complex", filter_complex,
         "-map", "0:v",
-        "-map", "[a]",
+        "-map", "[out_a]",
         "-c:v", "copy",
         "-c:a", "aac", "-b:a", "192k",
         tmp,
@@ -89,10 +106,17 @@ def _mix_background_music(video_path: str, output_path: str, ffmpeg_exe: str) ->
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode == 0 and Path(tmp).exists():
         shutil.move(tmp, output_path)
+        print("  Background music mixed successfully.")
         return output_path
+    print(f"  Music mix failed (ffmpeg rc={result.returncode}): {result.stderr[-300:]}")
     if Path(tmp).exists():
         Path(tmp).unlink()
     return video_path
+
+
+# Legacy alias for any existing callers
+def _mix_background_music(video_path: str, output_path: str, ffmpeg_exe: str) -> str:
+    return _apply_ducked_music(video_path, output_path, ffmpeg_exe)
 
 
 def _apply_xfade_transitions(
@@ -200,6 +224,92 @@ def _apply_ken_burns(
     return None
 
 
+# Animation presets: name -> (transition_duration_seconds, ken_burns_enabled)
+ANIMATION_PRESETS = {
+    "minimal": {"transition_duration": 0.3, "ken_burns": False},
+    "smooth":  {"transition_duration": 0.5, "ken_burns": False},
+    "dynamic": {"transition_duration": 0.5, "ken_burns": False},  # layout-aware transitions
+}
+
+
+
+def _compose_intro_card(lesson_title: str, renderer, output_path: str, ffmpeg_exe: str, intro_sting: str) -> bool:
+    print(f"  Generating intro card: {lesson_title}")
+    out_dir = Path(output_path).parent
+    slide_data = {
+        "id": "intro_card",
+        "layout": "title",
+        "headline": lesson_title,
+        "subtitle": "theTwoCubes Learning",
+        "lesson_number": "INTRO"
+    }
+    try:
+        renderer.render_slides([slide_data], str(out_dir), prefix="intro_")
+    except Exception as e:
+        print(f"  Intro rendering failed: {e}")
+        return False
+        
+    img_path = out_dir / "intro_intro_card.png"
+    if not img_path.exists():
+        return False
+        
+    dur = _get_audio_duration(intro_sting, ffmpeg_exe)
+    cmd = [
+        ffmpeg_exe, "-y",
+        "-loop", "1",
+        "-i", _fwd(img_path),
+        "-i", _fwd(Path(intro_sting)),
+        "-t", f"{dur:.3f}",
+        "-vf", "scale=1920:1080:flags=lanczos,fps=30",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
+        "-c:a", "aac", "-b:a", "192k",
+        "-shortest",
+        _fwd(Path(output_path))
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return res.returncode == 0 and Path(output_path).exists()
+
+
+def _compose_outro_card(renderer, output_path: str, ffmpeg_exe: str, outro_music: str) -> bool:
+    print("  Generating outro card...")
+    out_dir = Path(output_path).parent
+    slide_data = {
+        "id": "outro_card",
+        "layout": "summary",
+        "headline": "Thanks for watching!",
+        "bullets": [
+            "Subscribe for more technical deep dives",
+            "Check the description for resources"
+        ],
+        "lesson_number": ""
+    }
+    try:
+        renderer.render_slides([slide_data], str(out_dir), prefix="outro_")
+    except Exception as e:
+        print(f"  Outro rendering failed: {e}")
+        return False
+        
+    img_path = out_dir / "outro_outro_card.png"
+    if not img_path.exists():
+        return False
+        
+    dur = _get_audio_duration(outro_music, ffmpeg_exe)
+    cmd = [
+        ffmpeg_exe, "-y",
+        "-loop", "1",
+        "-i", _fwd(img_path),
+        "-i", _fwd(Path(outro_music)),
+        "-t", f"{dur:.3f}",
+        "-vf", "scale=1920:1080:flags=lanczos,fps=30",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
+        "-c:a", "aac", "-b:a", "192k",
+        "-shortest",
+        _fwd(Path(output_path))
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return res.returncode == 0 and Path(output_path).exists()
+
+
 def compose_video_aligned(
     slide_audio_pairs: List[Tuple[str, List[str]]],
     output_path: str,
@@ -207,6 +317,15 @@ def compose_video_aligned(
     use_transitions: bool = True,
     prebuilt_segments: dict = None,
     transition_hints: List[str] = None,
+    animation_preset: str = "smooth",
+    ken_burns: bool = False,
+    music_track: str = "assets/music/bg_track.mp3",
+    bg_volume: float = 0.5,
+    ducking_ratio: float = 8.0,
+    intro_sting: str = "",
+    outro_music: str = "",
+    lesson_title: str = "",
+    renderer = None,
 ) -> str:
     """
     Compose a video where each slide is displayed for the combined duration
@@ -226,8 +345,13 @@ def compose_video_aligned(
     prebuilt_segments = prebuilt_segments or {}
     transition_hints = list(transition_hints or []) or ["fade"] * len(slide_audio_pairs)
 
+    preset_cfg = ANIMATION_PRESETS.get(animation_preset, ANIMATION_PRESETS["smooth"])
+    transition_duration = preset_cfg["transition_duration"]
+    # ken_burns overrides preset if True
+    ken_burns_enabled = ken_burns or preset_cfg.get("ken_burns", False)
+
     from config.settings import settings
-    ken_threshold = settings.KEN_BURNS_THRESHOLD_SECONDS
+    ken_threshold = settings.KEN_BURNS_THRESHOLD_SECONDS if ken_burns_enabled else 99999.0
 
     segment_files: List[Path] = []
     segment_durations: List[float] = []
@@ -260,17 +384,17 @@ def compose_video_aligned(
 
         seg_out = segments_dir / f"seg_{i:04d}.mp4"
 
-        # B.1: Ken Burns for long static slides (content/summary/numbered_steps)
+        # Ken Burns for long static slides — uses exact duration, no apad drift
         if total_dur > ken_threshold:
             kb_video = str(segments_dir / f"kb_{i:04d}.mp4")
-            kb_result = _apply_ken_burns(str(slide_abs), total_dur + 1.0, kb_video, ffmpeg_exe, fps)
+            # Ken Burns: use exact total_dur (no +1.0 overshoot)
+            kb_result = _apply_ken_burns(str(slide_abs), total_dur, kb_video, ffmpeg_exe, fps)
             if kb_result:
-                # combine ken burns video with audio
                 cmd = [
                     ffmpeg_exe, "-y",
                     "-i", _fwd(Path(kb_video)),
                     "-i", _fwd(merged_audio),
-                    "-af", "apad=pad_dur=0.8",
+                    "-t", f"{total_dur:.3f}",
                     "-c:v", "copy",
                     "-c:a", "aac", "-b:a", "192k",
                     "-shortest",
@@ -285,13 +409,14 @@ def compose_video_aligned(
                     print(f"  Slide {i+1}/{len(slide_audio_pairs)}: Ken Burns {total_dur:.1f}s")
                     continue
 
+        # Standard: loop static image for exact audio duration — no apad
         cmd = [
             ffmpeg_exe, "-y",
             "-loop", "1",
             "-i", _fwd(slide_abs),
             "-i", _fwd(merged_audio),
+            "-t", f"{total_dur:.3f}",
             "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
-            "-af", "apad=pad_dur=0.8",
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
             "-c:a", "aac", "-b:a", "192k",
             "-shortest",
@@ -318,6 +443,7 @@ def compose_video_aligned(
         print("  Applying slide transitions...")
         success = _apply_xfade_transitions(
             segment_files, segment_durations, transitioned_path, ffmpeg_exe,
+            transition_duration=transition_duration,
             transition_hints=used_transition_hints,
         )
         if success:
@@ -346,21 +472,57 @@ def compose_video_aligned(
             raise RuntimeError(f"Final concat failed: {result.stderr[-300:]}")
         final_pre_music = output_abs
 
-    # mix background music
-    final_path = _mix_background_music(str(final_pre_music), str(output_abs), ffmpeg_exe)
+    # Ensure the pre-music file exists at the final output location before music mixing
+    if used_transitions and str(final_pre_music) != str(output_abs):
+        if not output_abs.exists():
+            shutil.copy2(str(final_pre_music), str(output_abs))
 
-    if used_transitions and final_path == str(final_pre_music) and not output_abs.exists():
-        shutil.copy2(str(final_pre_music), str(output_abs))
+    # mix background music (with sidechain ducking)
+    final_path = _apply_ducked_music(
+        str(output_abs), str(output_abs), ffmpeg_exe,
+        bg_track=music_track, bg_volume=bg_volume, ducking_ratio=ducking_ratio,
+    )
+
+    # Prepend Intro and Append Outro
+    concat_list = []
+    
+    if intro_sting and renderer and lesson_title:
+        intro_out = output_abs.parent / "intro_rendered.mp4"
+        if _compose_intro_card(lesson_title, renderer, str(intro_out), ffmpeg_exe, intro_sting):
+            concat_list.append(intro_out)
+            
+    concat_list.append(output_abs)
+    
+    if outro_music and renderer:
+        outro_out = output_abs.parent / "outro_rendered.mp4"
+        if _compose_outro_card(renderer, str(outro_out), ffmpeg_exe, outro_music):
+            concat_list.append(outro_out)
+            
+    if len(concat_list) > 1:
+        print("  Concatenating intro/outro with main video...")
+        list_file = output_abs.parent / "final_concat_list.txt"
+        with open(list_file, "w", encoding="utf-8") as f:
+            for c in concat_list:
+                f.write(f"file '{_fwd(c)}'\n")
+                
+        final_out = output_abs.parent / f"{output_abs.stem}_with_io.mp4"
+        cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "concat", "-safe", "0",
+            "-i", _fwd(list_file),
+            "-c", "copy",
+            _fwd(final_out)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0 and final_out.exists():
+            shutil.move(str(final_out), str(output_abs))
+        else:
+            print(f"  Intro/Outro concat failed: {result.stderr[-200:]}")
 
     size_mb = output_abs.stat().st_size / (1024 * 1024)
     print(f"  Video saved: {output_abs} ({size_mb:.1f} MB)")
     return str(output_abs)
 
-
-# backward compat
-def compose_video(slide_paths, audio_paths, output_path, fps=30):
-    pairs = [(s, [a]) for s, a in zip(slide_paths, audio_paths)]
-    return compose_video_aligned(pairs, output_path, fps)
 
 # backward compat
 def compose_video(slide_paths, audio_paths, output_path, fps=30):
