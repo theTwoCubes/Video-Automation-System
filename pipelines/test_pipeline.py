@@ -14,6 +14,11 @@ Usage:
 """
 import json
 import uuid
+import argparse
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import shutil
 from pathlib import Path
 from datetime import datetime, timezone
@@ -71,6 +76,10 @@ def run_test_pipeline(
 
     state: PipelineState = {
         "source_id": fixture.get("source_id", "test_fixture"),
+        "proc_source_id": fixture.get("proc_source_id", "test_fixture"),
+        "primary_sections": fixture.get("primary_sections", []),
+        "reference_sections": fixture.get("reference_sections", []),
+        "section_text": fixture.get("section_text", ""),
         "course_id": fixture.get("course_id", "test_course"),
         "course_title": fixture.get("course_title", "Test Course"),
         "lesson_id": lesson_id,
@@ -80,6 +89,7 @@ def run_test_pipeline(
         "prerequisites": fixture.get("prerequisites", []),
         "target_audience": fixture.get("target_audience", "beginners"),
         "estimated_duration_minutes": fixture.get("estimated_duration_minutes", 10),
+        "difficulty": fixture.get("difficulty", "beginner"),
         "previous_lesson_summary": None,
         "lesson_plan": fixture.get("lesson_plan"),
         "script": fixture.get("script"),
