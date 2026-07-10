@@ -59,7 +59,13 @@ function CkBadge({ name }) {
 // Log panel
 function LogPanel({ lines, status }) {
   const ref = useRef(null);
-  useEffect(() => { ref.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
+  const containerRef = useRef(null);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    if (isNearBottom) ref.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [lines]);
 
   return (
     <div className={cx(S.card, 'overflow-hidden flex flex-col')}>
@@ -76,7 +82,7 @@ function LogPanel({ lines, status }) {
         </span>
       </div>
       {/* log body */}
-      <div className="h-52 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed space-y-px">
+      <div ref={containerRef} className="h-52 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed space-y-px">
         {lines.length === 0 && (
           <div className="text-zinc-700 italic mt-4 text-center">No output yet...</div>
         )}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{% include "_fonts.html" %}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+h1, h2, h3, .d-title { overflow-wrap: break-word; word-break: break-word; }
+
+body {
+  width: {{ width }}px; height: {{ height }}px;
+  background: {{ bg }};
+  font-family: "Outfit", sans-serif;
+  color: {{ text_color }};
+  overflow: hidden;
+}
+.diagram {
+  width: {{ width }}px; height: {{ height }}px;
+  position: relative;
+  background: {{ bg }};
+}
+.bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
+  background: linear-gradient(180deg, {{ accent }}, {{ secondary_accent }});
+}
+.d-tag {
+  position: absolute; top: 36px; right: 48px;
+  font-size: 15px; font-weight: 700; color: {{ accent }}; opacity: .8;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.d-title {
+  position: absolute; top: 60px; left: 80px; right: 340px;
+  font-size: 42px; font-weight: 700; color: {{ text_color }};
+  line-height: 1.15;
+}
+.d-title.long-title { font-size: 34px; }
+.d-content {
+  position: absolute; top: 180px; left: 80px; right: 80px; bottom: 80px;
+}
+
+{% block extra_style %}{% endblock %}
+
+@keyframes fadeIn { to { opacity: 1; } }
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(24px); }
+}
+@keyframes highlightPulse {
+  0%, 100% { border-color: #1E2330; box-shadow: none; }
+  50%      { border-color: {{ accent }}; box-shadow: 0 0 24px 0 {{ accent }}55; }
+}
+</style>
+</head>
+<body>
+  <div class="diagram">
+    <div class="bar"></div>
+    <div class="d-tag">{{ channel_name or 'theTwoCubes' }}</div>
+    <div class="d-title{% if title|length > 40 %} long-title{% endif %}">{{ title }}</div>
+    <div class="d-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</body>
+</html>

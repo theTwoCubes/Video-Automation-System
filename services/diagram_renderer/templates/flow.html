@@ -1,0 +1,33 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.flow-row { display: flex; align-items: center; gap: 0; height: 100%; }
+.f-node {
+  flex: 1; background: #0D1117; border: 1px solid #1E2330;
+  border-left: 3px solid {{ accent }}; border-radius: 10px;
+  padding: 32px 24px; text-align: center;
+  animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both; opacity: 0;
+}
+.f-node-label { font-size: 28px; font-weight: 700; color: {{ text_color }}; }
+.f-node-sub { font-size: 17px; color: #4A6070; margin-top: 8px; }
+.f-arrow {
+  font-size: 32px; color: {{ accent }}; padding: 0 16px;
+  opacity: 0; animation: fadeIn .3s ease forwards;
+}
+{% for node in nodes %}
+.f-node-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.2 + loop.index0 * 0.4) }}s; }
+{% if not loop.last %}.f-arrow-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.5 + loop.index0 * 0.4) }}s; }{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="flow-row">
+  {% for node in nodes %}
+  <div class="f-node f-node-{{ loop.index0 }}">
+    <div class="f-node-label">{{ node.label }}</div>
+    {% if node.sublabel %}<div class="f-node-sub">{{ node.sublabel }}</div>{% endif %}
+  </div>
+  {% if not loop.last %}<div class="f-arrow f-arrow-{{ loop.index0 }}">&rarr;</div>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

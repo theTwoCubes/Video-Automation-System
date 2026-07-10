@@ -25,7 +25,7 @@ def _fwd(p: Path) -> str:
 def capture_animation_frames(
     html_content: str,
     frames_dir: Path,
-    capture_fps: int = 10,
+    capture_fps: int = 15,
     duration_sec: float = 4.0,
     width: int = 1920,
     height: int = 1080,
@@ -114,7 +114,7 @@ def render_animated_diagram(
     output_path: str,
     ffmpeg_exe: str,
     duration_sec: float = 4.0,
-    capture_fps: int = 10,
+    capture_fps: int = 15,
 ) -> Optional[str]:
     """
     Full pipeline: HTML animation → Playwright frames → FFmpeg MP4.

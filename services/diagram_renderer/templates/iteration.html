@@ -1,0 +1,23 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.iter-row {
+  display: flex; gap: 24px; align-items: center; height: 100%;
+  flex-wrap: wrap; justify-content: center;
+}
+.iter-box {
+  min-width: 140px; padding: 28px 32px; text-align: center;
+  background: #0D1117; border: 2px solid #1E2330; border-radius: 10px;
+  font-family: "FiraCode", monospace; font-size: 28px; font-weight: 700;
+  color: {{ text_color }};
+  animation: highlightPulse 1.1s ease-in-out both;
+}
+{% endblock %}
+
+{% block content %}
+<div class="iter-row">
+  {% for item in items %}
+  <div class="iter-box" style="animation-delay: {{ item.delay }}s;">{{ item.text }}</div>
+  {% endfor %}
+</div>
+{% endblock %}

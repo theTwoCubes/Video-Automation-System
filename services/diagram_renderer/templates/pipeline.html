@@ -1,0 +1,39 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.pipeline { display: flex; align-items: center; gap: 0; height: 100%; }
+.p-step {
+  flex: 1; background: #0D1117; border: 1px solid #1E2330;
+  border-left: 3px solid {{ accent }}; border-radius: 10px;
+  padding: 30px 20px; text-align: center;
+  animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both; opacity: 0;
+}
+.p-step.accent-secondary { border-left-color: {{ secondary_accent }}; }
+.p-step-num {
+  font-size: 13px; color: {{ accent }}; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px;
+}
+.p-step-label { font-size: 26px; font-weight: 700; color: {{ text_color }}; }
+.p-step-sub { font-size: 16px; color: #4A6070; margin-top: 6px; }
+.p-arrow {
+  font-size: 32px; color: {{ accent }}; padding: 0 16px;
+  opacity: 0; animation: fadeIn .3s ease forwards;
+}
+{% for step in steps %}
+.p-step-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.2 + loop.index0 * 0.4) }}s; }
+{% if not loop.last %}.p-arrow-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.5 + loop.index0 * 0.4) }}s; }{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="pipeline">
+  {% for step in steps %}
+  <div class="p-step p-step-{{ loop.index0 }}{% if step.accent == 'secondary' %} accent-secondary{% endif %}">
+    <div class="p-step-num">{{ loop.index }}</div>
+    <div class="p-step-label">{{ step.label }}</div>
+    {% if step.sublabel %}<div class="p-step-sub">{{ step.sublabel }}</div>{% endif %}
+  </div>
+  {% if not loop.last %}<div class="p-arrow p-arrow-{{ loop.index0 }}">&rarr;</div>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

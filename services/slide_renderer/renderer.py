@@ -29,7 +29,7 @@ class SlideRenderer:
     def _render_html(self, slide_data: dict, slide_index: int = 0, total_slides: int = 0) -> str:
         template = self.env.get_template("slide.html")
         theme = self.brand.get("slide_themes", {}).get("dark", {})
-        data = {k: v for k, v in slide_data.items() if k not in ("left_label", "right_label")}
+        data = {k: v for k, v in slide_data.items() if k not in ("left_label", "right_label", "code_language")}
         return template.render(
             width=settings.SLIDE_WIDTH,
             height=settings.SLIDE_HEIGHT,

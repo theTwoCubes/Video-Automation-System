@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFetch, usePolling } from '../hooks/useFetch';
 
 const API = 'http://localhost:8000/api';
@@ -33,13 +33,15 @@ export function PipelineMonitor() {
   
   const [activeLessonId, setActiveLessonId] = useState(null);
   const [logs, setLogs] = useState([]);
-  
+  const logsContainerRef = useRef(null);
+  const logsEndRef = useRef(null);
+
   useEffect(() => {
     if (!activeLessonId) { setLogs([]); return; }
-    
+
     setLogs([]);
     const es = new EventSource(`${API}/logs/lessons/${activeLessonId}`);
-    
+
     es.onmessage = (event) => {
       setLogs(prev => {
         const next = [...prev, event.data];
@@ -49,6 +51,17 @@ export function PipelineMonitor() {
     es.onerror = () => es.close();
     return () => es.close();
   }, [activeLessonId]);
+
+  // Auto-scroll only when new logs arrive, and only if the user was already
+  // near the bottom - so scrolling up to read earlier output isn't fought.
+  useEffect(() => {
+    const container = logsContainerRef.current;
+    if (!container) return;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    if (isNearBottom) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
 
   async function handleStartGeneration(lesson) {
     if (lesson.status === 'done' || lesson.status === 'failed') {
@@ -164,7 +177,7 @@ export function PipelineMonitor() {
               </span>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-5 bg-black font-mono text-[11px] leading-relaxed break-all">
+            <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-5 bg-black font-mono text-[11px] leading-relaxed break-all">
               {!activeLessonId ? (
                 <div className="text-zinc-700 italic h-full flex items-center justify-center">
                   Select a lesson to view logs
@@ -189,9 +202,7 @@ export function PipelineMonitor() {
                     </div>
                   ))}
                   {/* Anchor to scroll to bottom */}
-                  <div style={{ float: "left", clear: "both" }}
-                    ref={(el) => { el?.scrollIntoView({ behavior: 'smooth' }); }}>
-                  </div>
+                  <div style={{ float: "left", clear: "both" }} ref={logsEndRef}></div>
                 </div>
               )}
             </div>

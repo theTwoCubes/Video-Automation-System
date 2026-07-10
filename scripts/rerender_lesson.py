@@ -142,10 +142,10 @@ def rerender_video(output_dir: Path, profile: dict, music_override: str = None) 
     use_outro = profile["music"].get("use_outro", False)
     
     lesson_title = "Untitled Lesson"
-    plan_cp = output_dir / "checkpoints" / "lesson_planner.json"
+    plan_cp = output_dir / "checkpoints" / "plan_lesson.json"
     if plan_cp.exists():
         plan = json.loads(plan_cp.read_text(encoding="utf-8"))
-        lesson_title = plan.get("lesson_title", plan.get("title", lesson_title))
+        lesson_title = plan.get("lesson_plan", {}).get("title", lesson_title)
 
     output_path = str(output_dir / "lesson_rerendered.mp4")
     result = compose_video_aligned(

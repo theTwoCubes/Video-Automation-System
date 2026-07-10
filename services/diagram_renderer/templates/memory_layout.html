@@ -1,0 +1,34 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.mem-wrap { display: flex; gap: 80px; align-items: flex-end; height: 100%; }
+.mem-col { flex: 1; display: flex; flex-direction: column-reverse; gap: 4px; align-items: center; }
+.mem-col-label {
+  font-size: 20px; font-weight: 700; color: {{ accent }}; margin-top: 16px;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.mem-box {
+  width: 100%; height: 64px; border: 1px solid #1E1E1E; border-left: 3px solid {{ accent }};
+  background: #0D1117; display: flex; align-items: center; padding: 0 20px;
+  font-family: "FiraCode", monospace; font-size: 18px; color: #E2E2E2;
+  position: relative; animation: fadeIn 0.5s ease forwards; opacity: 0;
+}
+.mem-box.accent-secondary { border-left-color: {{ secondary_accent }}; }
+.mem-box .mem-addr { color: #4A6070; font-size: 14px; margin-left: auto; }
+{% endblock %}
+
+{% block content %}
+<div class="mem-wrap">
+  {% for col in columns %}
+  <div class="mem-col">
+    {% for item in col['items'] %}
+    <div class="mem-box{% if col.accent == 'secondary' %} accent-secondary{% endif %}" style="animation-delay: {{ "%.1f"|format(0.2 + loop.index0 * 0.3) }}s;">
+      <span>{{ item.text }}</span>
+      {% if item.addr %}<span class="mem-addr">{{ item.addr }}</span>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="mem-col-label">{{ col.label }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
