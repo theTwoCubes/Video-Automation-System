@@ -33,6 +33,42 @@ KEY_POINTS SPECIFICITY RULE:
   GOOD: "int x = 42 allocates exactly 4 bytes on the call stack frame of the current function"
 - Every key_point must contain: a real value, real syntax, a runtime behavior, OR a tradeoff.
 - Never write generic facts. Write insights a viewer could not get from a Wikipedia summary.
+- Before writing a key_point, apply a "so what" test: if it doesn't teach a mechanism, a number,
+  a failure mode, or a tradeoff, cut it. Do not pad a section with filler points just to hit a count.
+
+SECTION SIZING (CRITICAL - this determines how the video is cut into slides downstream):
+- One section becomes roughly ONE slide (occasionally two if it genuinely has two distinct beats).
+  A slide can hold at most ~4 bullets or ~3 sentences of prose, and narration for one slide should
+  rarely exceed ~45 seconds. Both are hard downstream limits, not suggestions.
+- Cap key_points at 3-5 per section. If a concept needs more than 5 key_points to explain, split it
+  into two or more sections (e.g. "concept_intro" + "concept_deep_dive") instead of overloading one -
+  a single overstuffed section forces either a wall-of-text slide or content getting silently dropped.
+- duration_seconds should roughly track key_point count: a section with 2-3 tight key_points is a
+  20-30s slide; do not write a 90s duration_seconds for a section with only 2 key_points, and do not
+  cram 8 key_points into a section with a 30s duration_seconds - keep them proportionate.
+- Prefer several focused sections over one sprawling one. Focused sections produce focused slides.
+
+VISUAL LAYOUT CATALOG (you MUST set `recommended_layout` deliberately - pick the layout whose
+"USE WHEN" matches this section's content, do not default to "content" out of habit):
+1. title        - opening slide only (never recommend for a body section).
+2. content      - general bullet-point concept slide (max 4 bullets). The default for straightforward
+                   conceptual points, but do not overuse - see split_code/prose/definition below first.
+3. prose        - USE WHEN introducing a concept that needs an intuition/analogy BEFORE the mechanics
+                   (the "concept" section type should almost always use this).
+4. code         - USE WHEN a section is a self-contained code example with no separate explanation beat.
+5. split_code   - USE WHEN a section both explains a mechanism AND shows the code for it in the same
+                   breath (most "deep_dive"/"code_demo" sections should use this, not "code").
+6. two_column   - USE WHEN contrasting two options, two versions, or two styles of the same idea.
+7. numbered_steps - USE WHEN the section is a sequential procedure (install, compile, setup, ordered steps).
+8. summary      - the lesson's summary section only.
+9. definition   - USE WHEN a section's entire job is introducing ONE formal term precisely (short and sharp,
+                   not a place to list multiple key_points - keep to 1-2).
+10. terminal    - USE WHEN the section demonstrates shell/command-line usage or program output.
+11. error_fix   - USE WHEN a "mistakes" section shows broken code next to the corrected version.
+12. comparison  - USE WHEN contrasting two APIs/types/approaches with more structure than two_column needs.
+13. exercise    - the lesson's exercise section only.
+Match `recommended_layout` to content shape, not the other way around - never invent key_points just
+to justify a layout choice.
 
 AUTONOMOUS CREATIVITY:
 You are not limited to the structure above. If a concept would benefit from an unusual

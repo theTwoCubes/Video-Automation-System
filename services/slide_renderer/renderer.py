@@ -1,17 +1,49 @@
 ﻿import asyncio
 import base64
 import json
+import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup, escape
 from config.settings import settings
 
 TEMPLATE_DIR = Path("services/slide_renderer/templates")
 SLIDES_LOGO_PATH = Path("assets/logos/SlidesLogo.png")
 
+_MD_CODE_RE = re.compile(r'`([^`]+?)`')
+_MD_BOLD_RE = re.compile(r'\*\*(.+?)\*\*')
+_MD_ITALIC_RE = re.compile(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)')
+_LEADING_NUMBER_RE = re.compile(r'^\s*\d+[.)]\s+')
+
+
+def render_inline_markdown(text) -> Markup:
+    """Escape raw text for safe HTML embedding, then convert a small set of
+    inline markdown (`code`, **bold**, *italic*) into real tags. Escaping
+    happens first, so any literal '<'/'>' in the source text (e.g. code
+    fragments like `#include <iostream>`) survive as visible text instead of
+    being parsed as HTML tags and silently dropped."""
+    if text is None:
+        return Markup("")
+    out = str(escape(str(text)))
+    out = _MD_CODE_RE.sub(lambda m: f"<code>{m.group(1)}</code>", out)
+    out = _MD_BOLD_RE.sub(r"<strong>\1</strong>", out)
+    out = _MD_ITALIC_RE.sub(r"<em>\1</em>", out)
+    return Markup(out)
+
+
+def strip_leading_number(text) -> str:
+    """Strip a leading '1. '/'1) ' the LLM sometimes bakes into list item text,
+    so it doesn't double up with the renderer's own numbered badge."""
+    if text is None:
+        return ""
+    return _LEADING_NUMBER_RE.sub("", str(text))
+
 
 class SlideRenderer:
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
+        self.env.filters["md"] = render_inline_markdown
+        self.env.filters["strip_leading_number"] = strip_leading_number
         self.brand = self._load_brand()
         self.logo_b64 = self._load_logo()
 

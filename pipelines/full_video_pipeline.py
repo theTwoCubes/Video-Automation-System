@@ -256,6 +256,7 @@ def run_pipeline(
     force_restart: bool = False,
     previous_lesson_summary: dict | None = None,
     difficulty: str = "beginner",
+    next_lesson_title: str = "",
 ) -> PipelineState:
 
     output_dir = str(
@@ -311,6 +312,7 @@ def run_pipeline(
         "estimated_duration_minutes": estimated_duration_minutes,
         "difficulty": difficulty,
         "previous_lesson_summary": previous_lesson_summary,
+        "next_lesson_title": next_lesson_title,
         "lesson_plan": None,
         "script": None,
         "code_examples": None,

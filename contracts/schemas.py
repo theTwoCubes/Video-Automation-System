@@ -106,6 +106,7 @@ class PipelineState(TypedDict):
     estimated_duration_minutes: int
     difficulty: str
     previous_lesson_summary: Optional[dict]
+    next_lesson_title: str            # real title of the following curriculum lesson, "" if none
     # Pipeline outputs
     lesson_plan: Optional[dict]
     script: Optional[dict]

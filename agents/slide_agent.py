@@ -88,6 +88,7 @@ If a concept needs something novel, invent it by combining or adapting the provi
 
 8. **summary** - Key Takeaways slide, always last.
    Fields: headline ("Key Takeaways" or custom), bullets (3-5 SPECIFIC things the viewer now knows), whats_next (optional teaser for next lesson).
+   whats_next MUST be based only on the real "Next lesson" title given to you below - never invent a topic. Leave it empty if none is given.
 
 9. **definition** - Ultra-minimal spotlight on a single term.
    Fields: headline (the term being defined), bullets[0] (the concise definition or equation), bullets[1] (optional expanded explanation), context (optional 1-line real-world usage), tag.
@@ -102,8 +103,9 @@ If a concept needs something novel, invent it by combining or adapting the provi
     Fields: headline, left_label, left_bullets, right_label, right_bullets.
 
 13. **exercise** - Challenge for the viewer. Second-to-last slide.
-    Fields: headline (the challenge title), bullets (2-3 specific numbered tasks), hint (optional help text).
+    Fields: headline (the challenge title), bullets (2-3 specific tasks), hint (optional help text).
     NOTE: exercise uses an ORANGE accent color, not teal.
+    NOTE: do NOT prefix bullets with "1.", "2." etc - the renderer numbers them automatically.
 
 
 ## AUTONOMOUS CREATIVITY MANDATE
@@ -113,7 +115,7 @@ You MUST autonomously think of, and implement, improvement techniques that are n
 - Use creative metaphors in paragraph fields to make abstract concepts concrete.
 - Mix unexpected layout combinations (e.g., a definition slide immediately followed by a split_code).
 - Add callout boxes to content slides for "aha moment" insights.
-- Use whats_next in the summary to build anticipation for the next lesson.
+- Use whats_next in the summary to build anticipation for the real next lesson given below.
 - If a slide would benefit from a visual structure not captured by the above, describe it in an
   extended field like `custom_note` and the renderer will use it as a callout.
 
@@ -122,6 +124,7 @@ Output STRICTLY valid JSON. No markdown. No commentary outside the JSON."""
 USER_TEMPLATE = """
 Lesson title: {lesson_title}
 Lesson position: {position}
+Next lesson: {next_lesson_title}
 
 You MUST generate exactly one slide for EACH of these slide_ids (in this order):
 {required_slide_ids}
@@ -130,6 +133,13 @@ Total slides required: {slide_count}
 
 Segments grouped by slide_id:
 {grouped_segments}
+
+Lesson plan sections, in original order (each section became roughly one slide_id above, in the
+same sequence). The planner already picked a `recommended_layout` per section after weighing its
+content shape against the layout catalog - default to it unless the actual segment text clearly
+calls for something else (e.g. planner said "content" but the segment turns out to be a sequential
+procedure - use numbered_steps instead):
+{planner_sections}
 
 Code examples available:
 {code_refs}
@@ -209,17 +219,40 @@ class SlideAgent(BaseAgent):
                 "code_ref": seg.get("code_ref", ""),
             })
 
-        grouped_summary = json.dumps(
-            {sid: grouped.get(sid, []) for sid in seen_ids},
-            indent=2,
-        )[:3500]
+        # Cap segments PER slide_id rather than slicing the whole serialized JSON
+        # blob to a flat character limit - a flat [:3500] cut silently dropped the
+        # segment context for whichever slide_ids happened to serialize later,
+        # starving them of real narration text and causing the LLM to invent
+        # slide content unmoored from what that slide's audio actually says.
+        # Capping per-slide instead guarantees every slide_id gets real context
+        # regardless of its position in the lesson.
+        MAX_SEGMENTS_PER_SLIDE = 4
+        grouped_for_prompt = {
+            sid: grouped.get(sid, [])[:MAX_SEGMENTS_PER_SLIDE] for sid in seen_ids
+        }
+        grouped_summary = json.dumps(grouped_for_prompt, indent=2)[:8000]
+
+        next_lesson_title = state.get("next_lesson_title") or "(none - this is the final lesson)"
+
+        lesson_plan = state.get("lesson_plan", {})
+        planner_sections = [
+            {
+                "type": sec.get("type", ""),
+                "title": sec.get("title", ""),
+                "recommended_layout": sec.get("recommended_layout", ""),
+            }
+            for sec in lesson_plan.get("sections", [])
+        ]
+        planner_summary = json.dumps(planner_sections, indent=2)[:3000]
 
         user_msg = USER_TEMPLATE.format(
             lesson_title=lesson_title,
             position=position,
+            next_lesson_title=next_lesson_title,
             required_slide_ids="\n".join(f"  - {sid}" for sid in seen_ids),
             slide_count=len(seen_ids),
             grouped_segments=grouped_summary,
+            planner_sections=planner_summary,
             code_refs=json.dumps(code_refs)[:1500],
         )
 

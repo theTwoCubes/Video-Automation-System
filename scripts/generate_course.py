@@ -131,6 +131,9 @@ def main():
             primary_sections = lecture_plan.get("primary_sections", [])
             reference_sections = lecture_plan.get("reference_sections", [])
 
+            next_lesson = next((l for l in lessons if l.get("position") == pos + 1), None)
+            next_lesson_title = next_lesson["title"] if next_lesson else ""
+
             final = run_pipeline(
                 source_id=course.get("source_id", ""),
                 proc_source_id=proc_source_id,
@@ -148,6 +151,7 @@ def main():
                 difficulty=lesson.get("difficulty", "beginner"),
                 force_restart=args.force_restart,
                 previous_lesson_summary=prev_summary,
+                next_lesson_title=next_lesson_title,
             )
 
             if final.get("error"):

@@ -78,6 +78,18 @@ def main(
         primary_sections = lecture_plan.get("primary_sections", [])
         reference_sections = lecture_plan.get("reference_sections", [])
 
+        # real title of the next lesson in the curriculum, if any - grounds the
+        # script's "next time..." teaser instead of letting the LLM invent one
+        next_lesson = (
+            db.query(models.Lesson)
+            .filter(
+                models.Lesson.course_id == course_id,
+                models.Lesson.position == lesson.position + 1,
+            )
+            .first()
+        )
+        next_lesson_title = next_lesson.title if next_lesson else ""
+
     finally:
         db.close()
 
@@ -114,6 +126,7 @@ def main(
             target_audience=course.target_audience,
             estimated_duration_minutes=lesson.estimated_duration_minutes,
             difficulty=difficulty,
+            next_lesson_title=next_lesson_title,
         )
 
         elapsed = time.time() - start_time

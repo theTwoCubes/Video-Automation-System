@@ -37,15 +37,45 @@ def _fwd(p: Path) -> str:
     return str(p.resolve()).replace("\\", "/")
 
 
+_SILENCE_GAP_MS = 300
+
+
+def _make_gap_silence(reference_dir: Path, ffmpeg_exe: str, gap_ms: int = _SILENCE_GAP_MS) -> Path:
+    """Create (or reuse) a short silence clip used to pad between concatenated
+    narration segments, so cuts don't slam together with zero gap. Cached per
+    directory since every call within a lesson needs the same clip."""
+    silence_path = reference_dir / f"_gap_silence_{gap_ms}ms.mp3"
+    if not silence_path.exists():
+        subprocess.run(
+            [
+                ffmpeg_exe, "-y",
+                "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono",
+                "-t", f"{gap_ms / 1000:.3f}",
+                "-q:a", "9",
+                _fwd(silence_path),
+            ],
+            capture_output=True, text=True,
+        )
+    return silence_path
+
+
 def _concat_audio(audio_paths: List[str], output_path: Path, ffmpeg_exe: str) -> float:
-    """Concatenate MP3 files into one. Returns total duration in seconds."""
+    """Concatenate MP3 files into one, with a short silence gap inserted between
+    each clip so segments don't slam together with a hard, zero-padding cut
+    (voice_agent.py trims silence at each segment's own edges, so without this
+    gap the concatenation is a raw back-to-back splice). Returns total duration
+    in seconds."""
     if len(audio_paths) == 1:
         shutil.copy2(audio_paths[0], output_path)
         return _get_audio_duration(audio_paths[0], ffmpeg_exe)
 
+    silence_path = _make_gap_silence(output_path.parent, ffmpeg_exe)
+
     concat_list = output_path.parent / f"audio_concat_{output_path.stem}.txt"
     with open(concat_list, "w", encoding="utf-8") as f:
-        for ap in audio_paths:
+        for idx, ap in enumerate(audio_paths):
+            if idx > 0 and silence_path.exists():
+                f.write(f"file '{_fwd(silence_path)}'\n")
             f.write(f"file '{_fwd(Path(ap))}'\n")
 
     cmd = [
@@ -56,13 +86,13 @@ def _concat_audio(audio_paths: List[str], output_path: Path, ffmpeg_exe: str) ->
         _fwd(output_path),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    concat_list.unlink(missing_ok=True)
 
     if result.returncode != 0:
         cmd2 = [ffmpeg_exe, "-y", "-f", "concat", "-safe", "0",
                 "-i", _fwd(concat_list), "-c:a", "aac", _fwd(output_path)]
         subprocess.run(cmd2, capture_output=True, text=True)
 
+    concat_list.unlink(missing_ok=True)
     return _get_audio_duration(str(output_path), ffmpeg_exe)
 
 

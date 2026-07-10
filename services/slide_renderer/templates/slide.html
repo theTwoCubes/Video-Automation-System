@@ -138,6 +138,7 @@ body {
 }
 .bullet-text {
   font-size: 36px; font-weight: 400; line-height: 1.5; color: #C8CDD8;
+  max-width: 1200px;
 }
 .bullet-text code {
   font-family: "FiraCode", monospace;
@@ -153,6 +154,7 @@ body {
   border-radius: 6px;
   font-size: 30px; font-weight: 500; color: #FFFFFF;
   line-height: 1.4;
+  max-width: 1200px;
 }
 
 /* ============================================================
@@ -171,7 +173,7 @@ body {
 .layout-prose .prose-paragraph {
   font-size: 32px; font-weight: 400; line-height: 1.65;
   color: #9BA3B5; margin-top: 40px; margin-bottom: 36px;
-  max-height: 300px; overflow: hidden;
+  max-height: 300px; overflow: hidden; max-width: 1200px;
 }
 .layout-prose .prose-paragraph code {
   font-family: "FiraCode", monospace; font-size: 0.85em;
@@ -194,6 +196,7 @@ body {
 }
 .layout-prose .prose-bullet-text {
   font-size: 30px; line-height: 1.5; color: #C8CDD8;
+  max-width: 1200px;
 }
 
 /* ============================================================
@@ -229,7 +232,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; font-size: 18px; color: #00D4A0; margin-top: 6px;
 }
-.summary-text { font-size: 34px; font-weight: 400; line-height: 1.45; color: #C8CDD8; }
+.summary-text { font-size: 34px; font-weight: 400; line-height: 1.45; color: #C8CDD8; max-width: 1200px; }
 .summary-whats-next {
   margin-top: 28px; font-size: 22px; color: #556070;
   border-top: 1px solid #1E2330; padding-top: 20px;
@@ -563,7 +566,7 @@ body {
       <div class="brand-name">theTwoCubes</div>
     </div>
 
-    {% if tag and layout != 'title' %}<div class="tag">{{ tag }}</div>{% endif %}
+    {% if tag and layout != 'title' %}<div class="tag">{{ tag|md }}</div>{% endif %}
 
     {% if total_slides > 0 %}
       <div class="counter">{{ slide_index + 1 }} / {{ total_slides }}</div>
@@ -572,38 +575,36 @@ body {
     {# ===== TITLE ===== #}
     {% if layout == 'title' %}
       {% if lesson_number %}<div class="lesson-badge">Lesson {{ lesson_number }}</div>{% endif %}
-      <h1 class="{% if headline|length > 60 %}long-title{% endif %}{% if headline|length > 80 %} very-long-title{% endif %}">{{ headline }}</h1>
+      <h1 class="{% if headline|length > 60 %}long-title{% endif %}{% if headline|length > 80 %} very-long-title{% endif %}">{{ headline|md }}</h1>
       <div class="title-accent"></div>
-      {% if subtitle %}<div class="subtitle">{{ subtitle }}</div>{% elif bullets and bullets|length > 0 %}<div class="subtitle">{{ bullets[0] }}</div>{% endif %}
+      {% if subtitle %}<div class="subtitle">{{ subtitle|md }}</div>{% elif bullets and bullets|length > 0 %}<div class="subtitle">{{ bullets[0]|md }}</div>{% endif %}
 
     {# ===== CONTENT ===== #}
     {% elif layout in ['content', 'checklist'] %}
-      {% if tag %}<div class="section-label">{{ tag }}</div>{% endif %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline|md }}</h2>
       <div class="content-body">
         <div class="content-bullets">
           {% for b in bullets[:4] %}
           <div class="bullet-item">
             <div class="bullet-dot"></div>
-            <div class="bullet-text">{{ b }}</div>
+            <div class="bullet-text">{{ b|md }}</div>
           </div>
           {% endfor %}
         </div>
       </div>
-      {% if callout %}<div class="content-callout">{{ callout }}</div>{% endif %}
+      {% if callout %}<div class="content-callout">{{ callout|md }}</div>{% endif %}
 
     {# ===== PROSE ===== #}
     {% elif layout == 'prose' %}
       <div class="layout-prose" style="padding:0; display:contents;">
-      {% if tag %}<div class="section-label">{{ tag }}</div>{% endif %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline }}</h2>
-      {% if paragraph %}<div class="prose-paragraph">{{ paragraph }}</div>{% endif %}
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
+      {% if paragraph %}<div class="prose-paragraph">{{ paragraph|md }}</div>{% endif %}
       <div class="prose-divider"></div>
       <div class="prose-bullets">
         {% for b in bullets[:3] %}
         <div class="prose-bullet">
           <div class="prose-bullet-dot"></div>
-          <div class="prose-bullet-text">{{ b }}</div>
+          <div class="prose-bullet-text">{{ b|md }}</div>
         </div>
         {% endfor %}
       </div>
@@ -613,22 +614,22 @@ body {
     {% elif layout == 'summary' %}
       <div class="summary-header">
         <div class="summary-icon">&#10003;</div>
-        <h2 class="{% if (headline or 'Key Takeaways')|length > 45 %}long-title{% endif %}{% if (headline or 'Key Takeaways')|length > 65 %} very-long-title{% endif %}">{{ headline or 'Key Takeaways' }}</h2>
+        <h2 class="{% if (headline or 'Key Takeaways')|length > 45 %}long-title{% endif %}{% if (headline or 'Key Takeaways')|length > 65 %} very-long-title{% endif %}">{{ (headline or 'Key Takeaways')|md }}</h2>
       </div>
       <div class="divider"></div>
       <div class="summary-items">
         {% for b in bullets %}
         <div class="summary-item">
           <div class="check-icon">&#10003;</div>
-          <div class="summary-text">{{ b }}</div>
+          <div class="summary-text">{{ b|md }}</div>
         </div>
         {% endfor %}
       </div>
-      {% if whats_next %}<div class="summary-whats-next">Next: {{ whats_next }}</div>{% endif %}
+      {% if whats_next %}<div class="summary-whats-next">Next: {{ whats_next|md }}</div>{% endif %}
 
     {# ===== CODE ===== #}
     {% elif layout == 'code' %}
-      <h2 class="{% if headline|length > 55 %}long-title{% endif %}{% if headline|length > 75 %} very-long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 55 %}long-title{% endif %}{% if headline|length > 75 %} very-long-title{% endif %}">{{ headline|md }}</h2>
       <div class="code-window">
         <div class="code-titlebar">
           <div class="code-dot-r"></div>
@@ -639,20 +640,20 @@ body {
         <div class="code-body">
           <pre id="code-block"></pre>
         </div>
-        {% if caption %}<div class="code-caption">{{ caption }}</div>{% endif %}
+        {% if caption %}<div class="code-caption">{{ caption|md }}</div>{% endif %}
       </div>
 
     {# ===== SPLIT CODE ===== #}
     {% elif layout == 'split_code' %}
       <div class="split-code-wrap">
         <div class="split-code-left">
-          <h2 class="{% if headline|length > 40 %}long-title{% endif %}">{{ headline }}</h2>
-          {% if paragraph %}<div class="split-paragraph">{{ paragraph }}</div>{% endif %}
+          <h2 class="{% if headline|length > 40 %}long-title{% endif %}">{{ headline|md }}</h2>
+          {% if paragraph %}<div class="split-paragraph">{{ paragraph|md }}</div>{% endif %}
           <div class="split-bullets">
             {% for b in bullets[:3] %}
             <div class="split-bullet">
               <div class="split-bullet-dot"></div>
-              <div class="split-bullet-text">{{ b }}</div>
+              <div class="split-bullet-text">{{ b|md }}</div>
             </div>
             {% endfor %}
           </div>
@@ -674,30 +675,30 @@ body {
 
     {# ===== TWO COLUMN ===== #}
     {% elif layout == 'two_column' %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
       <div class="two-col-wrap">
         <div class="col-panel">
-          <div class="col-panel-label">{{ left_label or 'Concept' }}</div>
+          <div class="col-panel-label">{{ (left_label or 'Concept')|md }}</div>
           <div class="col-bullets">
-            {% for b in left_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b }}</div></div>{% endfor %}
+            {% for b in left_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b|md }}</div></div>{% endfor %}
           </div>
         </div>
         <div class="col-panel">
-          <div class="col-panel-label">{{ right_label or 'Example' }}</div>
+          <div class="col-panel-label">{{ (right_label or 'Example')|md }}</div>
           <div class="col-bullets">
-            {% for b in right_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b }}</div></div>{% endfor %}
+            {% for b in right_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b|md }}</div></div>{% endfor %}
           </div>
         </div>
       </div>
 
     {# ===== NUMBERED STEPS ===== #}
     {% elif layout == 'numbered_steps' %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
       <div class="steps-list">
         {% for b in bullets[:5] %}
         <div class="step-row">
           <div class="step-num">{{ loop.index }}</div>
-          <div class="step-text">{{ b }}</div>
+          <div class="step-text">{{ b|strip_leading_number|md }}</div>
         </div>
         {% endfor %}
       </div>
@@ -706,35 +707,35 @@ body {
     {% elif layout == 'exercise' %}
       <div class="exercise-card">
         <div class="exercise-tag">&#127919; Challenge</div>
-        <h3 class="{% if headline|length > 45 %}long-title{% endif %}{% if headline|length > 65 %} very-long-title{% endif %}">{{ headline }}</h3>
+        <h3 class="{% if headline|length > 45 %}long-title{% endif %}{% if headline|length > 65 %} very-long-title{% endif %}">{{ headline|md }}</h3>
         <div class="exercise-items">
           {% for b in bullets %}
           <div class="exercise-item">
             <div class="ex-num">{{ loop.index }}.</div>
-            <div class="ex-text">{{ b }}</div>
+            <div class="ex-text">{{ b|strip_leading_number|md }}</div>
           </div>
           {% endfor %}
         </div>
-        {% if hint %}<div class="exercise-hint">Hint: {{ hint }}</div>{% endif %}
+        {% if hint %}<div class="exercise-hint">Hint: {{ hint|md }}</div>{% endif %}
       </div>
 
     {# ===== COMPARISON / ERROR_FIX ===== #}
     {% elif layout in ['comparison', 'error_fix'] %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline|md }}</h2>
       <div class="split-wrap">
         <div class="split-panel bad">
-          <div class="split-label">{% if layout == 'error_fix' %}&#10007; Mistake{% else %}{{ left_label or 'Before' }}{% endif %}</div>
-          <div class="split-code">{{ left_bullets | join('\n') }}</div>
+          <div class="split-label">{% if layout == 'error_fix' %}&#10007; Mistake{% else %}{{ (left_label or 'Before')|md }}{% endif %}</div>
+          <div class="split-code">{{ (left_bullets | join('\n'))|e }}</div>
         </div>
         <div class="split-panel good">
-          <div class="split-label">{% if layout == 'error_fix' %}&#10003; Fix{% else %}{{ right_label or 'After' }}{% endif %}</div>
-          <div class="split-code">{{ right_bullets | join('\n') }}</div>
+          <div class="split-label">{% if layout == 'error_fix' %}&#10003; Fix{% else %}{{ (right_label or 'After')|md }}{% endif %}</div>
+          <div class="split-code">{{ (right_bullets | join('\n'))|e }}</div>
         </div>
       </div>
 
     {# ===== TERMINAL ===== #}
     {% elif layout == 'terminal' %}
-      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline }}</h2>
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline|md }}</h2>
       <div class="terminal-window">
         <div class="terminal-chrome">
           <div class="t-dot-r"></div>
@@ -744,9 +745,9 @@ body {
         <div class="terminal-body">
           {% for b in bullets %}
             {% if b.startswith('#') or b.startswith('//') %}
-              <span class="terminal-output">{{ b }}</span>
+              <span class="terminal-output">{{ b|e }}</span>
             {% else %}
-              <div><span class="terminal-prompt">$</span>{{ b }}</div>
+              <div><span class="terminal-prompt">$</span>{{ b|e }}</div>
             {% endif %}
           {% endfor %}
         </div>
@@ -754,22 +755,22 @@ body {
 
     {# ===== DEFINITION ===== #}
     {% elif layout == 'definition' %}
-      <div class="def-label">{{ tag or 'Definition' }}</div>
-      <h2 class="{% if headline|length > 35 %}long-title{% endif %}{% if headline|length > 55 %} very-long-title{% endif %}">{{ headline }}</h2>
+      {% if not tag %}<div class="def-label">Definition</div>{% endif %}
+      <h2 class="{% if headline|length > 35 %}long-title{% endif %}{% if headline|length > 55 %} very-long-title{% endif %}">{{ headline|md }}</h2>
       <div class="def-box">
         <div class="def-equation">
           {% set eq = bullets[0] if bullets else '' %}
           {% if '=' in eq %}
-            <span class="eq-lhs">{{ eq.split('=')[0].strip() }}</span>
+            <span class="eq-lhs">{{ eq.split('=')[0].strip()|e }}</span>
             <span class="eq-op">=</span>
-            <span class="eq-rhs">{{ eq.split('=', 1)[1].strip() }}</span>
+            <span class="eq-rhs">{{ eq.split('=', 1)[1].strip()|e }}</span>
           {% else %}
-            {{ eq }}
+            {{ eq|e }}
           {% endif %}
         </div>
       </div>
-      {% if bullets|length > 1 %}<div class="def-description">{{ bullets[1] }}</div>{% endif %}
-      {% if context %}<div class="def-context">{{ context }}</div>{% endif %}
+      {% if bullets|length > 1 %}<div class="def-description">{{ bullets[1]|md }}</div>{% endif %}
+      {% if context %}<div class="def-context">{{ context|md }}</div>{% endif %}
 
     {% endif %}
   </div>

@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from config.settings import settings
+from services.slide_renderer.renderer import render_inline_markdown
 
 TEMPLATE_DIR = Path("services/diagram_renderer/templates")
 SLIDE_TEMPLATE_DIR = Path("services/slide_renderer/templates")  # shared _fonts.html partial
@@ -15,6 +16,7 @@ class DiagramRenderer:
 
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader([str(TEMPLATE_DIR), str(SLIDE_TEMPLATE_DIR)]))
+        self.env.filters["md"] = render_inline_markdown
         self.brand = self._load_brand()
 
     def _load_brand(self) -> dict:

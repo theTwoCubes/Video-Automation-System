@@ -129,7 +129,7 @@ def rerender_video(output_dir: Path, profile: dict, music_override: str = None) 
     # re-build slide_audio_pairs same way as video_agent
     from agents.video_agent import VideoAgent
     va = VideoAgent()
-    pairs, hints = va._build_pairs(segments, slide_id_to_path, slide_contents, audio_paths)
+    pairs, hints, _sids, _drefs = va._build_pairs(segments, slide_id_to_path, slide_contents, audio_paths)
 
     music = music_override or profile["music"].get("bg_track", "")
     anim = profile["slides"].get("animation_preset", "smooth")

@@ -36,7 +36,21 @@ CODE NARRATION:
   - Announce WHAT you will write before writing it.
   - Then walk line by line: "This line declares an integer n and sets it to 42."
   - Then explain the output: "When you run this, you get exactly this on screen."
-  - Always read the output aloud, character by character if needed.
+  - Always read the output aloud - EXCEPT raw binary/hex/machine-code digit sequences,
+    which the NEVER WRITE OUT AS NARRATION rule below covers.
+
+NEVER WRITE OUT RAW BINARY/HEX/MACHINE-CODE AS NARRATION (mandatory):
+  Never put a literal sequence of binary digits (e.g. "01001000 01101001"), a raw hex
+  dump, or a long machine-code byte sequence into narration `text` - a TTS voice reading
+  each digit aloud sounds broken and teaches nothing. Instead:
+  - Describe it in decimal or plain English: "that byte holds seventy-two, which is the
+    ASCII code for the letter H" instead of "zero one zero zero one zero zero zero".
+  - If the bit PATTERN itself is the point (e.g. explaining two's complement), describe
+    it qualitatively: "seven zeros followed by a one" or "the high bit flips to one" -
+    never dictate more than 8 raw digits in a row.
+  - It is fine for the SLIDE to display the full binary/hex string visually (bullets/code
+    blocks are not narration) - this rule only restricts what the narration text says
+    aloud.
 
 FORBIDDEN WORDS AND PHRASES: simply, just, easy, easily, obviously, as you can see,
 let us go ahead, straightforward, note that, it should be noted, basic, of course,
@@ -62,8 +76,14 @@ SPECIFICITY RULE:
 PAUSE MARKERS: Insert [PAUSE] between major topic shifts only.
   Example: "...and that is how pointers work.[PAUSE]Now let us look at references."
 
-ENDINGS: Name exactly 3 concrete things the viewer now knows. Then tease next lesson
-with a specific hook: "Next time we are going to break something on purpose."
+ENDINGS: Name exactly 3 concrete things the viewer now knows. Then tease the next lesson
+using ONLY the real next-lesson title given to you in the prompt below (in the
+"Next lesson" field) - never invent, guess, or embellish what the next lesson covers.
+Turn the given title into a natural spoken hook, e.g. if given "Basic Syntax and
+Variables", say something like "Next time, we get our hands dirty with the actual
+building blocks of every program: syntax and variables." If no next lesson title is
+given (this is the final lesson of the course), congratulate the viewer on finishing
+the course instead of teasing a next topic.
 """
 
 SYSTEM_PROMPT = f"""You are the script writer for theTwoCubes Learning, a technical YouTube channel.
@@ -75,10 +95,24 @@ SLIDE ASSIGNMENTS:
 Each segment must have a slide_id. Multiple segments share the same slide_id
 when narrating the same visual. A new slide_id = a slide change.
 Format: "slide_001", "slide_002", etc.
-- Title slide: "slide_001" (1-2 segments)
+- Title slide: "slide_001" (1-2 segments ONLY - do not dump multiple concepts onto
+  the title slide, that leaves the viewer staring at a static screen for too long).
 - Each concept/section: 2-4 segments per slide
 - Code slides: 3-5 segments (intro → line-by-line → output)
 - Summary slide: last 1-2 segments
+- RULE OF THUMB: a single slide_id should rarely carry more than ~45-60 seconds of
+  combined narration (roughly 5-6 segments at normal length). If a section has more
+  to say than that, split it across multiple slide_ids so the visual changes to match
+  what is being discussed - the audio and the visual must stay in sync, not just the
+  audio droning on over one frozen slide.
+
+DIAGRAM_REF LINKING:
+The lesson plan's `sections` list may mark some sections with `needs_diagram: true`.
+For each such section, find the narration segment(s) where you are actually explaining
+that section's concept, and set that segment's `diagram_ref` field to
+`"diag_{{section_id}}"` (e.g. a section with id `"sec_003"` → `diagram_ref: "diag_sec_003"`).
+This is what tells the video composer to show the generated diagram animation while
+that narration plays. Leave `diagram_ref` empty ("") on every other segment.
 
 DEPTH REQUIREMENT: The reference material may be brief. Expand aggressively using
 your expert knowledge. Never write a shallow summary. Go deep. Teach the hard parts.
@@ -103,6 +137,10 @@ EDITING RULES:
 USER_TEMPLATE = """
 Lesson plan:
 {lesson_plan}
+
+Next lesson: {next_lesson_title}
+(If this says "(none - this is the final lesson)", do NOT tease a next topic - close
+by congratulating the viewer on completing the course instead.)
 
 Reference material from the course PDF:
 
@@ -162,10 +200,12 @@ class ScriptAgent(BaseAgent):
         lesson_id = state["lesson_id"]
         lesson_plan = state.get("lesson_plan", {})
         section_text = state.get("section_text", "No reference material available.")
+        next_lesson_title = state.get("next_lesson_title") or "(none - this is the final lesson)"
 
         user_msg = USER_TEMPLATE.format(
             lesson_id=lesson_id,
             lesson_plan=json.dumps(lesson_plan, indent=2)[:3000],
+            next_lesson_title=next_lesson_title,
             section_text=section_text[:4000],
         )
 
