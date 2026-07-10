@@ -18,7 +18,7 @@ PDF / URL ──► Knowledge Ingestion ──► ChromaDB Vector Store
                               │  LessonPlannerAgent       │
                               │  ScriptAgent              │
                               │  CodeAgent                │
-                              │  DiagramAgent             │
+                              │  DiagramAgent             │  ──► Animated diagram MP4s
                               │  SlideAgent               │  ──► PNG slides (1920×1080)
                               │  VoiceAgent (Edge TTS)    │  ──► MP3 audio segments
                               │  VideoAgent               │  ──► Final MP4
@@ -37,8 +37,9 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 
 - **Knowledge Ingestion**: Ingest PDFs, Markdown directories, or web pages into a ChromaDB vector store and SQLite-backed catalog.
 - **Agentic Curriculum Planning**: Gemini 2.5 Flash generates a structured, prerequisite-aware multi-lesson curriculum from the ingested material.
-- **Slide Diversity**: 9 distinct slide layouts — `title`, `content`, `code`, `two_column`, `numbered_steps`, `summary`, `definition`, `comparison`, `terminal` — with enforced variety rules (max 40% `content` layout).
-- **Professional Slide Rendering**: Dark-themed (no gradients), 1920×1080 slides rendered via Playwright with embedded fonts — no CDN dependency.
+- **Slide Diversity**: 35 distinct slide layouts spanning opening/structural, concept, code, comparison, process, data, engagement, warning, and summary categories (title, content, prose, split_code, quiz, warning, tip, big_number, timeline, and more) — with enforced variety rules and per-section layout recommendations from the LessonPlannerAgent.
+- **Animated Diagrams**: 8 diagram types (pipeline, memory layout, call stack, iteration, flow, tree, state machine, layered architecture) rendered as animated MP4s from structured LLM content, not freehand HTML.
+- **Professional Slide Rendering**: Dark-themed, brand-token-driven (no hardcoded colors), 1920×1080 slides rendered via Playwright with embedded fonts — no CDN dependency.
 - **Voice Synthesis**: 6 curated Edge TTS voices (free, no API key). Sidechain audio ducking automatically lowers background music when narration plays.
 - **Video Composition**: FFmpeg composites slides + audio into MP4, with configurable xfade transitions, Ken Burns slow-zoom, and optional branded intro/outro cards.
 - **Testing Studio GUI**: Iterate on visuals and audio for free by re-rendering from checkpoints — no LLM calls. Live log streaming, slide gallery, and voice preview included.
@@ -68,8 +69,10 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 videoAutomation/
 ├── agents/                  # One agent per pipeline step
 │   ├── curriculum_agent.py  # Generates the full course curriculum
-│   ├── lesson_planner_agent.py
+│   ├── lesson_planner_agent.py  # Plans sections + recommends slide/diagram layouts
 │   ├── script_agent.py      # Writes narration with engineering persona
+│   ├── code_agent.py        # Generates runnable code examples
+│   ├── diagram_agent.py     # Structured content → animated diagram MP4
 │   ├── slide_agent.py       # Maps script to slide layout objects
 │   ├── voice_agent.py       # Synthesizes TTS audio segments
 │   ├── video_agent.py       # Composes final video via FFmpeg
@@ -87,7 +90,13 @@ videoAutomation/
 │   │   └── composer.py          # FFmpeg: segments, transitions, ducking, intro/outro
 │   ├── slide_renderer/
 │   │   ├── renderer.py          # Playwright HTML → PNG
-│   │   └── templates/slide.html # All 9 slide layouts
+│   │   └── templates/slide.html # 35 slide layouts, brand-token-driven CSS
+│   ├── diagram_renderer/
+│   │   ├── renderer.py          # Structured content → animated diagram HTML
+│   │   ├── html_animator.py     # Playwright frame capture → FFmpeg → MP4
+│   │   └── templates/           # One file per diagram type, extends _base.html
+│   ├── slide_validator/
+│   │   └── validator.py         # Pre-render content validation + auto-fix
 │   ├── knowledge/
 │   │   └── pdf_processor.py     # PDF → sections, ChromaDB ingestion
 │   ├── thumbnail/               # Pillow thumbnail generator
@@ -100,7 +109,7 @@ videoAutomation/
 │   │   ├── default.yaml         # Balanced quality + music + intro/outro
 │   │   ├── no_music.yaml        # Silent rendering
 │   │   └── testing.yaml         # Fast settings for iteration
-│   └── brand.json               # Brand colors and channel name
+│   └── brand.json               # Brand colors, channel name, and semantic tokens
 │
 ├── api/
 │   └── server.py                # FastAPI: all REST and SSE endpoints
@@ -123,7 +132,7 @@ videoAutomation/
 │   ├── rerender_lesson.py       # CLI: re-render slides/voice/video from checkpoints
 │   ├── preview_slide.py         # CLI: render a single test slide to PNG
 │   ├── review_slides.py         # CLI: batch review all slides in an output dir
-│   └── stress_test_layouts.py   # CLI: render all 9 layouts as a smoke test
+│   └── stress_test_layouts.py   # CLI: render layouts with maximal content as a smoke test
 │
 ├── assets/
 │   ├── fonts/                   # Embedded base64 fonts (Outfit, FiraCode)
@@ -204,7 +213,7 @@ python scripts/rerender_lesson.py --lesson-id <UUID> --steps video --profile def
 # Preview a single slide layout
 python scripts/preview_slide.py --layout code --output /tmp/test.png
 
-# Smoke-test all 9 layouts
+# Smoke-test slide layouts with maximal content (overflow/clipping checks)
 python scripts/stress_test_layouts.py
 ```
 

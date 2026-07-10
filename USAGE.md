@@ -179,7 +179,6 @@ All settings have sensible defaults and can be overridden in `.env`:
 | `OUTPUT_DIR` | `output` | Root folder for generated videos |
 | `MAX_COST_USD_PER_RUN` | `0.50` | Hard cost cap per pipeline run |
 | `KEN_BURNS_THRESHOLD_SECONDS` | `7.0` | Slides longer than this get Ken Burns |
-| `VIDEO_FPS` | `30` | Output video frame rate |
 | `SLIDE_WIDTH` / `SLIDE_HEIGHT` | `1920` / `1080` | Slide canvas resolution |
 
 Note: Voice, music, animation, and quality settings are now controlled by profiles, not env vars (env vars serve as fallbacks only).
