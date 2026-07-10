@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
@@ -100,7 +100,7 @@ class ThumbnailGenerator:
         topic_font = self._get_font(26, bold=True)
         draw.text((60, 130), topic.upper(), font=topic_font, fill=(*accent[:3], 180))
 
-        # main title — adaptive font size based on title length
+        # main title - adaptive font size based on title length
         title_len = len(title)
         if title_len <= 30:
             font_size = 86
@@ -125,7 +125,7 @@ class ThumbnailGenerator:
             bbox = draw.textbbox((0, 0), line, font=title_font)
             y_pos += (bbox[3] - bbox[1]) + 12
 
-        # logo or channel name — bottom right
+        # logo or channel name - bottom right
         if self.logo:
             # composite PNG logo onto JPEG base
             logo_x = self.width - self.logo.width - 40

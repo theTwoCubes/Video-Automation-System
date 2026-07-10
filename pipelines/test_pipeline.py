@@ -1,8 +1,8 @@
-"""
-Test Pipeline — D.4 from FuturePLAN.md (partial replay via --from-step)
+﻿"""
+Test Pipeline - D.4 from FuturePLAN.md (partial replay via --from-step)
 
 Runs the full rendering/audio/video pipeline using pre-captured fixture data.
-No LLM calls, no API cost — ideal for iterating on templates, transitions, timing.
+No LLM calls, no API cost - ideal for iterating on templates, transitions, timing.
 
 Usage:
     python pipelines/test_pipeline.py
@@ -43,10 +43,10 @@ def run_test_pipeline(
     Run the rendering pipeline with fixture data.
 
     from_step: One of 'slides', 'audio', 'video', 'thumbnail'.
-      - 'slides'   — run everything (default)
-      - 'audio'    — skip slide rendering, load existing PNGs
-      - 'video'    — skip slides + audio, load existing MP3s
-      - 'thumbnail'— skip slides + audio + video composition
+      - 'slides'   - run everything (default)
+      - 'audio'    - skip slide rendering, load existing PNGs
+      - 'video'    - skip slides + audio, load existing MP3s
+      - 'thumbnail'- skip slides + audio + video composition
     """
     from agents.voice_agent import VoiceAgent
     from agents.video_agent import VideoAgent
@@ -136,7 +136,7 @@ def run_test_pipeline(
         print("[Step 1/4] Slides: loading existing PNGs...")
         existing = sorted(slide_dir.glob("*.png")) if slide_dir.exists() else []
         if not existing:
-            print("  No existing slides found — running slide render anyway.")
+            print("  No existing slides found - running slide render anyway.")
             from services.slide_renderer.renderer import SlideRenderer
             renderer = SlideRenderer()
             slide_paths = renderer.render_slides(fixture_slides, str(slide_dir))
@@ -161,7 +161,7 @@ def run_test_pipeline(
         print("[Step 2/4] Audio: loading existing MP3s...")
         existing_audio = sorted(audio_dir.glob("seg_*.mp3")) if audio_dir.exists() else []
         if not existing_audio:
-            print("  No existing audio — running TTS anyway.")
+            print("  No existing audio - running TTS anyway.")
             state = VoiceAgent().run(state)
         else:
             state["audio_paths"] = [str(p) for p in existing_audio]

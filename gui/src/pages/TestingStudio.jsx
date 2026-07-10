@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 
 const API = 'http://localhost:8000';
 const cx = (...a) => a.filter(Boolean).join(' ');
 
-/* ── Data hook ─────────────────────────────────────────────── */
+// Data hook
 function useAPI(url, deps = []) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLoading(true); setError(null);
     fetch(API + url)
@@ -19,7 +20,7 @@ function useAPI(url, deps = []) {
   return { data, loading, error };
 }
 
-/* ── Design tokens ──────────────────────────────────────────── */
+// Design tokens
 const S = {
   label: 'text-[10px] font-bold text-teal-400 uppercase tracking-[0.15em] mb-1.5 block',
   card:  'bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl',
@@ -27,7 +28,7 @@ const S = {
   pill:  'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
 };
 
-/* ── Status pill ────────────────────────────────────────────── */
+// Status pill
 function StatusPill({ status }) {
   if (!status) return null;
   const map = {
@@ -39,7 +40,7 @@ function StatusPill({ status }) {
   return <span className={cx(S.pill, cls)}>{label}</span>;
 }
 
-/* ── Checkpoint badge ───────────────────────────────────────── */
+// Checkpoint badge
 function CkBadge({ name }) {
   const colors = {
     lesson_planner: 'bg-violet-500/10 text-violet-400',
@@ -55,14 +56,14 @@ function CkBadge({ name }) {
   );
 }
 
-/* ── Log panel ──────────────────────────────────────────────── */
+// Log panel
 function LogPanel({ lines, status }) {
   const ref = useRef(null);
   useEffect(() => { ref.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines]);
 
   return (
     <div className={cx(S.card, 'overflow-hidden flex flex-col')}>
-      {/* title bar */}
+      {// title bar}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1a1a1a] bg-[#0a0a0a]">
         <span className={cx(
           'w-2 h-2 rounded-full',
@@ -74,7 +75,7 @@ function LogPanel({ lines, status }) {
           {status || 'idle'}
         </span>
       </div>
-      {/* log body */}
+      {// log body}
       <div className="h-52 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed space-y-px">
         {lines.length === 0 && (
           <div className="text-zinc-700 italic mt-4 text-center">No output yet...</div>
@@ -96,7 +97,7 @@ function LogPanel({ lines, status }) {
   );
 }
 
-/* ── Slide gallery ──────────────────────────────────────────── */
+// Slide gallery
 function SlideGallery({ lessonId, refreshKey }) {
   const { data: slides, loading } = useAPI(
     `/api/lessons/${lessonId}/slides`,
@@ -119,7 +120,7 @@ function SlideGallery({ lessonId, refreshKey }) {
 
   return (
     <div className="space-y-3">
-      {/* main preview */}
+      {// main preview}
       <div className={cx(S.card, 'overflow-hidden relative group')}>
         <img
           src={`${API}/static/${slides[sel]}`}
@@ -131,7 +132,7 @@ function SlideGallery({ lessonId, refreshKey }) {
           {sel + 1} / {slides.length}
         </div>
       </div>
-      {/* thumbnail strip */}
+      {// thumbnail strip}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {slides.map((s, i) => (
           <button
@@ -156,7 +157,7 @@ function SlideGallery({ lessonId, refreshKey }) {
   );
 }
 
-/* ── Lesson list item ───────────────────────────────────────── */
+// Lesson list item
 function LessonItem({ lesson, selected, onClick }) {
   return (
     <button
@@ -182,7 +183,7 @@ function LessonItem({ lesson, selected, onClick }) {
   );
 }
 
-/* ── Main Page ──────────────────────────────────────────────── */
+// Main Page
 export function TestingStudio() {
   const { data: lessons, loading: lessonsLoading } = useAPI('/api/lessons/rendered');
   const { data: profiles } = useAPI('/api/profiles');
@@ -207,7 +208,7 @@ export function TestingStudio() {
     !query || l.title?.toLowerCase().includes(query.toLowerCase())
   );
 
-  /* live log polling */
+  // live log polling
   useEffect(() => {
     if (!taskId) return;
     let cancelled = false;
@@ -227,7 +228,7 @@ export function TestingStudio() {
             if (data.status === 'done') setRefreshGallery(k => k + 1);
             break;
           }
-        } catch { /* ignore */ }
+        } catch { // ignore }
         await new Promise(r => setTimeout(r, 800));
       }
     })();
@@ -268,13 +269,13 @@ export function TestingStudio() {
       const a    = new Audio(url);
       a.play();
       a.onended = () => URL.revokeObjectURL(url);
-    } catch { /* ignore */ } finally { setPreviewing(false); }
+    } catch { // ignore } finally { setPreviewing(false); }
   }
 
   return (
     <div className="min-h-screen bg-black text-zinc-200 flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {/* ── Page Header ── */}
+      {// Page Header}
       <div className="px-8 pt-7 pb-5 border-b border-[#111] flex items-end justify-between">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
@@ -282,16 +283,16 @@ export function TestingStudio() {
             <h1 className="text-xl font-bold text-white tracking-tight">Testing Studio</h1>
           </div>
           <p className="text-zinc-600 text-[13px] ml-4">
-            Re-render slides, voice, or video from checkpoints — no LLM calls.
+            Re-render slides, voice, or video from checkpoints - no LLM calls.
           </p>
         </div>
         {status && <StatusPill status={status} />}
       </div>
 
-      {/* ── 3-column body ── */}
+      {// 3-column body}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── COL 1: Lesson Picker ── */}
+        {// COL 1: Lesson Picker}
         <div className="w-72 flex-shrink-0 border-r border-[#111] flex flex-col">
           <div className="p-4 border-b border-[#111]">
             <span className={S.label}>Lessons</span>
@@ -323,20 +324,20 @@ export function TestingStudio() {
           </div>
         </div>
 
-        {/* ── COL 2: Settings Panel ── */}
+        {// COL 2: Settings Panel}
         <div className="w-72 flex-shrink-0 border-r border-[#111] overflow-y-auto p-5 space-y-6">
 
-          {/* Profile */}
+          {// Profile}
           <div>
             <span className={S.label}>Render Profile</span>
             <select value={profile} onChange={e => setProfile(e.target.value)} className={S.input}>
               {(profiles || []).map(p => (
-                <option key={p.name} value={p.name}>{p.name}{p.description ? ` — ${p.description}` : ''}</option>
+                <option key={p.name} value={p.name}>{p.name}{p.description ? ` - ${p.description}` : ''}</option>
               ))}
             </select>
           </div>
 
-          {/* Voice */}
+          {// Voice}
           <div>
             <span className={S.label}>Voice</span>
             <div className="flex gap-2">
@@ -357,7 +358,7 @@ export function TestingStudio() {
             </div>
           </div>
 
-          {/* Steps */}
+          {// Steps}
           <div>
             <span className={S.label}>Steps to Re-run</span>
             <div className="space-y-2">
@@ -385,7 +386,7 @@ export function TestingStudio() {
             </div>
           </div>
 
-          {/* Run button */}
+          {// Run button}
           <button
             onClick={handleRun}
             disabled={!lesson || running || !anyStep}
@@ -401,7 +402,7 @@ export function TestingStudio() {
             {running ? '⏳  Running...' : '▶  Run Re-render'}
           </button>
 
-          {/* Selected lesson summary */}
+          {// Selected lesson summary}
           {lesson && (
             <div className={cx(S.card, 'p-3 space-y-1.5')}>
               <span className={S.label}>Selected</span>
@@ -411,7 +412,7 @@ export function TestingStudio() {
           )}
         </div>
 
-        {/* ── COL 3: Output — Gallery + Logs ── */}
+        {// COL 3: Output - Gallery + Logs}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {!lesson ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
@@ -427,7 +428,7 @@ export function TestingStudio() {
             </div>
           ) : (
             <>
-              {/* Lesson info bar */}
+              {// Lesson info bar}
               <div className={cx(S.card, 'px-4 py-3 flex items-center justify-between gap-4')}>
                 <div>
                   <div className="text-[13px] font-semibold text-white">{lesson.title}</div>
@@ -438,7 +439,7 @@ export function TestingStudio() {
                 <StatusPill status={status} />
               </div>
 
-              {/* Slide gallery */}
+              {// Slide gallery}
               <div>
                 <span className={S.label}>Slide Gallery</span>
                 <SlideGallery
@@ -448,7 +449,7 @@ export function TestingStudio() {
                 />
               </div>
 
-              {/* Logs */}
+              {// Logs}
               {(logLines.length > 0 || status) && (
                 <div>
                   <span className={S.label}>Output Log</span>

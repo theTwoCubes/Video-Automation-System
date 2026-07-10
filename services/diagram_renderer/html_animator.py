@@ -1,4 +1,4 @@
-"""
+﻿"""
 HTML/CSS Animated Diagram Renderer.
 
 Instead of Manim (requires LaTeX, Cairo, very heavy on Windows), this renderer:

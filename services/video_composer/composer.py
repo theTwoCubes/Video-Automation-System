@@ -1,4 +1,4 @@
-import subprocess
+﻿import subprocess
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -333,7 +333,7 @@ def compose_video_aligned(
 
     slide_audio_pairs: [(slide_image_path, [audio_files]), ...]
     prebuilt_segments: optional {pair_index: prebuilt_mp4_path}
-      — for pairs with a prebuilt video (e.g. code reveal), that video is
+      - for pairs with a prebuilt video (e.g. code reveal), that video is
         used directly instead of encoding a static slide + audio.
     """
     print(f"  Composing {len(slide_audio_pairs)} slide groups...")
@@ -384,7 +384,7 @@ def compose_video_aligned(
 
         seg_out = segments_dir / f"seg_{i:04d}.mp4"
 
-        # Ken Burns for long static slides — uses exact duration, no apad drift
+        # Ken Burns for long static slides - uses exact duration, no apad drift
         if total_dur > ken_threshold:
             kb_video = str(segments_dir / f"kb_{i:04d}.mp4")
             # Ken Burns: use exact total_dur (no +1.0 overshoot)
@@ -409,7 +409,7 @@ def compose_video_aligned(
                     print(f"  Slide {i+1}/{len(slide_audio_pairs)}: Ken Burns {total_dur:.1f}s")
                     continue
 
-        # Standard: loop static image for exact audio duration — no apad
+        # Standard: loop static image for exact audio duration - no apad
         cmd = [
             ffmpeg_exe, "-y",
             "-loop", "1",

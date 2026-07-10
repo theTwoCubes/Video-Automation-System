@@ -2,14 +2,14 @@
 PDF Section Processor for theTwoCubes Learning.
 
 Deterministically parses a structured LaTeX-generated PDF into an indexed
-section store. No embeddings, no vector DB — pure text retrieval by section ID.
+section store. No embeddings, no vector DB - pure text retrieval by section ID.
 
 Expected PDF format (as produced by the LaTeX generation prompt):
   - Chapter-level: "Chapter N\\nChapter Title"
   - Section-level: "N.N\\nSection Title"  
   - Subsection-level: "N.N.N\\nSubsection Title"
   - Max depth: 3 levels
-  - No TOC page — content starts immediately
+  - No TOC page - content starts immediately
 """
 
 import re
@@ -27,8 +27,8 @@ class PDFProcessor:
     Parses a structured LaTeX PDF into a deterministic section index.
 
     Produces:
-      data/processed/{source_id}/sections.json  — {section_id: {title, text, children}}
-      data/processed/{source_id}/toc.txt        — human-readable Table of Contents
+      data/processed/{source_id}/sections.json  : {section_id: {title, text, children}}
+      data/processed/{source_id}/toc.txt        : human-readable Table of Contents
     """
 
     # Regex for heading patterns in extracted text.
@@ -123,17 +123,17 @@ class PDFProcessor:
                     continue
                 for k, v in sorted(matching.items()):
                     if labeled:
-                        parts.append(f"[SECTION {k} — {v['title']}]\n{v['text']}")
+                        parts.append(f"[SECTION {k} - {v['title']}]\n{v['text']}")
                     else:
                         parts.append(v['text'])
             else:
                 sec = sections[sid]
                 if labeled:
-                    parts.append(f"[SECTION {sid} — {sec['title']}]\n{sec['text']}")
+                    parts.append(f"[SECTION {sid} - {sec['title']}]\n{sec['text']}")
                 else:
                     parts.append(sec['text'])
 
-        return "\n\n---\n\n".join(parts)
+        return "\n\n***\n\n".join(parts)
 
     def get_toc(self, source_id: str) -> str:
         """Return the synthesized TOC text for a processed source."""
@@ -150,9 +150,7 @@ class PDFProcessor:
         sections = json.loads(sections_file.read_text(encoding="utf-8"))
         return sorted(sections.keys(), key=lambda x: [int(p) for p in x.split(".")])
 
-    # ------------------------------------------------------------------ #
-    # Private helpers                                                       #
-    # ------------------------------------------------------------------ #
+    # Private helpers
 
     def _extract_raw(self, pdf_path: Path) -> str:
         doc = fitz.open(str(pdf_path))
@@ -174,7 +172,7 @@ class PDFProcessor:
           "N.N\\nTitle"        →  section_id = "N.N"
           "N.N.N\\nTitle"      →  section_id = "N.N.N"
         """
-        found = {}  # section_id → (offset, title) — dedup by ID, keep first occurrence
+        found = {}  # section_id -> (offset, title) (dedup by ID, keep first occurrence)
 
         # Chapter headings
         for m in self.CHAPTER_RE.finditer(text):
@@ -183,7 +181,7 @@ class PDFProcessor:
             if sid not in found:
                 found[sid] = (m.start(), title)
 
-        # Numbered section headings (N.N or N.N.N only — not bare chapter numbers)
+        # Numbered section headings (N.N or N.N.N only, not bare chapter numbers)
         for m in self.SECTION_RE.finditer(text):
             sid = m.group(1)
             # Skip bare integers that might be year numbers (e.g. "2011")

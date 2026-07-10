@@ -1,4 +1,4 @@
-"""
+﻿"""
 Re-render a lesson from existing checkpoints without any LLM calls.
 
 Usage:

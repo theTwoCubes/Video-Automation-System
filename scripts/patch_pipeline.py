@@ -1,4 +1,4 @@
-with open('pipelines/full_video_pipeline.py', 'r', encoding='utf-8') as f:
+﻿with open('pipelines/full_video_pipeline.py', 'r', encoding='utf-8') as f:
     content = f.read()
 
 old = '    pipeline = build_pipeline()\n    final_state = pipeline.invoke(initial_state)\n    return final_state\n'

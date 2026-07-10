@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Capture fixtures: runs a REAL pipeline (with LLM calls) and saves all
 LLM outputs to a fixture JSON so future test runs never need to call the AI again.

@@ -12,6 +12,7 @@ export function useFetch(url, deps = []) {
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then(d => { setData(d); setLoading(false); setError(null); })
       .catch(e => { setError(e.message); setLoading(false); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, ...deps]);
 
   useEffect(() => { load(); }, [load]);

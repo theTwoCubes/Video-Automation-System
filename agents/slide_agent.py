@@ -1,4 +1,4 @@
-import json
+﻿import json
 from agents.base_agent import BaseAgent
 from services.slide_renderer.renderer import SlideRenderer
 from services.slide_validator.validator import validate_slides, auto_fix_slides, print_validation_report
@@ -33,7 +33,7 @@ If a concept needs something novel, invent it by combining or adapting the provi
 
 - Every bullet must teach something SPECIFIC: a real value, real syntax, a runtime behavior, a tradeoff, or a failure mode.
   BAD:  "C++ is a powerful language"
-  GOOD: "C++ compiles to native machine code — runs 10-100x faster than Python/JS in compute-bound work"
+  GOOD: "C++ compiles to native machine code - runs 10-100x faster than Python/JS in compute-bound work"
   BAD:  "Variables store data"
   GOOD: "`int x = 42;` occupies exactly 4 bytes on the stack at address ~0x7ffe12345678"
 - Headlines: specific, max 8 words, no filler words ("Introduction to...", "Overview of...").
@@ -229,7 +229,7 @@ class SlideAgent(BaseAgent):
         # build id → spec map from LLM response
         llm_slide_map: dict[str, dict] = {s.get("id", ""): s for s in slides_spec}
 
-        # ensure every required slide_id has a slide — fill gaps with fallback
+        # ensure every required slide_id has a slide - fill gaps with fallback
         final_slides: list[dict] = []
         for i, sid in enumerate(seen_ids):
             if sid in llm_slide_map:

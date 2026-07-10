@@ -1,4 +1,4 @@
-import time
+﻿import time
 from google import genai
 from tenacity import retry, stop_after_attempt, wait_exponential
 from providers.embeddings.base import EmbeddingProvider
@@ -26,7 +26,7 @@ class GeminiEmbeddingProvider(EmbeddingProvider):
             batch = texts[i : i + batch_size]
             for text in batch:
                 embeddings.append(self.embed(text))
-                time.sleep(0.05)  # 50ms delay — safe for free tier
+                time.sleep(0.05)  # 50ms delay - safe for free tier
         return embeddings
 
 

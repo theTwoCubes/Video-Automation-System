@@ -1,5 +1,5 @@
-"""
-Video quality validator — E.2 from FuturePLAN.md
+﻿"""
+Video quality validator - E.2 from FuturePLAN.md
 
 Runs ffprobe on the composed video and checks:
 - File exists and is not empty
@@ -75,7 +75,7 @@ def validate_video(
 
     path = Path(video_path)
 
-    # ── File existence ─────────────────────────────────────────────
+    # File existence
     if not path.exists():
         return {"passed": False, "issues": ["Video file does not exist"], "metrics": metrics}
 
@@ -83,10 +83,10 @@ def validate_video(
     metrics["size_mb"] = round(size_mb, 2)
 
     if size_mb < 0.2:
-        issues.append(f"File too small ({size_mb:.2f} MB) — likely corrupt or empty")
+        issues.append(f"File too small ({size_mb:.2f} MB) - likely corrupt or empty")
         return {"passed": False, "issues": issues, "metrics": metrics}
 
-    # ── Stream info ────────────────────────────────────────────────
+    # Stream info
     info = _ffprobe(video_path, ffmpeg_exe)
     streams = info.get("streams", [])
 
@@ -109,7 +109,7 @@ def validate_video(
     if not audio_streams:
         issues.append("No audio track found")
 
-    # ── Duration ───────────────────────────────────────────────────
+    # Duration
     dur = 0.0
     if info.get("format", {}).get("duration"):
         dur = float(info["format"]["duration"])
@@ -118,7 +118,7 @@ def validate_video(
     metrics["duration_s"] = round(dur, 2)
 
     if dur < 5:
-        issues.append(f"Video too short ({dur:.1f}s) — likely empty")
+        issues.append(f"Video too short ({dur:.1f}s) - likely empty")
 
     if expected_duration_seconds > 0:
         diff = abs(dur - expected_duration_seconds)

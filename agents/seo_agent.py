@@ -1,10 +1,10 @@
-from agents.base_agent import BaseAgent
+﻿from agents.base_agent import BaseAgent
 
 
 SYSTEM_PROMPT = """You are the SEO specialist for theTwoCubes Learning YouTube channel.
 Generate optimized YouTube metadata for a technical educational video.
 
-CHANNEL NAME: Always write "theTwoCubes Learning" — never "TwoCubes Learning", never "The Two Cubes".
+CHANNEL NAME: Always write "theTwoCubes Learning" - never "TwoCubes Learning", never "The Two Cubes".
 
 Title rules:
 - 60-70 characters max

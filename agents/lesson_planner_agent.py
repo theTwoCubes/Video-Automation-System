@@ -1,8 +1,8 @@
-"""
-Lesson Planner Agent — Deterministic Section-Based Architecture.
+﻿"""
+Lesson Planner Agent - Deterministic Section-Based Architecture.
 
 Receives pre-loaded section text from the PDF processor.
-No embeddings, no vector search — the exact relevant sections are injected directly.
+No embeddings, no vector search - the exact relevant sections are injected directly.
 """
 from agents.base_agent import BaseAgent
 
@@ -19,7 +19,7 @@ Lesson structure (non-negotiable):
      GOOD: "Every program crashes for exactly one of three reasons. Today you learn the first one."
   2. OBJECTIVES (30s): 3-4 concrete, measurable outcomes.
   3. CONCEPT (2-3 min): Real-world analogy FIRST, then formal definition.
-  4. DEEP_DIVE (5-7 min): Step-by-step with code — mechanisms, internals, edge cases.
+  4. DEEP_DIVE (5-7 min): Step-by-step with code - mechanisms, internals, edge cases.
   5. MISTAKES (1-2 min): 2-3 common errors with the exact error message and exact fix.
   6. SUMMARY (1 min): 3 specific takeaways (real values, real syntax, real tradeoffs).
   7. EXERCISE (30s): One concrete challenge with a measurable success criterion.
@@ -28,7 +28,7 @@ Lesson structure (non-negotiable):
 KEY_POINTS SPECIFICITY RULE:
 - Each key_point in a section must be specific enough to become a non-generic slide bullet.
   BAD:  "C++ is fast"
-  GOOD: "C++ compiles to native x86 instructions — no VM, no interpreter, no GC pause"
+  GOOD: "C++ compiles to native x86 instructions - no VM, no interpreter, no GC pause"
   BAD:  "Variables hold values"
   GOOD: "int x = 42 allocates exactly 4 bytes on the call stack frame of the current function"
 - Every key_point must contain: a real value, real syntax, a runtime behavior, OR a tradeoff.
@@ -54,7 +54,7 @@ Target duration: {duration} minutes
 
 {continuity_block}
 
---- REFERENCE MATERIAL (exact sections from the course PDF) ---
+*** REFERENCE MATERIAL (exact sections from the course PDF) ***
 
 PRIORITY ORDER for content decisions:
 1. Use the provided PDF sections as your foundation and structural guide.
@@ -64,7 +64,7 @@ PRIORITY ORDER for content decisions:
 
 {section_text}
 
---- END OF REFERENCE MATERIAL ---
+*** END OF REFERENCE MATERIAL ***
 
 Generate a lesson plan matching this schema:
 {{
@@ -85,7 +85,7 @@ Generate a lesson plan matching this schema:
       "needs_code": boolean,
       "recommended_layout": "content|prose|code|split_code|two_column|numbered_steps|definition|terminal|error_fix|comparison|exercise|summary",
       "key_points": [
-        "Specific insight with real value/syntax/behavior — not a generic fact"
+        "Specific insight with real value/syntax/behavior - not a generic fact"
       ]
     }}
   ]
@@ -108,13 +108,13 @@ class LessonPlannerAgent(BaseAgent):
         difficulty = state.get("difficulty", "beginner")
         section_text = state.get("section_text", "No reference material available.")
 
-        # Lesson continuity — inject previous lesson's summary
+        # Lesson continuity - inject previous lesson's summary
         prev_summary = state.get("previous_lesson_summary")
         if prev_summary:
             bullets = prev_summary.get("key_takeaways", [])
             prev_title = prev_summary.get("title", "")
             continuity_block = (
-                f"PREVIOUS LESSON ({prev_title}) ALREADY COVERED — do NOT re-explain:\n"
+                f"PREVIOUS LESSON ({prev_title}) ALREADY COVERED - do NOT re-explain:\n"
                 + "\n".join(f"  - {b}" for b in bullets[:5])
                 + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n"
             )

@@ -1,10 +1,10 @@
-"""
-VoiceAgent — Synthesizes narration segments to MP3 using edge-tts.
+﻿"""
+VoiceAgent - Synthesizes narration segments to MP3 using edge-tts.
 
 Improvements implemented:
-- A.6: [PAUSE] tag handling — inserts 600ms silence between sub-segments
-- C.3: Silence trimming — strips leading/trailing silence > 200ms
-- A.5: Pacing score — logs WPM per segment, flags outliers
+- A.6: [PAUSE] tag handling - inserts 600ms silence between sub-segments
+- C.3: Silence trimming - strips leading/trailing silence > 200ms
+- A.5: Pacing score - logs WPM per segment, flags outliers
 - Parallel synthesis via ThreadPoolExecutor(8)
 - loudnorm audio normalization on all segments
 """
@@ -171,7 +171,7 @@ class VoiceAgent(BaseAgent):
         try:
             ffmpeg_exe = _get_ffmpeg()
         except Exception:
-            # No ffmpeg — just strip markers and synthesize normally
+            # No ffmpeg - just strip markers and synthesize normally
             clean = text.replace("[PAUSE]", ". ")
             self.tts.synthesize_sync(clean, out_path)
             return out_path
@@ -261,5 +261,5 @@ class VoiceAgent(BaseAgent):
         text = re.sub(r"\*+([^*]+)\*+", r"\1", text)
         text = text.replace("...", ", ")
         text = re.sub(r"\[REF:[^\]]+\]", "", text)
-        # don't strip [PAUSE] — handled by _synthesize_with_pauses
+        # don't strip [PAUSE] - handled by _synthesize_with_pauses
         return text.strip()

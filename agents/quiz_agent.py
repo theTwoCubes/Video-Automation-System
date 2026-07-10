@@ -1,5 +1,5 @@
-"""
-QuizAgent — G.2 from FuturePLAN.md
+﻿"""
+QuizAgent - G.2 from FuturePLAN.md
 
 Generates 3-5 multiple-choice quiz questions per lesson from the script content.
 Runs after QAAgent. Questions are saved to output/<lesson>/quiz.json and
@@ -28,7 +28,7 @@ Output strictly valid JSON. No markdown."""
 USER_TEMPLATE = """
 Lesson: {lesson_title}
 
-Script segments (source of truth — only ask about facts stated here):
+Script segments (source of truth - only ask about facts stated here):
 {script_text}
 
 Generate {n_questions} quiz questions as JSON:
@@ -60,7 +60,7 @@ class QuizAgent(BaseAgent):
         segments = script.get("segments", [])
 
         if not segments:
-            print("  No script segments — skipping quiz generation.")
+            print("  No script segments - skipping quiz generation.")
             state["quiz_questions"] = []
             return state
 

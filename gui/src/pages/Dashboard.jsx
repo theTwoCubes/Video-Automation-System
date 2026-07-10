@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 
@@ -14,21 +14,13 @@ const S = {
 function StatCard({ value, label, color = 'text-white' }) {
   return (
     <div className={cx(S.card, 'px-5 py-4 flex flex-col gap-1')}>
-      <div className={cx('text-3xl font-bold tabular-nums', color)}>{value ?? '—'}</div>
+      <div className={cx('text-3xl font-bold tabular-nums', color)}>{value ?? '-'}</div>
       <div className="text-[11px] text-zinc-600 uppercase tracking-wider font-medium">{label}</div>
     </div>
   );
 }
 
-function StatusDot({ status }) {
-  const map = {
-    done:    'bg-emerald-400',
-    processing: 'bg-amber-400 animate-pulse',
-    failed:  'bg-red-400',
-    pending: 'bg-zinc-600',
-  };
-  return <span className={cx('inline-block w-2 h-2 rounded-full flex-shrink-0', map[status] || 'bg-zinc-700')} />;
-}
+
 
 function CourseCard({ course }) {
   const totalLessons = (course.done_lessons || 0) + (course.processing_lessons || 0)
@@ -46,7 +38,7 @@ function CourseCard({ course }) {
           {pct}%
         </span>
       </div>
-      {/* progress bar */}
+      {// progress bar}
       <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden mb-3">
         <div
           className="h-full bg-teal-500 rounded-full transition-all duration-500"
@@ -115,7 +107,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-black text-zinc-200 p-8" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* Header */}
+        {// Header}
         <div className="flex items-end justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
@@ -133,7 +125,7 @@ export function Dashboard() {
           </button>
         </div>
 
-        {/* Alert banner */}
+        {// Alert banner}
         {alerts?.failed_lessons > 0 && (
           <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-300 text-[13px]">
             <span className="text-base mt-0.5">⚠</span>
@@ -147,7 +139,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Stat cards */}
+        {// Stat cards}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard value={stats.courses}    label="Courses"    />
           <StatCard value={stats.done}       label="Lessons Done"    color="text-emerald-400" />
@@ -155,7 +147,7 @@ export function Dashboard() {
           <StatCard value={stats.failed}     label="Failed"     color="text-red-400" />
         </div>
 
-        {/* Usage */}
+        {// Usage}
         {usage && (
           <div className={cx(S.card, 'px-5 py-4 flex items-center gap-8 flex-wrap')}>
             <span className={S.label} style={{ marginBottom: 0 }}>LLM Usage</span>
@@ -168,7 +160,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* Course grid */}
+        {// Course grid}
         <div>
           <span className={S.label}>Active Courses</span>
           {loading && (
@@ -187,7 +179,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* ── Create Course Modal ── */}
+      {// Create Course Modal}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className={cx(S.card, 'w-full max-w-md p-6 space-y-5')}>

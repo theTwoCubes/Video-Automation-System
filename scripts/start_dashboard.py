@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Start the theTwoCubes dashboard.
 Runs FastAPI backend (port 8000) + Vite frontend (port 5173) simultaneously.

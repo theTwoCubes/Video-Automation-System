@@ -1,5 +1,5 @@
-"""
-Code reveal animator — B.4 (weighted timing) from FuturePLAN.md.
+﻿"""
+Code reveal animator - B.4 (weighted timing) from FuturePLAN.md.
 
 Line timing weights:
   - Blank line:            0.05s
@@ -28,7 +28,7 @@ def _get_audio_duration(path: str, ffmpeg_exe: str) -> float:
     return 5.0
 
 
-# ── B.4: Weighted per-line duration ──────────────────────────────────────────
+#  B.4: Weighted per-line duration 
 
 _SIMPLE_PATTERN = re.compile(
     r"^\s*("
@@ -52,7 +52,7 @@ def _line_weight(line: str) -> float:
         return 0.30
     if _SIMPLE_PATTERN.match(s):
         return 0.50
-    # complex line — scale by character count
+    # complex line - scale by character count
     return min(0.70 + (len(s) / 80) * 0.60, 1.8)
 
 
@@ -66,7 +66,7 @@ def _compute_frame_durations(lines: list[str], total_duration: float) -> list[fl
     return [w / total_weight * total_duration for w in weights]
 
 
-# ── Frame rendering ───────────────────────────────────────────────────────────
+#  Frame rendering 
 
 def _render_reveal_frames(
     slide_data: dict,
@@ -104,7 +104,7 @@ def _render_reveal_frames(
     return frame_paths
 
 
-# ── Video assembly ────────────────────────────────────────────────────────────
+#  Video assembly 
 
 def create_code_reveal_segment(
     slide_data: dict,
@@ -177,4 +177,4 @@ def create_code_reveal_segment(
 
 def reveals_seen_blank(lines: list[str], line: str) -> bool:
     """Helper to replicate the 'skip leading blanks' logic."""
-    return True  # simplified — actual filtering done in _render_reveal_frames
+    return True  # simplified - actual filtering done in _render_reveal_frames

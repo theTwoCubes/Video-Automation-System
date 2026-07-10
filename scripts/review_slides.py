@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Human-in-the-loop slide reviewer. Displays each slide and prompts for approval.
 Run this AFTER slides are generated but BEFORE audio synthesis.
@@ -69,14 +69,14 @@ def main(
         raise typer.Exit(1)
 
     console.print(Panel(
-        f"[bold cyan]Slide Review[/] — {len(slide_files)} slides\n"
+        f"[bold cyan]Slide Review[/] - {len(slide_files)} slides\n"
         f"[dim]Press Enter to approve • Type correction to flag • 'skip' to stop[/]",
         title="theTwoCubes Slide Reviewer",
     ))
 
     flagged = []
     for i, slide_path in enumerate(slide_files):
-        console.print(f"\n[dim]─── Slide {i+1}/{len(slide_files)} ───[/]")
+        console.print(f"\n[dim] Slide {i+1}/{len(slide_files)} [/]")
         console.print(f"  [cyan]{slide_path.name}[/]")
         console.print(f"  Path: [dim]{slide_path}[/]")
 

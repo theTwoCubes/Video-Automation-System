@@ -1,4 +1,4 @@
-"""
+﻿"""
 SQLite usage log for token tracking.
 Table: usage_log (id, ts, model, input_tokens, output_tokens, thinking_tokens, cost_usd)
 """

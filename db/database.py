@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+﻿from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from pathlib import Path
 from config.settings import settings

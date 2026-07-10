@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from agents.base_agent import BaseAgent
 
 
@@ -9,7 +9,7 @@ DIAGRAM REQUIREMENTS:
 - Must be exactly 1920x1080 pixels (width/height on <body> and .slide)
 - Background: #080b10 (dark), accent color: #00c896 (green), secondary: #ff6b35 (orange)
 - Font: 'Outfit' from Google Fonts (include @import)
-- Use CSS @keyframes animations ONLY — no JavaScript
+- Use CSS @keyframes animations ONLY - no JavaScript
 - Animation duration: 3-5 seconds, loop with animation-iteration-count: infinite or once
 - Must clearly teach the concept visually
 

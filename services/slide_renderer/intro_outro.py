@@ -1,4 +1,4 @@
-"""
+﻿"""
 Intro and Outro slide renderers for theTwoCubes Learning.
 These produce static MP4 clips (not LLM-generated) that are prepended/appended to every video.
 """

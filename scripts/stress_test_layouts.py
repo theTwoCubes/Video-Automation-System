@@ -1,5 +1,5 @@
-"""
-Slide layout stress test — D.3 from FuturePLAN.md
+﻿"""
+Slide layout stress test - D.3 from FuturePLAN.md
 
 Renders every slide layout with maximal content (long headline, 5 bullets, 20-line code)
 to catch font overflow and layout break issues.

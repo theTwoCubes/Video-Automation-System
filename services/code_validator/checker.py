@@ -1,8 +1,8 @@
-"""
-Code static checker — A.4 from FuturePLAN.md
+﻿"""
+Code static checker - A.4 from FuturePLAN.md
 
 Fast regex-based sanity checks on generated C++/Python code.
-No compilation needed — catches the most common LLM code mistakes.
+No compilation needed - catches the most common LLM code mistakes.
 """
 from __future__ import annotations
 import re
@@ -81,7 +81,7 @@ def check_python(code: str) -> list[str]:
     tab_lines = sum(1 for l in code.split("\n") if l.startswith("\t"))
     space_lines = sum(1 for l in code.split("\n") if l.startswith("    "))
     if tab_lines > 0 and space_lines > 0:
-        issues.append("Mixed tabs and spaces — will cause IndentationError")
+        issues.append("Mixed tabs and spaces - will cause IndentationError")
     return issues
 
 

@@ -1,5 +1,5 @@
-"""
-Course Batch Runner — F.1 from FuturePLAN.md
+﻿"""
+Course Batch Runner - F.1 from FuturePLAN.md
 
 Generates all pending lessons in a course sequentially.
 Checkpoint-safe: if it crashes at lesson 47, restart continues from lesson 47.
@@ -174,7 +174,7 @@ def main():
             print(f"  Done. ETA for remaining: {remaining//60}m{remaining%60}s")
 
         except KeyboardInterrupt:
-            print("\nInterrupted by user. Progress saved — restart to continue.")
+            print("\nInterrupted by user. Progress saved - restart to continue.")
             return 1
         except Exception as e:
             print(f"  FAILED: {e}")

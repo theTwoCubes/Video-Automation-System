@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Cost report: show total API token usage and cost from SQLite.
 
@@ -25,7 +25,7 @@ def main(clear: bool = typer.Option(False, "--clear", help="Clear usage log afte
 
     report = get_usage_report()
 
-    table = Table(title="theTwoCubes — API Cost Report", box=box.ROUNDED)
+    table = Table(title="theTwoCubes - API Cost Report", box=box.ROUNDED)
     table.add_column("Model", style="cyan")
     table.add_column("Calls", justify="right")
     table.add_column("Input Tokens", justify="right")

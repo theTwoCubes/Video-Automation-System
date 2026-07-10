@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Literal
@@ -68,7 +68,7 @@ def _with_checkpoint(step_name: str, agent_fn):
         if output_dir:
             saved = _load_checkpoint(output_dir, step_name)
             if saved:
-                print(f"[Checkpoint] Skipping {step_name} — loaded from checkpoint")
+                print(f"[Checkpoint] Skipping {step_name} - loaded from checkpoint")
                 return {**state, **saved}
 
         try:

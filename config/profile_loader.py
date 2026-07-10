@@ -1,12 +1,12 @@
 """
-Profile loader — reads YAML profiles from config/profiles/ and provides
+Profile loader - reads YAML profiles from config/profiles/ and provides
 a merged configuration that can override base Settings values.
 """
 from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import Optional
+
 
 try:
     import yaml

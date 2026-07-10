@@ -1,4 +1,4 @@
-"""
+﻿"""
 FastAPI backend for the theTwoCubes GUI dashboard.
 Run: uvicorn api.server:app --reload --port 8000
 """
@@ -190,7 +190,7 @@ def get_slides(lesson_id: str):
         db.close()
 
 
-# ---- PDF Processing (replaces old ingestion + ChromaDB) ---- #
+# PDF Processing (replaces old ingestion + ChromaDB)
 
 @app.post("/api/courses/{course_id}/source")
 def add_pdf_source(
@@ -274,7 +274,7 @@ def get_ingest_status(task_id: str):
     return _ingest_tasks[task_id]
 
 
-# ---- Section Browser (replaces old query endpoint) ---- #
+# Section Browser (replaces old query endpoint)
 
 @app.get("/api/courses/{course_id}/sections")
 def list_sections(course_id: str):
@@ -450,7 +450,7 @@ def trigger_generation(course_id: str, background_tasks: BackgroundTasks):
     
     def _run_with_logs():
         with open(log_file, "a") as f:
-            f.write(f"\\n--- Started run at {datetime.now(timezone.utc).isoformat()} ---\\n")
+            f.write(f"\nStarted run at {datetime.now(timezone.utc).isoformat()}\n")
             subprocess.run(
                 [sys.executable, str(script), "--course-id", course_id],
                 cwd=str(ROOT),
@@ -687,7 +687,7 @@ def health():
     return {"status": "ok", "version": "2.1"}
 
 
-# ──────────────────────── PROFILES ────────────────────────
+#  PROFILES 
 
 @app.get("/api/profiles")
 def list_profiles_endpoint():
@@ -721,7 +721,7 @@ def delete_profile_endpoint(name: str):
     return {"deleted": name}
 
 
-# ──────────────────────── VOICES ────────────────────────
+#  VOICES 
 
 @app.get("/api/voices")
 def list_voices():
@@ -753,7 +753,7 @@ async def preview_voice(req: VoicePreviewRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ──────────────────────── LESSONS (Testing Studio picker) ────────────────────────
+#  LESSONS (Testing Studio picker) 
 
 @app.get("/api/lessons/rendered")
 def list_rendered_lessons():
@@ -837,7 +837,7 @@ def get_lesson_video_path(lesson_id: str):
     raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} video not found")
 
 
-# ──────────────────────── RERENDER ────────────────────────
+#  RERENDER 
 
 _rerender_tasks: dict = {}
 

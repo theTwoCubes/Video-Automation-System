@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import edge_tts
 from providers.tts.base import TTSProvider
 from config.settings import settings

@@ -1,4 +1,4 @@
-from agents.base_agent import BaseAgent
+﻿from agents.base_agent import BaseAgent
 
 
 SYSTEM_PROMPT = """You are a QA reviewer for theTwoCubes Learning.

@@ -1,5 +1,5 @@
-"""
-Curriculum Agent — Deterministic Section-Based Architecture.
+﻿"""
+Curriculum Agent - Deterministic Section-Based Architecture.
 
 Flow:
   1. Receive the synthesized TOC text (extracted from the processed PDF).
@@ -16,10 +16,10 @@ Your job is to plan a complete video course from a reference PDF's Table of Cont
 
 TASK:
 Given the full TOC, divide all sections into individual lectures.
-You control how sections are grouped — you can MERGE adjacent short sections into one lecture,
+You control how sections are grouped - you can MERGE adjacent short sections into one lecture,
 or SPLIT a large section across multiple lectures. Every section must appear in at least one lecture.
 
-For each lecture, also declare "reference_sections" — other sections the LLM will need
+For each lecture, also declare "reference_sections" - other sections the LLM will need
 as background context while writing this lecture (e.g., when teaching Pointers, reference the
 Memory Layout section even if it was covered earlier).
 
@@ -30,7 +30,7 @@ RULES:
 - Each lecture should be teachable in 10-15 minutes.
 - Difficulty: beginner for chapters 1-5, intermediate for 6-12, advanced for 13+.
 - topic_tags: 4-6 keywords per lecture.
-- Order lectures logically — build concepts incrementally.
+- Order lectures logically - build concepts incrementally.
 
 OUTPUT: Strictly valid JSON. No markdown. No commentary.
 

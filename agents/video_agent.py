@@ -1,5 +1,5 @@
-"""
-VideoAgent — composes the final lesson video from slides + audio.
+﻿"""
+VideoAgent - composes the final lesson video from slides + audio.
 
 Features:
 - Per-layout slide transitions from slide_contents.transition_hint

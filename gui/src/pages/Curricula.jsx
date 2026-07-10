@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch, usePolling } from '../hooks/useFetch';
 
@@ -50,11 +50,11 @@ export function Curricula() {
 
   useEffect(() => {
     if (ingestStatus?.status === 'done' || ingestStatus?.status === 'failed') refreshCourses();
-  }, [ingestStatus?.status]);
+  }, [ingestStatus?.status, refreshCourses]);
 
   useEffect(() => {
     if (currStatus?.status === 'done' || currStatus?.status === 'failed') refreshCourses();
-  }, [currStatus?.status]);
+  }, [currStatus?.status, refreshCourses]);
 
   if (!course && courses) return (
     <div className="p-8 text-zinc-500 text-sm">Course not found. <Link to="/" className="text-teal-400 underline">Back to Dashboard</Link></div>
@@ -111,7 +111,7 @@ export function Curricula() {
   return (
     <div className="min-h-screen bg-black text-zinc-200 flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Header */}
+      {// Header}
       <div className="px-8 pt-7 pb-5 border-b border-[#111]">
         <Link to="/" className="text-[11px] text-zinc-600 hover:text-teal-400 transition-colors flex items-center gap-1 mb-3 w-fit">
           ← Back to Dashboard
@@ -124,7 +124,7 @@ export function Curricula() {
         <p className="text-zinc-600 text-[13px] ml-4 mt-1">{course.topic || course.course_id}</p>
       </div>
 
-      {/* Tabs */}
+      {// Tabs}
       <div className="flex gap-1 px-8 pt-4 border-b border-[#111]">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -140,17 +140,17 @@ export function Curricula() {
         ))}
       </div>
 
-      {/* Body */}
+      {// Body}
       <div className="flex-1 p-8 overflow-y-auto">
 
-        {/* ── KNOWLEDGE BASE TAB ── */}
+        {// KNOWLEDGE BASE TAB}
         {tab === 'knowledge' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full">
 
-            {/* Left: Active PDF + Upload */}
+            {// Left: Active PDF + Upload}
             <div className="space-y-5">
 
-              {/* Active source */}
+              {// Active source}
               {course.source && (
                 <div className={cx(S.card, 'p-4 flex items-start gap-4')}>
                   <div className="w-10 h-10 bg-[#111] border border-[#1e1e1e] rounded-lg flex items-center justify-center text-xl flex-shrink-0">
@@ -166,7 +166,7 @@ export function Curricula() {
                 </div>
               )}
 
-              {/* Upload form */}
+              {// Upload form}
               <div className={cx(S.card, 'p-5')}>
                 <div className="text-[13px] font-semibold text-white mb-1">
                   {course.source ? '↑ Replace Course PDF' : '↑ Upload Course PDF'}
@@ -174,7 +174,7 @@ export function Curricula() {
                 <p className="text-[11px] text-zinc-600 mb-4">One PDF per course. Must follow the structured LaTeX format.</p>
 
                 <form onSubmit={handleUpload} className="space-y-4">
-                  {/* Drop zone */}
+                  {// Drop zone}
                   <label className={cx(
                     'flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all',
                     sourceFile ? 'border-teal-500/40 bg-teal-500/5' : 'border-[#222] hover:border-[#333]'
@@ -195,7 +195,7 @@ export function Curricula() {
                     )}
                   </label>
 
-                  {/* Name input */}
+                  {// Name input}
                   <div>
                     <span className={S.label}>Display Name</span>
                     <input className={S.input} placeholder="e.g. C++ Complete Guide v2"
@@ -212,7 +212,7 @@ export function Curricula() {
                       <span className="text-zinc-600">Status: </span>
                       <StatusTag status={ingestStatus.status} />
                       {ingestStatus.status === 'done' && (
-                        <span className="text-zinc-500 ml-2">— {ingestStatus.section_count} sections indexed</span>
+                        <span className="text-zinc-500 ml-2">- {ingestStatus.section_count} sections indexed</span>
                       )}
                       {ingestStatus.error && (
                         <div className="text-red-400 mt-1.5">{ingestStatus.error}</div>
@@ -223,7 +223,7 @@ export function Curricula() {
               </div>
             </div>
 
-            {/* Right: Section browser */}
+            {// Right: Section browser}
             <div className={cx(S.card, 'flex flex-col overflow-hidden', 'min-h-[400px]')}>
               <div className="px-5 py-3.5 border-b border-[#1a1a1a] flex items-center justify-between flex-shrink-0">
                 <span className="text-[13px] font-semibold text-white">Section Browser</span>
@@ -242,7 +242,7 @@ export function Curricula() {
                 </div>
               ) : (
                 <div className="flex flex-1 overflow-hidden">
-                  {/* Tree */}
+                  {// Tree}
                   <div className="w-1/2 overflow-y-auto border-r border-[#1a1a1a] p-2 space-y-px">
                     {topLevel.map(ch => (
                       <div key={ch.id}>
@@ -280,7 +280,7 @@ export function Curricula() {
                     ))}
                   </div>
 
-                  {/* Text preview */}
+                  {// Text preview}
                   <div className="w-1/2 overflow-y-auto p-4">
                     {!selSec && (
                       <div className="text-zinc-700 text-[12px] mt-4 text-center italic">
@@ -300,7 +300,7 @@ export function Curricula() {
           </div>
         )}
 
-        {/* ── CURRICULUM TAB ── */}
+        {// CURRICULUM TAB}
         {tab === 'curriculum' && (
           <div className="max-w-3xl space-y-5">
 
@@ -353,7 +353,7 @@ export function Curricula() {
               </div>
             )}
 
-            {/* Output JSON */}
+            {// Output JSON}
             {(!currStatus || currStatus.status === 'done') && (
               <div className={cx(S.card, 'overflow-hidden')}>
                 <div className="px-4 py-2.5 border-b border-[#1a1a1a] flex items-center gap-2 bg-[#0a0a0a]">

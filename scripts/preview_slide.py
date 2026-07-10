@@ -1,5 +1,5 @@
-"""
-Hot-reload slide preview — D.1 from FuturePLAN.md
+﻿"""
+Hot-reload slide preview - D.1 from FuturePLAN.md
 
 Usage:
     python scripts/preview_slide.py --layout code --headline "Pointers in C++"

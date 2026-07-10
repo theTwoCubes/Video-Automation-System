@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from agents.base_agent import BaseAgent
 from services.thumbnail.generator import ThumbnailGenerator
 

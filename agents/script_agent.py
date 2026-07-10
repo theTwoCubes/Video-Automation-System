@@ -1,4 +1,4 @@
-import json
+﻿import json
 from agents.base_agent import BaseAgent
 
 STYLE_GUIDE = """
@@ -13,7 +13,7 @@ TEACHING SEQUENCE (non-negotiable):
    - Stack? "Last plate you put on is the first you take off."
    - Heap? "Parking lot. Park anywhere. Just remember where you left the car."
 2. Then the formal definition or syntax.
-3. Then a concrete example — real values, real output, real error messages.
+3. Then a concrete example - real values, real output, real error messages.
 4. Then the common mistake people make. Show the broken code first, then the fix.
 
 VOICE: Confident, direct, with dry humor. Never cheerful. Never bland.
@@ -82,7 +82,7 @@ Format: "slide_001", "slide_002", etc.
 
 DEPTH REQUIREMENT: The reference material may be brief. Expand aggressively using
 your expert knowledge. Never write a shallow summary. Go deep. Teach the hard parts.
-The viewer paused to watch this — give them something they could not get from a textbook.
+The viewer paused to watch this - give them something they could not get from a textbook.
 
 Output strictly valid JSON. No markdown fences. No commentary outside the JSON."""
 
@@ -114,7 +114,7 @@ PRIORITY:
 
 {section_text}
 
-Write a complete script as JSON. Write as many words as the material demands — 
+Write a complete script as JSON. Write as many words as the material demands - 
 do NOT target a word count, just teach the topic thoroughly.
 Every narration segment: 80-200 words. Aim for 3-5 segments per lesson section.
 
@@ -184,7 +184,7 @@ class ScriptAgent(BaseAgent):
                 script["segments"] = revised["segments"]
                 print("  Pass 2 complete.")
             else:
-                print("  Pass 2 returned mismatched segments — using pass 1.")
+                print("  Pass 2 returned mismatched segments - using pass 1.")
         except Exception as e:
             print(f"  Pass 2 skipped: {e}")
 

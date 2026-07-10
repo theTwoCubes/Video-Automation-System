@@ -1,5 +1,5 @@
-"""
-Slide Content Validator — A.2 from FuturePLAN.md
+﻿"""
+Slide Content Validator - A.2 from FuturePLAN.md
 
 Validates slide specs BEFORE rendering (saves Playwright time on bad slides).
 Returns detailed issues list. Also provides auto_fix_slides() for simple repairs.
@@ -23,7 +23,7 @@ LAYOUT_BULLET_LIMITS = {
 def validate_slides(slides: list[dict]) -> list[dict]:
     """
     Validate a list of slide spec dicts.
-    Returns a list of {slide_id, issues:[str]} — empty list means all slides pass.
+    Returns a list of {slide_id, issues:[str]} - empty list means all slides pass.
     """
     all_issues = []
 
@@ -36,7 +36,7 @@ def validate_slides(slides: list[dict]) -> list[dict]:
         right_b  = slide.get("right_bullets", []) or []
         code     = (slide.get("code_content") or "").strip()
 
-        # ── Headline ────────────────────────────────────────────────
+        #  Headline 
         if not headline:
             problems.append("Missing headline")
         else:
@@ -47,7 +47,7 @@ def validate_slides(slides: list[dict]) -> list[dict]:
             if vague:
                 problems.append(f"Vague headline word(s): {', '.join(vague)}")
 
-        # ── Bullets ─────────────────────────────────────────────────
+        #  Bullets 
         lo, hi = LAYOUT_BULLET_LIMITS.get(layout, (0, 6))
         if lo and len(bullets) < lo:
             problems.append(f"{layout} slide has {len(bullets)} bullet(s) (min {lo})")
@@ -62,7 +62,7 @@ def validate_slides(slides: list[dict]) -> list[dict]:
             if wc > 25:
                 problems.append(f"Bullet {i+1} too long ({wc} words, max 25)")
 
-        # ── Code ─────────────────────────────────────────────────────
+        #  Code 
         if layout == "code":
             if not code:
                 problems.append("Code layout has empty code_content")
@@ -71,7 +71,7 @@ def validate_slides(slides: list[dict]) -> list[dict]:
                 if len(lines) < 2:
                     problems.append("Code block has fewer than 2 non-empty lines")
 
-        # ── Two-column / comparison ───────────────────────────────────
+        #  Two-column / comparison 
         if layout in ("two_column", "comparison"):
             if not left_b and not right_b:
                 problems.append(f"{layout} slide has no left_bullets or right_bullets")
@@ -94,7 +94,7 @@ def auto_fix_slides(slides: list[dict]) -> list[dict]:
       - Cap bullet list length to layout maximum
       - Strip trailing whitespace from bullets
 
-    Never changes layout or removes code — those need manual or LLM review.
+    Never changes layout or removes code - those need manual or LLM review.
     """
     fixed = []
     for slide in slides:

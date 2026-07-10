@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+﻿from pydantic_settings import BaseSettings
 from pathlib import Path
 
 
@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "models/gemini-embedding-001"
 
-    # Cost guard — set 0 to disable
+    # Cost guard - set 0 to disable
     MAX_COST_USD_PER_RUN: float = 0.50
 
     # Ken Burns threshold (seconds): slides longer than this get slow zoom
