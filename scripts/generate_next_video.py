@@ -32,6 +32,7 @@ console = Console()
 def main(
     course_id: str = typer.Option(..., "--course-id", help="Course ID"),
     lesson_id: str = typer.Option("", "--lesson-id", help="Specific lesson ID (optional)"),
+    profile: str = typer.Option("default", "--profile", help="Rendering profile name (config/profiles/*.yaml)"),
 ):
     init_db()
 
@@ -127,6 +128,7 @@ def main(
             estimated_duration_minutes=lesson.estimated_duration_minutes,
             difficulty=difficulty,
             next_lesson_title=next_lesson_title,
+            profile_name=profile,
         )
 
         elapsed = time.time() - start_time

@@ -89,6 +89,9 @@ If a concept needs something novel, invent it by combining or adapting the provi
 8. **summary** - Key Takeaways slide, always last.
    Fields: headline ("Key Takeaways" or custom), bullets (3-5 SPECIFIC things the viewer now knows), whats_next (optional teaser for next lesson).
    whats_next MUST be based only on the real "Next lesson" title given to you below - never invent a topic. Leave it empty if none is given.
+   whats_next must be ONLY the teaser sentence itself - do NOT start it with "Next:", "Next lesson:", "Next up," or
+   similar, the renderer already prepends "Next: " in front of whatever you write (e.g. write
+   "we tackle pointers and what that asterisk actually means" - not "Next: we tackle pointers...").
 
 9. **definition** - Ultra-minimal spotlight on a single term.
    Fields: headline (the term being defined), bullets[0] (the concise definition or equation), bullets[1] (optional expanded explanation), context (optional 1-line real-world usage), tag.

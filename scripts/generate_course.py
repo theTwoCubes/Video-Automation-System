@@ -76,6 +76,7 @@ def main():
     parser.add_argument("--start-from", type=int, default=1, help="Start from lesson N (1-indexed)")
     parser.add_argument("--dry-run", action="store_true", help="List lessons but don't generate")
     parser.add_argument("--force-restart", action="store_true", help="Force re-generate all lessons")
+    parser.add_argument("--profile", default="default", help="Rendering profile name (config/profiles/*.yaml)")
     args = parser.parse_args()
 
     course = _load_course(args.course_id)
@@ -152,6 +153,7 @@ def main():
                 force_restart=args.force_restart,
                 previous_lesson_summary=prev_summary,
                 next_lesson_title=next_lesson_title,
+                profile_name=args.profile,
             )
 
             if final.get("error"):

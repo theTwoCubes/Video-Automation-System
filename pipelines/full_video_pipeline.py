@@ -257,6 +257,7 @@ def run_pipeline(
     previous_lesson_summary: dict | None = None,
     difficulty: str = "beginner",
     next_lesson_title: str = "",
+    profile_name: str = "default",
 ) -> PipelineState:
 
     output_dir = str(
@@ -284,6 +285,13 @@ def run_pipeline(
                     except: pass
                     
         print("[Pipeline] Cleared checkpoints and old media for fresh run.")
+
+    # Load the rendering profile (voice/music/slides/rendering settings) - this was
+    # previously never loaded at all, so compose_video_aligned always saw an empty
+    # profile dict and silently rendered with zero music/intro/outro regardless of
+    # what any profile YAML said.
+    from config.profile_loader import load_profile
+    profile = load_profile(profile_name)
 
     # Pre-load section text from the processed PDF (deterministic, no embeddings)
     from services.knowledge.pdf_processor import PDFProcessor
@@ -313,6 +321,7 @@ def run_pipeline(
         "difficulty": difficulty,
         "previous_lesson_summary": previous_lesson_summary,
         "next_lesson_title": next_lesson_title,
+        "profile": profile,
         "lesson_plan": None,
         "script": None,
         "code_examples": None,

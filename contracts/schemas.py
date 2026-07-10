@@ -107,6 +107,7 @@ class PipelineState(TypedDict):
     difficulty: str
     previous_lesson_summary: Optional[dict]
     next_lesson_title: str            # real title of the following curriculum lesson, "" if none
+    profile: Optional[dict]           # loaded profile dict (voice/music/slides/rendering) - see config/profile_loader.py
     # Pipeline outputs
     lesson_plan: Optional[dict]
     script: Optional[dict]

@@ -100,7 +100,7 @@ body {
    Optional callout box at bottom for key insight.
 ============================================================ */
 .layout-content {
-  padding: 60px 120px 60px 120px;
+  padding: 100px 120px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-content .section-label {
@@ -125,13 +125,11 @@ body {
 }
 .content-bullets {
   display: flex; flex-direction: column;
-  gap: 0; width: 100%; justify-content: space-evenly;
+  gap: 32px; width: 100%; justify-content: center;
 }
 .bullet-item {
   display: flex; align-items: flex-start; gap: 22px;
-  padding: 18px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
 }
-.bullet-item:last-child { border-bottom: none; }
 .bullet-dot {
   width: 8px; height: 8px; border-radius: 50%;
   background: #00D4A0; flex-shrink: 0; margin-top: 18px;
@@ -162,7 +160,7 @@ body {
    Short paragraph (why/intuition) followed by 2-3 bullets.
 ============================================================ */
 .layout-prose {
-  padding: 60px 120px 60px 120px;
+  padding: 100px 120px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-prose h2 {
@@ -203,7 +201,7 @@ body {
    SUMMARY LAYOUT
 ============================================================ */
 .layout-summary {
-  padding: 70px 120px; display: flex; flex-direction: column;
+  padding: 100px 120px 60px 120px; display: flex; flex-direction: column;
 }
 .layout-summary .summary-header {
   display: flex; align-items: center; gap: 20px; margin-bottom: 24px;
@@ -243,7 +241,7 @@ body {
    Headline + full code block with file tab. Max 20 lines.
 ============================================================ */
 .layout-code {
-  padding: 60px 100px 60px 120px;
+  padding: 100px 100px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-code h2 {
@@ -293,7 +291,7 @@ body {
    Left: headline + paragraph + 2 bullets. Right: code block.
 ============================================================ */
 .layout-split_code {
-  padding: 60px 80px 60px 120px;
+  padding: 100px 80px 60px 120px;
   display: flex; flex-direction: column;
 }
 .split-code-wrap {
@@ -340,7 +338,7 @@ body {
    TWO COLUMN LAYOUT
 ============================================================ */
 .layout-two_column {
-  padding: 60px 80px 60px 120px;
+  padding: 100px 80px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-two_column h2 {
@@ -357,10 +355,10 @@ body {
 }
 .col-panel:first-child { margin-right: 20px; }
 .col-panel-label {
-  font-size: 13px; font-weight: 700; color: #00D4A0;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  margin-bottom: 24px; padding-bottom: 14px;
-  border-bottom: 1px solid #1E2330;
+  font-size: 24px; font-weight: 700; color: #FFFFFF;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px; padding-bottom: 16px;
+  border-bottom: 2px solid #00D4A0;
 }
 .col-bullets { display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: center; }
 .col-bullet { display: flex; align-items: flex-start; gap: 14px; }
@@ -375,7 +373,7 @@ body {
    Large teal circles, step text beside them.
 ============================================================ */
 .layout-numbered_steps {
-  padding: 60px 120px 60px 120px;
+  padding: 100px 120px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-numbered_steps h2 {
@@ -405,7 +403,7 @@ body {
 ============================================================ */
 .layout-exercise {
   display: flex; flex-direction: column;
-  padding: 60px 120px;
+  padding: 110px 120px 60px 120px;
 }
 .exercise-card {
   background: #0F1218;
@@ -443,7 +441,7 @@ body {
    COMPARISON / ERROR FIX LAYOUT
 ============================================================ */
 .layout-comparison, .layout-error_fix {
-  padding: 60px 80px 60px 120px;
+  padding: 100px 80px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-comparison h2, .layout-error_fix h2 {
@@ -475,7 +473,7 @@ body {
    Mac window chrome with coloured dots.
 ============================================================ */
 .layout-terminal {
-  padding: 60px 120px 60px 120px;
+  padding: 100px 120px 60px 120px;
   display: flex; flex-direction: column;
 }
 .layout-terminal h2 {
@@ -545,7 +543,7 @@ body {
    CHECKLIST (alias for content)
 ============================================================ */
 .layout-checklist {
-  padding: 60px 120px; display: flex; flex-direction: column;
+  padding: 100px 120px 60px 120px; display: flex; flex-direction: column;
 }
 .layout-checklist h2 {
   font-size: 58px; font-weight: 700; color: #FFFFFF; margin-bottom: 40px;
@@ -625,7 +623,7 @@ body {
         </div>
         {% endfor %}
       </div>
-      {% if whats_next %}<div class="summary-whats-next">Next: {{ whats_next|md }}</div>{% endif %}
+      {% if whats_next %}<div class="summary-whats-next">Next: {{ whats_next|strip_next_prefix|md }}</div>{% endif %}
 
     {# ===== CODE ===== #}
     {% elif layout == 'code' %}

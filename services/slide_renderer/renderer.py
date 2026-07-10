@@ -14,6 +14,7 @@ _MD_CODE_RE = re.compile(r'`([^`]+?)`')
 _MD_BOLD_RE = re.compile(r'\*\*(.+?)\*\*')
 _MD_ITALIC_RE = re.compile(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)')
 _LEADING_NUMBER_RE = re.compile(r'^\s*\d+[.)]\s+')
+_LEADING_NEXT_RE = re.compile(r'^\s*next\s*(lesson|time|up)?\s*[:,-]\s*', re.IGNORECASE)
 
 
 def render_inline_markdown(text) -> Markup:
@@ -39,11 +40,21 @@ def strip_leading_number(text) -> str:
     return _LEADING_NUMBER_RE.sub("", str(text))
 
 
+def strip_next_prefix(text) -> str:
+    """Strip a leading 'Next:'/'Next lesson:'/'Next up,' the LLM sometimes bakes
+    into whats_next text, so it doesn't double up with the renderer's own
+    hardcoded 'Next:' prefix on the summary slide."""
+    if text is None:
+        return ""
+    return _LEADING_NEXT_RE.sub("", str(text))
+
+
 class SlideRenderer:
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
         self.env.filters["md"] = render_inline_markdown
         self.env.filters["strip_leading_number"] = strip_leading_number
+        self.env.filters["strip_next_prefix"] = strip_next_prefix
         self.brand = self._load_brand()
         self.logo_b64 = self._load_logo()
 

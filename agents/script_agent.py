@@ -1,4 +1,5 @@
 ﻿import json
+import re
 from agents.base_agent import BaseAgent
 
 STYLE_GUIDE = """
@@ -182,6 +183,47 @@ Requirements:
 - Be SPECIFIC: use actual values, actual output, actual error messages.
 """
 
+def _backfill_diagram_refs(script: dict, lesson_plan: dict) -> None:
+    """The DIAGRAM_REF LINKING instruction asks the LLM to tag the right narration
+    segment(s) with diagram_ref, but compliance isn't guaranteed - if it misses a
+    section, the diagram DiagramAgent generates for that section never gets shown
+    (see agents/video_agent.py._build_diagram_segments, which only inserts a
+    diagram where some segment actually carries its diagram_ref). This backfills
+    any missed needs_diagram section deterministically via word-overlap matching,
+    so every generated diagram has somewhere to attach instead of silently going
+    unused."""
+    segments = script.get("segments", [])
+    if not segments:
+        return
+    existing_refs = {s.get("diagram_ref") for s in segments if s.get("diagram_ref")}
+
+    for section in lesson_plan.get("sections", []):
+        if not section.get("needs_diagram") or not section.get("id"):
+            continue
+        want_ref = f"diag_{section['id']}"
+        if want_ref in existing_refs:
+            continue
+
+        section_text = section.get("title", "") + " " + " ".join(section.get("key_points", []))
+        section_words = set(re.findall(r"[a-z0-9']+", section_text.lower()))
+        if not section_words:
+            continue
+
+        best_seg, best_score = None, 0
+        for seg in segments:
+            if seg.get("diagram_ref") or seg.get("type") not in ("narration", "code_demo"):
+                continue
+            seg_words = set(re.findall(r"[a-z0-9']+", seg.get("text", "").lower()))
+            score = len(section_words & seg_words)
+            if score > best_score:
+                best_score, best_seg = score, seg
+
+        if best_seg is not None:
+            best_seg["diagram_ref"] = want_ref
+            existing_refs.add(want_ref)
+            print(f"  [ScriptAgent] Backfilled {want_ref} onto segment {best_seg.get('id', '?')} (LLM left it untagged)")
+
+
 REVISION_USER = """Here is the script to revise:
 
 {script_json}
@@ -227,6 +269,8 @@ class ScriptAgent(BaseAgent):
                 print("  Pass 2 returned mismatched segments - using pass 1.")
         except Exception as e:
             print(f"  Pass 2 skipped: {e}")
+
+        _backfill_diagram_refs(script, lesson_plan)
 
         all_text = " ".join(s.get("text", "") for s in script.get("segments", []))
         script["total_words"] = len(all_text.split())
