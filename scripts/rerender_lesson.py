@@ -52,7 +52,10 @@ def save_checkpoint(output_dir: Path, step: str, data: dict):
 
 
 def rerender_slides(output_dir: Path, profile: dict) -> list[str]:
-    """Re-render slides from checkpoint using new template."""
+    """Re-render slides from checkpoint using new template.
+
+    Outputs to slides_rerender/ to preserve the original slides/ directory.
+    """
     print("\n[Rerender] Re-rendering slides...")
     cp = load_checkpoint(output_dir, "generate_slides")
     slides = cp.get("slide_contents", [])
@@ -60,13 +63,13 @@ def rerender_slides(output_dir: Path, profile: dict) -> list[str]:
 
     from services.slide_renderer.renderer import SlideRenderer
     renderer = SlideRenderer()
-    slide_dir = str(output_dir / "slides")
+    slide_dir = str(output_dir / "slides_rerender")
     paths = renderer.render_slides(slides, slide_dir)
     print(f"  Rendered {len(paths)} slides -> {slide_dir}")
 
-    # update checkpoint with new paths
-    cp["slide_image_paths"] = paths
-    cp["slide_id_to_path"] = {
+    # persist the rerender paths in a dedicated checkpoint key
+    cp["rerender_slide_paths"] = paths
+    cp["rerender_slide_id_to_path"] = {
         s.get("id", f"slide_{i:04d}"): p
         for i, (s, p) in enumerate(zip(slides, paths))
     }
@@ -85,10 +88,11 @@ def rerender_voice(output_dir: Path, profile: dict, voice_override: str = None) 
     segments = cp_script.get("script", {}).get("segments", [])
     print(f"  {len(segments)} segments to synthesize")
 
-    from services.tts.edge_tts_provider import EdgeTTSProvider
+    from providers.tts.edge_tts_provider import EdgeTTSProvider
     tts = EdgeTTSProvider()
 
-    audio_dir = output_dir / "audio"
+    # Write to isolated folder to preserve original audio
+    audio_dir = output_dir / "audio_rerender"
     audio_dir.mkdir(exist_ok=True)
 
     audio_paths = []

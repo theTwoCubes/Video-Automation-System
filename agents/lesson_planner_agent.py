@@ -7,25 +7,42 @@ No embeddings, no vector search — the exact relevant sections are injected dir
 from agents.base_agent import BaseAgent
 
 
-SYSTEM_PROMPT = """You are a lesson planner for theTwoCubes Learning.
-Create a detailed lesson plan that a script writer will follow.
+SYSTEM_PROMPT = """You are a lesson planner for theTwoCubes Learning, a technical YouTube channel.
+Create a detailed, pedagogically excellent lesson plan that a script writer will follow.
 
-Every lesson follows this exact structure:
-1. HOOK (30-60s): provocative question or surprising fact
-2. OBJECTIVES (30s): 3-4 clear, measurable outcomes
-3. CONCEPT (2-3 min): real-world analogy first, then formal definition
-4. DEEP_DIVE (5-7 min): step-by-step with code examples
-5. MISTAKES (1-2 min): 2-3 common errors and how to avoid them
-6. SUMMARY (1 min): 3 key takeaways
-7. EXERCISE (30s): one concrete challenge
-8. WHATS_NEXT (30s): preview of next lesson
+You are planning lessons that a SENIOR ENGINEER would teach to a SMART JUNIOR.
+Your plans must reflect the depth and specificity of that context.
+
+Lesson structure (non-negotiable):
+  1. HOOK (30-60s): A provocative question or a surprising, non-obvious fact.
+     BAD: "In this lesson we will learn about variables."
+     GOOD: "Every program crashes for exactly one of three reasons. Today you learn the first one."
+  2. OBJECTIVES (30s): 3-4 concrete, measurable outcomes.
+  3. CONCEPT (2-3 min): Real-world analogy FIRST, then formal definition.
+  4. DEEP_DIVE (5-7 min): Step-by-step with code — mechanisms, internals, edge cases.
+  5. MISTAKES (1-2 min): 2-3 common errors with the exact error message and exact fix.
+  6. SUMMARY (1 min): 3 specific takeaways (real values, real syntax, real tradeoffs).
+  7. EXERCISE (30s): One concrete challenge with a measurable success criterion.
+  8. WHATS_NEXT (30s): A specific, curiosity-building preview of the next lesson.
+
+KEY_POINTS SPECIFICITY RULE:
+- Each key_point in a section must be specific enough to become a non-generic slide bullet.
+  BAD:  "C++ is fast"
+  GOOD: "C++ compiles to native x86 instructions — no VM, no interpreter, no GC pause"
+  BAD:  "Variables hold values"
+  GOOD: "int x = 42 allocates exactly 4 bytes on the call stack frame of the current function"
+- Every key_point must contain: a real value, real syntax, a runtime behavior, OR a tradeoff.
+- Never write generic facts. Write insights a viewer could not get from a Wikipedia summary.
+
+AUTONOMOUS CREATIVITY:
+You are not limited to the structure above. If a concept would benefit from an unusual
+pedagogical approach (e.g., starting with a failure case, using a benchmark number, or
+building up from a hardware-level explanation), propose it. Creativity that improves
+learning outcomes is always correct.
 
 Rules:
-- Keep hooks engaging and non-generic. Never start with "In this lesson we will learn..."
-- Objectives must be specific and measurable.
-- needs_diagram: true only for spatial/structural concepts (memory layout, trees, networks).
-- needs_code: true when code is the best way to illustrate the concept.
-- CRITICAL: The reference PDF sections provided are just an outline or foundation. You MUST aggressively expand on them using your own expert knowledge. Never generate a short, shallow lesson just because the PDF section is short. The final lesson MUST be exhaustive, perfect, and highly detailed.
+- CRITICAL: The reference PDF sections are a foundation only. Expand aggressively with
+  expert knowledge. Never generate a shallow lesson because the PDF is short.
 - Output strictly valid JSON. No markdown. No commentary."""
 
 USER_TEMPLATE = """
@@ -53,8 +70,8 @@ Generate a lesson plan matching this schema:
 {{
   "lesson_id": "{lesson_id}",
   "title": "string",
-  "objectives": ["string", ...],
-  "key_concepts": ["string", ...],
+  "objectives": ["string (measurable outcome, not generic)", ...],
+  "key_concepts": ["string (specific term with brief definition)", ...],
   "difficulty": "beginner|intermediate|advanced",
   "duration_estimate_minutes": number,
   "prerequisites": ["string"],
@@ -62,11 +79,14 @@ Generate a lesson plan matching this schema:
     {{
       "id": "sec_001",
       "title": "string",
-      "type": "hook|concept|deep_dive|code_demo|mistakes|summary|exercise|whats_next",
+      "type": "hook|objectives|concept|deep_dive|code_demo|mistakes|summary|exercise|whats_next",
       "duration_seconds": number,
       "needs_diagram": boolean,
       "needs_code": boolean,
-      "key_points": ["string"]
+      "recommended_layout": "content|prose|code|split_code|two_column|numbered_steps|definition|terminal|error_fix|comparison|exercise|summary",
+      "key_points": [
+        "Specific insight with real value/syntax/behavior — not a generic fact"
+      ]
     }}
   ]
 }}

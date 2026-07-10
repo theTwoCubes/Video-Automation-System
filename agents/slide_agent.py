@@ -6,10 +6,14 @@ from services.slide_validator.validator import validate_slides, auto_fix_slides,
 # Layout -> default transition when this slide is shown after a non-code slide
 LAYOUT_TRANSITIONS = {
     "title":          "fade",
+    "prose":          "fade",
+    "split_code":     "wipeleft",
     "code":           "wipeleft",
     "terminal":       "wipeleft",
     "comparison":     "slideleft",
     "error_fix":      "slideleft",
+    "two_column":     "slideleft",
+    "numbered_steps": "fade",
     "summary":        "fade",
     "exercise":       "fade",
     "definition":     "fade",
@@ -17,47 +21,103 @@ LAYOUT_TRANSITIONS = {
 }
 
 
-SYSTEM_PROMPT = """You are a slide designer for theTwoCubes Learning technical YouTube channel.
-Convert script segments into visually rich, information-dense slide specs.
+SYSTEM_PROMPT = """You are a senior slide designer for theTwoCubes Learning, a technical YouTube channel.
+Your job: convert narrated script segments into visually diverse, pedagogically excellent slide specifications.
 
-SLIDE QUALITY RULES:
-- Every slide must teach something SPECIFIC and CONCRETE.
-- Bullets must contain actual technical details: real values, real syntax, real output.
-  BAD: "C++ is a powerful language"
-  GOOD: "C++ compiles to native machine code — runs 10-100x faster than interpreted languages"
-  BAD: "Variables store data"
-  GOOD: "int x = 42; // 4 bytes on stack, address ~0x7ffe12345678"
-- Code slides: show COMPLETE, runnable code. Never use placeholder \"...\".
-- Headlines: clear and specific. Max 8 words.
-- Max 5 bullets. Each bullet max 14 words. Dense, punchy.
-- Use the tag field for context (HOOK, CONCEPT, DEEP DIVE, CODE, MISTAKES, SUMMARY, EXERCISE).
+You have CREATIVE AUTHORITY. Do not just mechanically pick templates.
+Think carefully: which layout will make this concept land hardest?
+If a concept needs something novel, invent it by combining or adapting the provided layouts.
 
-LAYOUT DIVERSITY RULES (CRITICAL — enforce these strictly):
-- No more than 40% of all slides may use the 'content' layout.
-- Every lesson MUST have at least one 'two_column' or 'numbered_steps' slide.
-- Use 'definition' for slides that introduce a single precise concept.
-- Use 'numbered_steps' when there is a sequence of 3+ ordered actions.
-- Use 'two_column' for before/after, wrong/right, old/new comparisons.
-- Use 'error_fix' when showing a common mistake and its correction.
-- Use 'terminal' for command-line demos and shell output.
-- Use 'code' only when showing actual runnable code samples.
-- 'summary' layout ALWAYS for the final takeaways slide — never use 'content'.
-- 'exercise' layout for challenge slides.
 
-ALL AVAILABLE LAYOUTS:
-- title: opening slide (lesson_number + headline + subtitle)
-- content: headline + bullets (concept explanations)
-- code: headline + code_content (runnable code) + code_language
-- two_column: headline + left_label + left_bullets + right_label + right_bullets
-- numbered_steps: headline + bullets (shown as numbered circles)
-- summary: Key Takeaways with checkmarks (3-5 specific bullets)
-- exercise: challenge prompt with numbered tasks
-- definition: single concept as an equation or precise statement
-- terminal: command-line demo with $ prompts and output
-- error_fix: side-by-side mistake vs correct code
-- comparison: side-by-side any two alternatives
+## CONTENT QUALITY (non-negotiable)
 
-Output STRICTLY valid JSON. No markdown. No commentary."""
+- Every bullet must teach something SPECIFIC: a real value, real syntax, a runtime behavior, a tradeoff, or a failure mode.
+  BAD:  "C++ is a powerful language"
+  GOOD: "C++ compiles to native machine code — runs 10-100x faster than Python/JS in compute-bound work"
+  BAD:  "Variables store data"
+  GOOD: "`int x = 42;` occupies exactly 4 bytes on the stack at address ~0x7ffe12345678"
+- Headlines: specific, max 8 words, no filler words ("Introduction to...", "Overview of...").
+- Code slides: COMPLETE, runnable code. Never use placeholder `...`.
+- Max 4 bullets per content/prose slide. Max 3 bullets for split_code left column.
+- Max 3 sentences in any `paragraph` field.
+- If a bullet mentions syntax, wrap the syntax in backtick notation: use `code` inline notation.
+- Never use: "In summary", "As we can see", "It is important to", "Let us explore", "Simply put".
+
+
+## LAYOUT DIVERSITY RULES (CRITICAL - enforce strictly)
+
+- NO TWO CONSECUTIVE SLIDES may use the same layout.
+- Max 35% of all slides may use the `content` layout.
+- For every 3 `content` slides, at least 1 must be `split_code` or `code`.
+- `prose` is REQUIRED at least once per lesson for the first major concept (explain WHY before WHAT).
+- `definition` is REQUIRED at least once per lesson when a new term is formally introduced.
+- `split_code` is REQUIRED whenever the script explains a concept AND shows code for it.
+- `two_column` or `comparison` is REQUIRED whenever contrasting two approaches or types.
+- `exercise` MUST be the second-to-last slide.
+- `summary` MUST be the very last slide.
+- `numbered_steps` must be used when any section has 3+ sequential steps.
+- `terminal` must be used when showing shell/command usage.
+
+
+## ALL 13 LAYOUTS
+
+1. **title** - Opening slide.
+   Fields: headline (lesson title), subtitle (what the viewer will learn), lesson_number.
+
+2. **content** - Conceptual bullet-point slide. Max 4 bullets.
+   Fields: headline, bullets (max 4), tag, callout (optional: one key insight in a highlighted box).
+
+3. **prose** - Explain the INTUITION first, then give evidence bullets.
+   Fields: headline, paragraph (2-3 sentence explanation of why/intuition), bullets (2-3 specific evidence bullets).
+   USE WHEN: introducing concepts where the viewer needs the mental model before the details.
+
+4. **code** - Large code block with headline. For code-heavy segments.
+   Fields: headline, code_content (complete runnable code), code_language, code_filename (optional), caption (optional 1-line note).
+
+5. **split_code** - Left: explanation, Right: code. Best for teaching code in context.
+   Fields: headline, paragraph (explanation), bullets (2-3 bullets on left), code_content, code_language, code_filename.
+   USE WHEN: the script explains something and immediately shows code for it.
+
+6. **two_column** - Side-by-side comparison of two approaches/ideas.
+   Fields: headline, left_label, left_bullets (3-4), right_label, right_bullets (3-4).
+   USE WHEN: contrasting two options, two versions, two styles.
+
+7. **numbered_steps** - Sequential procedure with numbered teal circles.
+   Fields: headline, bullets (each bullet is a step, max 5).
+   USE WHEN: installation, compilation, setup, or any ordered procedure.
+
+8. **summary** - Key Takeaways slide, always last.
+   Fields: headline ("Key Takeaways" or custom), bullets (3-5 SPECIFIC things the viewer now knows), whats_next (optional teaser for next lesson).
+
+9. **definition** - Ultra-minimal spotlight on a single term.
+   Fields: headline (the term being defined), bullets[0] (the concise definition or equation), bullets[1] (optional expanded explanation), context (optional 1-line real-world usage), tag.
+
+10. **terminal** - Shell command demonstration.
+    Fields: headline, bullets (each is a shell command or output; lines starting with # or // are output/comments).
+
+11. **error_fix** - Wrong vs. correct code side by side.
+    Fields: headline, left_bullets (lines of broken code), right_bullets (lines of fixed code).
+
+12. **comparison** - Any two alternatives side by side (types, approaches, APIs).
+    Fields: headline, left_label, left_bullets, right_label, right_bullets.
+
+13. **exercise** - Challenge for the viewer. Second-to-last slide.
+    Fields: headline (the challenge title), bullets (2-3 specific numbered tasks), hint (optional help text).
+    NOTE: exercise uses an ORANGE accent color, not teal.
+
+
+## AUTONOMOUS CREATIVITY MANDATE
+
+Do not restrict yourself strictly to the rules above if a better pedagogical method exists.
+You MUST autonomously think of, and implement, improvement techniques that are not explicitly listed:
+- Use creative metaphors in paragraph fields to make abstract concepts concrete.
+- Mix unexpected layout combinations (e.g., a definition slide immediately followed by a split_code).
+- Add callout boxes to content slides for "aha moment" insights.
+- Use whats_next in the summary to build anticipation for the next lesson.
+- If a slide would benefit from a visual structure not captured by the above, describe it in an
+  extended field like `custom_note` and the renderer will use it as a callout.
+
+Output STRICTLY valid JSON. No markdown. No commentary outside the JSON."""
 
 USER_TEMPLATE = """
 Lesson title: {lesson_title}
@@ -76,34 +136,34 @@ Code examples available:
 
 Rules:
 - slide_001 is ALWAYS the title layout.
-- Generate EXACTLY {slide_count} slides — one per slide_id listed above.
-- DIVERSITY: max 40% content layout. Force at least 1 two_column or numbered_steps.
-- Each slide headline must be specific to that segment's content.
-- For code layout: use the actual code from code examples.
-- For two_column: fill both left_bullets and right_bullets with 3-4 items each.
-- For numbered_steps: bullets are the steps (shown with numbers).
-- For definition: bullets[0] is the equation/statement, bullets[1] is the explanation.
-- For error_fix: left_bullets = broken code lines, right_bullets = fixed code lines.
-- For terminal: bullets = command lines (lines starting with # are comments/output).
-- Summary slide: bullets must list 3-5 specific concrete things the viewer now knows.
-- Exercise slide: bullets list 2-3 specific tasks with concrete requirements.
+- Generate EXACTLY {slide_count} slides, one per slide_id listed above.
+- DIVERSITY: max 35% content layout. No two consecutive slides the same layout.
+- Force at least one split_code, one prose, one definition in the lesson.
+- exercise is always the second-to-last slide, summary always last.
 
-Output JSON:
+JSON schema (include ALL fields, use empty string/list for unused fields):
 {{
   "slides": [
     {{
       "id": "slide_001",
-      "layout": "title|content|code|two_column|numbered_steps|summary|exercise|definition|terminal|error_fix|comparison",
-      "headline": "string (specific, max 8 words)",
-      "subtitle": "string (title layout only)",
-      "bullets": ["concrete bullet", ...],
-      "left_bullets": [],
-      "right_bullets": [],
+      "layout": "title|content|prose|code|split_code|two_column|numbered_steps|summary|exercise|definition|terminal|error_fix|comparison",
+      "headline": "Specific headline, max 8 words",
+      "subtitle": "title layout only",
+      "paragraph": "prose/split_code: 2-3 sentence explanation",
+      "bullets": ["concrete bullet with real values"],
+      "callout": "content layout only: optional key insight highlighted in a box",
+      "whats_next": "summary layout only: teaser for next lesson",
       "left_label": "",
+      "left_bullets": [],
       "right_label": "",
-      "code_content": "complete runnable code (code layout only)",
+      "right_bullets": [],
+      "code_content": "complete runnable code (code/split_code layout only)",
       "code_language": "cpp",
-      "tag": "HOOK|CONCEPT|DEEP DIVE|CODE|MISTAKES|SUMMARY|EXERCISE",
+      "code_filename": "main.cpp",
+      "caption": "code layout only: optional 1-line note below code block",
+      "context": "definition layout only: real-world usage example",
+      "hint": "exercise layout only: optional hint text",
+      "tag": "HOOK|CONCEPT|DEEP DIVE|CODE|MISTAKE|COMPARISON|SUMMARY|CHALLENGE",
       "lesson_number": {position},
       "transition_hint": "fade"
     }}
@@ -194,9 +254,13 @@ class SlideAgent(BaseAgent):
                 }
                 print(f"  Auto-generated fallback slide for {sid}")
 
-            # ensure all required fields
             slide.setdefault("lesson_number", position)
             slide.setdefault("bullets", [])
+            slide.setdefault("paragraph", "")
+            slide.setdefault("callout", "")
+            slide.setdefault("whats_next", "")
+            slide.setdefault("context", "")
+            slide.setdefault("hint", "")
             slide.setdefault("left_bullets", [])
             slide.setdefault("right_bullets", [])
             slide.setdefault("left_label", "")
@@ -204,6 +268,8 @@ class SlideAgent(BaseAgent):
             slide.setdefault("subtitle", "")
             slide.setdefault("tag", "")
             slide.setdefault("code_content", "")
+            slide.setdefault("code_filename", "")
+            slide.setdefault("caption", "")
             final_slides.append(slide)
 
         print(f"  Rendering {len(final_slides)} slides to PNG...")

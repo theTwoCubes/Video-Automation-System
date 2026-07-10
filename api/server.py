@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -29,6 +30,11 @@ app.add_middleware(
 )
 
 ROOT = Path(__file__).parent.parent
+
+# Serve rendered output (slides, audio, video) as static assets
+_output_dir = ROOT / "output"
+_output_dir.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=_output_dir), name="static")
 
 # track test run status in memory (lightweight)
 _test_runs: dict[str, dict] = {}
@@ -787,6 +793,12 @@ def list_rendered_lessons():
 
 @app.get("/api/lessons/{lesson_id}/slides")
 def get_lesson_slides(lesson_id: str):
+    """Return slide image URLs for a lesson.
+
+    Prefers slides from the isolated rerender folder (slides_rerender/) so the
+    Testing Studio always shows the freshest renders without overwriting originals.
+    Falls back to slides/ if no rerender exists yet.
+    """
     output_root = ROOT / "output"
     for course_dir in output_root.iterdir():
         if not course_dir.is_dir():
@@ -794,11 +806,18 @@ def get_lesson_slides(lesson_id: str):
         for lesson_dir in course_dir.iterdir():
             if lesson_id not in lesson_dir.name:
                 continue
-            slides_dir = lesson_dir / "slides"
-            if slides_dir.exists():
-                paths = sorted(slides_dir.glob("*.png"))
-                return [str(p.relative_to(ROOT)).replace("\\", "/") for p in paths]
-    raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+            # prefer isolated rerender folder
+            for folder_name in ("slides_rerender", "slides"):
+                slides_dir = lesson_dir / folder_name
+                if slides_dir.exists():
+                    paths = sorted(slides_dir.glob("*.png"))
+                    if paths:
+                        # return paths relative to the output root so /static/ can serve them
+                        return [
+                            str(p.relative_to(output_root)).replace("\\", "/")
+                            for p in paths
+                        ]
+    raise HTTPException(status_code=404, detail=f"No slides found for lesson {lesson_id}")
 
 
 @app.get("/api/lessons/{lesson_id}/video")

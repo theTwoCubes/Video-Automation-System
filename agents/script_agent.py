@@ -38,9 +38,26 @@ CODE NARRATION:
   - Then explain the output: "When you run this, you get exactly this on screen."
   - Always read the output aloud, character by character if needed.
 
-FORBIDDEN WORDS: simply, just, easy, obviously, as you can see, let us go ahead,
-straightforward, note that, it should be noted, basic, of course, in this lesson,
-in this video, we will be learning, today we will, let us begin, great, awesome.
+FORBIDDEN WORDS AND PHRASES: simply, just, easy, easily, obviously, as you can see,
+let us go ahead, straightforward, note that, it should be noted, basic, of course,
+in this lesson, in this video, we will be learning, today we will, let us begin,
+great, awesome, it is worth noting, in the real world, it is important to understand,
+general-purpose, powerful language, widely used, commonly used, let us explore,
+let us look at, in summary, to summarize, as mentioned.
+
+CONCRETE EXAMPLE RULE (mandatory):
+Every time you introduce a concept, you MUST immediately follow with:
+  - An actual value: not "an integer" but "the integer 42"
+  - Actual syntax: not "a variable declaration" but "int x = 42;"
+  - Actual output: not "it prints something" but "it prints: 42"
+  - Actual error: not "you get an error" but "you get: error: use of undeclared identifier 'y'"
+
+SPECIFICITY RULE:
+- Never state a fact the viewer already knows. Every sentence must reveal:
+  a mechanism, a number, a tradeoff, a failure mode, or a surprising behavior.
+- Bad: "Variables store data in memory."
+- Good: "An int on a 64-bit system lives on the stack frame at an 8-byte aligned address.
+  If you print its address with &x, you see something like 0x7ffee12a4b2c."
 
 PAUSE MARKERS: Insert [PAUSE] between major topic shifts only.
   Example: "...and that is how pointers work.[PAUSE]Now let us look at references."
