@@ -67,6 +67,31 @@ VISUAL LAYOUT CATALOG (you MUST set `recommended_layout` deliberately - pick the
 11. error_fix   - USE WHEN a "mistakes" section shows broken code next to the corrected version.
 12. comparison  - USE WHEN contrasting two APIs/types/approaches with more structure than two_column needs.
 13. exercise    - the lesson's exercise section only.
+
+EXTENDED LAYOUTS (use these when they fit better than the 13 core ones above):
+14. chapter_title  - USE WHEN this section starts a major new sub-topic within the lesson (a "breath" divider).
+15. agenda         - USE WHEN this is the roadmap section right after the hook, previewing 4-7 upcoming topics.
+16. hook            - the lesson's hook section (attention-grabbing question/statement).
+17. key_insight     - USE WHEN a section's whole point is one memorable one-sentence takeaway. Sparingly.
+18. big_number      - USE WHEN a section centers on one concrete impressive metric (a size, a speedup, a limit).
+19. quote           - USE WHEN citing the language spec, official docs, or an authoritative source verbatim.
+20. analogy         - USE WHEN a section explains an abstract concept via a real-world metaphor mapped side by side.
+21. code_output     - USE WHEN a section shows code AND what running it prints, together.
+22. code_evolution  - USE WHEN a section shows a neutral before/after code improvement (refactor/optimize, not a bug).
+23. snippet         - USE WHEN referencing a tiny 1-5 line code fragment inline during a conceptual point.
+24. pros_cons       - USE WHEN a section evaluates a technique/library/approach's tradeoffs structurally.
+25. table           - USE WHEN a section presents naturally tabular data (sizes, precedence, visibility rules).
+26. timeline        - USE WHEN a section covers a chronological progression (language versions, historical evolution).
+27. cycle           - USE WHEN a section describes a repeating circular process (edit-compile-run-debug).
+28. bar_chart        - USE WHEN a section compares numeric values across a few categories.
+29. quiz            - USE WHEN a section is a multiple-choice knowledge check.
+30. think_pause     - USE WHEN a section asks the viewer to pause and predict/reflect before the answer.
+31. warning         - USE WHEN a "mistakes"-type section is a pure danger/pitfall with no fix shown (use error_fix if a fix follows).
+32. tip             - USE WHEN a section shares a best-practice/productivity tip beyond the core material.
+33. checkpoint      - USE WHEN a section recaps everything covered so far before moving to a new part of the lesson.
+34. mental_model    - USE WHEN the closing section distills the whole lesson into one carry-away rule.
+35. resources       - USE WHEN a section points to further reading/documentation instead of teaching directly.
+
 Match `recommended_layout` to content shape, not the other way around - never invent key_points just
 to justify a layout choice.
 
@@ -119,7 +144,8 @@ Generate a lesson plan matching this schema:
       "duration_seconds": number,
       "needs_diagram": boolean,
       "needs_code": boolean,
-      "recommended_layout": "content|prose|code|split_code|two_column|numbered_steps|definition|terminal|error_fix|comparison|exercise|summary",
+      "recommended_layout": "content|prose|code|split_code|two_column|numbered_steps|definition|terminal|error_fix|comparison|exercise|summary|chapter_title|agenda|hook|key_insight|big_number|quote|analogy|code_output|code_evolution|snippet|pros_cons|table|timeline|cycle|bar_chart|quiz|think_pause|warning|tip|checkpoint|mental_model|resources",
+      "recommended_diagram_type": "pipeline|memory_layout|call_stack|iteration|flow|tree|state_machine|layers_diagram|none (only if needs_diagram is true - your best guess at which diagram type fits; the diagram agent may override)",
       "key_points": [
         "Specific insight with real value/syntax/behavior - not a generic fact"
       ]

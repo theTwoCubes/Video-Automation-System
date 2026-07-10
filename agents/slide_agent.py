@@ -17,6 +17,28 @@ LAYOUT_TRANSITIONS = {
     "summary":        "fade",
     "exercise":       "fade",
     "definition":     "fade",
+    "chapter_title":  "fade",
+    "agenda":         "fade",
+    "hook":           "fade",
+    "key_insight":    "fade",
+    "big_number":     "fade",
+    "quote":          "fade",
+    "analogy":        "slideleft",
+    "code_output":    "wipeleft",
+    "code_evolution": "wipeleft",
+    "snippet":        "wipeleft",
+    "pros_cons":      "slideleft",
+    "table":          "slideleft",
+    "timeline":       "fade",
+    "cycle":          "fade",
+    "bar_chart":      "fade",
+    "quiz":           "fade",
+    "think_pause":    "fade",
+    "warning":        "fade",
+    "tip":            "fade",
+    "checkpoint":     "fade",
+    "mental_model":   "fade",
+    "resources":      "fade",
     "default":        "fade",
 }
 
@@ -111,6 +133,53 @@ If a concept needs something novel, invent it by combining or adapting the provi
     NOTE: do NOT prefix bullets with "1.", "2." etc - the renderer numbers them automatically.
 
 
+## EXTENDED LAYOUT LIBRARY (use these for variety, not just the 13 core layouts above)
+
+**Opening/structural**
+14. **chapter_title** - section divider within a lesson. Fields: headline (2-5 words), subtitle (one-line preview).
+    USE WHEN: moving from one major sub-topic to another within the same lesson.
+15. **agenda** - lesson roadmap. Fields: headline, items (4-7 short section names).
+    USE WHEN: slide 2, right after title, previewing what the lesson covers.
+16. **hook** - attention-grabbing question/statement. Fields: headline (up to 15 words), subtitle (optional).
+    USE WHEN: early in the lesson, to create intrigue before explaining.
+
+**Concept/explanation**
+17. **key_insight** - one powerful memorable statement. Fields: headline (use **bold** to accent key words), subtitle (optional).
+    USE WHEN: a single sentence captures the "aha moment" of the section. Use sparingly (max 1-2 per lesson).
+18. **big_number** - spotlight one impressive metric. Fields: number (e.g. "4 bytes"), label, context.
+    USE WHEN: a concrete number makes the concept tangible.
+19. **quote** - attributed quote from spec/docs/authority. Fields: headline (optional context), text, attribution.
+20. **analogy** - real-world metaphor mapped to technical concept. Fields: headline, left_label, left_content, right_label, right_content, connection.
+
+**Code/technical**
+21. **code_output** - code block + its terminal output together. Fields: headline, code_content, code_language, code_filename, output_lines (list).
+    USE WHEN: the narrator shows what running the code produces.
+22. **code_evolution** - before/after code transformation (refactor/optimize, NOT a mistake). Fields: headline, left_label, left_code, right_label, right_code, code_language.
+23. **snippet** - tiny code fragment (1-5 lines) without window chrome, for inline syntax reference. Fields: headline, code_content, code_language, explanation.
+
+**Comparison/data**
+24. **pros_cons** - advantages vs disadvantages. Fields: headline, pros (list, max 4), cons (list, max 4).
+25. **table** - structured data grid. Fields: headline, headers (max 4), rows (list of lists, max 6).
+26. **timeline** - chronological progression. Fields: headline, events (list of {label, description}, max 6).
+
+**Process**
+27. **cycle** - repeating circular process. Fields: headline, steps (list, 3-6 items).
+28. **bar_chart** - horizontal comparison bars. Fields: headline, bars (list of {label, value (0-100), display_value}, max 6).
+
+**Engagement**
+29. **quiz** - multiple choice knowledge check. Fields: headline, question, options (list of {label, text}, max 4), answer (correct label).
+30. **think_pause** - reflective prompt, pause icon. Fields: headline (the question), subtitle (optional).
+
+**Warnings/callouts**
+31. **warning** - danger/critical mistake to avoid (red accent, no "fix" side - use error_fix for that). Fields: headline, bullets (2-3).
+32. **tip** - pro-tip/best practice (blue accent). Fields: headline, bullets (2-3), callout (optional summary).
+
+**Closing**
+33. **checkpoint** - mid-lesson recap before moving to the next section. Fields: headline (default "So Far"), bullets (2-4), transition (preview of what's next).
+34. **mental_model** - closing rule/heuristic distilling the whole lesson. Fields: headline (the rule as a sentence), explanation (optional).
+35. **resources** - further reading pointers. Fields: headline, items (list of {title, description}, max 5).
+
+
 ## AUTONOMOUS CREATIVITY MANDATE
 
 Do not restrict yourself strictly to the rules above if a better pedagogical method exists.
@@ -154,28 +223,51 @@ Rules:
 - Force at least one split_code, one prose, one definition in the lesson.
 - exercise is always the second-to-last slide, summary always last.
 
-JSON schema (include ALL fields, use empty string/list for unused fields):
+JSON schema (include ALL fields you use for the chosen layout, use empty string/list/omit for unused fields):
 {{
   "slides": [
     {{
       "id": "slide_001",
-      "layout": "title|content|prose|code|split_code|two_column|numbered_steps|summary|exercise|definition|terminal|error_fix|comparison",
-      "headline": "Specific headline, max 8 words",
-      "subtitle": "title layout only",
+      "layout": "title|content|prose|code|split_code|two_column|numbered_steps|summary|exercise|definition|terminal|error_fix|comparison|chapter_title|agenda|hook|key_insight|big_number|quote|analogy|code_output|code_evolution|snippet|pros_cons|table|timeline|cycle|bar_chart|quiz|think_pause|warning|tip|checkpoint|mental_model|resources",
+      "headline": "Specific headline, max 8 words (most layouts)",
+      "subtitle": "title/chapter_title/hook/key_insight/think_pause layout",
       "paragraph": "prose/split_code: 2-3 sentence explanation",
-      "bullets": ["concrete bullet with real values"],
-      "callout": "content layout only: optional key insight highlighted in a box",
+      "bullets": ["concrete bullet with real values - used by many layouts as the generic list field"],
+      "callout": "content/tip layout only: optional key insight highlighted in a box",
       "whats_next": "summary layout only: teaser for next lesson",
       "left_label": "",
       "left_bullets": [],
       "right_label": "",
       "right_bullets": [],
-      "code_content": "complete runnable code (code/split_code layout only)",
+      "code_content": "complete runnable code (code/split_code/code_output/snippet layout only)",
       "code_language": "cpp",
       "code_filename": "main.cpp",
       "caption": "code layout only: optional 1-line note below code block",
-      "context": "definition layout only: real-world usage example",
+      "context": "definition/big_number layout only: real-world usage example",
       "hint": "exercise layout only: optional hint text",
+      "items": "agenda/resources layout: list of strings, or list of {{title, description}} for resources",
+      "number": "big_number layout: the value to display large, e.g. '4 bytes'",
+      "label": "big_number layout: what the number represents",
+      "text": "quote layout: the quote text",
+      "attribution": "quote layout: who said it or where it is from",
+      "left_content": "analogy layout: real-world side, 1-2 sentences",
+      "right_content": "analogy layout: technical side, 1-2 sentences",
+      "connection": "analogy layout: one sentence linking the two sides",
+      "explanation": "snippet/mental_model layout: elaboration text",
+      "output_lines": "code_output layout: list of output/terminal lines",
+      "left_code": "code_evolution layout: the 'before' code",
+      "right_code": "code_evolution layout: the 'after' code",
+      "pros": "pros_cons layout: list of advantage strings, max 4",
+      "cons": "pros_cons layout: list of disadvantage strings, max 4",
+      "headers": "table layout: list of column header strings, max 4",
+      "rows": "table layout: list of row lists, each with one string per header, max 6",
+      "events": "timeline layout: list of {{label, description}}, max 6",
+      "steps": "cycle layout: list of step label strings, 3-6",
+      "bars": "bar_chart layout: list of {{label, value (0-100 int), display_value}}, max 6",
+      "question": "quiz layout: the question text",
+      "options": "quiz layout: list of {{label: 'A', text: '...'}}, max 4",
+      "answer": "quiz layout: the correct option's label",
+      "transition": "checkpoint layout: one sentence previewing what comes next",
       "tag": "HOOK|CONCEPT|DEEP DIVE|CODE|MISTAKE|COMPARISON|SUMMARY|CHALLENGE",
       "lesson_number": {position},
       "transition_hint": "fade"
@@ -306,6 +398,32 @@ class SlideAgent(BaseAgent):
             slide.setdefault("code_content", "")
             slide.setdefault("code_filename", "")
             slide.setdefault("caption", "")
+            # Defaults for the new category A-J layouts so Jinja never iterates
+            # or indexes an undefined variable (iterating Undefined raises, it
+            # does not just render blank like a printed Undefined would).
+            slide.setdefault("items", [])
+            slide.setdefault("number", "")
+            slide.setdefault("label", "")
+            slide.setdefault("text", "")
+            slide.setdefault("attribution", "")
+            slide.setdefault("left_content", "")
+            slide.setdefault("right_content", "")
+            slide.setdefault("connection", "")
+            slide.setdefault("explanation", "")
+            slide.setdefault("output_lines", [])
+            slide.setdefault("left_code", "")
+            slide.setdefault("right_code", "")
+            slide.setdefault("pros", [])
+            slide.setdefault("cons", [])
+            slide.setdefault("headers", [])
+            slide.setdefault("rows", [])
+            slide.setdefault("events", [])
+            slide.setdefault("steps", [])
+            slide.setdefault("bars", [])
+            slide.setdefault("question", "")
+            slide.setdefault("options", [])
+            slide.setdefault("answer", "")
+            slide.setdefault("transition", "")
             final_slides.append(slide)
 
         print(f"  Rendering {len(final_slides)} slides to PNG...")

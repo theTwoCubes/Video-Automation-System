@@ -7,7 +7,10 @@ from services.slide_renderer.renderer import render_inline_markdown
 TEMPLATE_DIR = Path("services/diagram_renderer/templates")
 SLIDE_TEMPLATE_DIR = Path("services/slide_renderer/templates")  # shared _fonts.html partial
 
-VALID_DIAGRAM_TYPES = {"pipeline", "memory_layout", "call_stack", "iteration", "flow"}
+VALID_DIAGRAM_TYPES = {
+    "pipeline", "memory_layout", "call_stack", "iteration", "flow",
+    "tree", "state_machine", "layers_diagram",
+}
 
 
 class DiagramRenderer:
@@ -15,7 +18,14 @@ class DiagramRenderer:
     using the same Jinja2 templating + brand design tokens as SlideRenderer."""
 
     def __init__(self):
-        self.env = Environment(loader=FileSystemLoader([str(TEMPLATE_DIR), str(SLIDE_TEMPLATE_DIR)]))
+        # autoescape on: every diagram field (labels, sublabels, detail text) is
+        # plain LLM-generated text rendered with a raw {{ }}, never |safe/|md -
+        # without this, a label containing '<' or '&' (e.g. "vector<int>")
+        # corrupts the rendered HTML instead of displaying as literal text.
+        self.env = Environment(
+            loader=FileSystemLoader([str(TEMPLATE_DIR), str(SLIDE_TEMPLATE_DIR)]),
+            autoescape=True,
+        )
         self.env.filters["md"] = render_inline_markdown
         self.brand = self._load_brand()
 
@@ -42,6 +52,10 @@ class DiagramRenderer:
             render_kwargs["items"] = self._compute_iteration_delays(
                 content.get("items", []), content.get("highlight_sequence", [])
             )
+        elif diagram_type == "tree":
+            levels, flat_nodes = self._compute_tree_layout(content.get("root", ""), content.get("children", []))
+            render_kwargs["levels"] = levels
+            render_kwargs["flat_nodes"] = flat_nodes
 
         return template.render(**render_kwargs)
 
@@ -57,3 +71,26 @@ class DiagramRenderer:
             {"text": text, "delay": delays[i] if delays[i] is not None else round(0.3 + i * 0.5, 2)}
             for i, text in enumerate(items)
         ]
+
+    @staticmethod
+    def _compute_tree_layout(root: str, children: list) -> tuple[list, list]:
+        """Breadth-first flatten a {root, children:[{label, children}]} tree into
+        per-depth levels for rendering, plus a flat list carrying each node's
+        global index (used for staggered animation-delay keyed by depth)."""
+        flat_nodes = []
+        levels = []
+        current_level = [{"label": root, "children": children}]
+        depth = 0
+        while current_level:
+            level_out = []
+            next_level = []
+            for node in current_level:
+                flat_index = len(flat_nodes)
+                entry = {"label": node.get("label", ""), "flat_index": flat_index, "depth": depth, "is_root": depth == 0}
+                flat_nodes.append(entry)
+                level_out.append(entry)
+                next_level.extend(node.get("children") or [])
+            levels.append(level_out)
+            current_level = next_level
+            depth += 1
+        return levels, flat_nodes

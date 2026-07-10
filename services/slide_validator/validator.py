@@ -17,6 +17,21 @@ LAYOUT_BULLET_LIMITS = {
     "numbered_steps": (2, 6),
     "checklist":      (2, 7),
     "summary":        (2, 4),
+    "warning":        (2, 3),
+    "tip":            (2, 3),
+    "checkpoint":     (2, 4),
+}
+
+# Layouts whose primary content lives in fields other than `bullets` - the
+# generic bullet-count check is skipped for these so it doesn't flag e.g. a
+# `quiz` slide (content lives in `question`/`options`) as having 0 bullets.
+NON_BULLET_LAYOUTS = {
+    "title", "prose", "code", "split_code", "definition", "terminal",
+    "chapter_title", "agenda", "hook", "key_insight", "big_number", "quote",
+    "analogy", "code_output", "code_evolution", "snippet", "pros_cons",
+    "table", "timeline", "cycle", "bar_chart", "quiz", "think_pause",
+    "mental_model", "resources", "two_column", "comparison", "error_fix",
+    "exercise",
 }
 
 
@@ -47,12 +62,13 @@ def validate_slides(slides: list[dict]) -> list[dict]:
             if vague:
                 problems.append(f"Vague headline word(s): {', '.join(vague)}")
 
-        #  Bullets 
-        lo, hi = LAYOUT_BULLET_LIMITS.get(layout, (0, 6))
-        if lo and len(bullets) < lo:
-            problems.append(f"{layout} slide has {len(bullets)} bullet(s) (min {lo})")
-        if hi and len(bullets) > hi:
-            problems.append(f"{layout} slide has {len(bullets)} bullet(s) (max {hi})")
+        #  Bullets
+        if layout not in NON_BULLET_LAYOUTS:
+            lo, hi = LAYOUT_BULLET_LIMITS.get(layout, (0, 6))
+            if lo and len(bullets) < lo:
+                problems.append(f"{layout} slide has {len(bullets)} bullet(s) (min {lo})")
+            if hi and len(bullets) > hi:
+                problems.append(f"{layout} slide has {len(bullets)} bullet(s) (max {hi})")
 
         for i, b in enumerate(bullets):
             clean = b.replace("`", "").strip()
@@ -71,10 +87,42 @@ def validate_slides(slides: list[dict]) -> list[dict]:
                 if len(lines) < 2:
                     problems.append("Code block has fewer than 2 non-empty lines")
 
-        #  Two-column / comparison 
+        #  Two-column / comparison
         if layout in ("two_column", "comparison"):
             if not left_b and not right_b:
                 problems.append(f"{layout} slide has no left_bullets or right_bullets")
+
+        #  New layout structural requirements
+        if layout == "code_evolution":
+            if not (slide.get("left_code") or "").strip() or not (slide.get("right_code") or "").strip():
+                problems.append("code_evolution slide is missing left_code or right_code")
+        if layout == "quiz":
+            if not (slide.get("question") or "").strip():
+                problems.append("quiz slide is missing question")
+            options = slide.get("options") or []
+            if len(options) < 2:
+                problems.append(f"quiz slide has {len(options)} option(s) (min 2)")
+            if not slide.get("answer"):
+                problems.append("quiz slide is missing answer")
+        if layout == "table":
+            rows = slide.get("rows") or []
+            if not rows:
+                problems.append("table slide has no rows")
+        if layout == "bar_chart":
+            bars = slide.get("bars") or []
+            if not bars:
+                problems.append("bar_chart slide has no bars")
+        if layout == "timeline":
+            events = slide.get("events") or []
+            if not events:
+                problems.append("timeline slide has no events")
+        if layout == "pros_cons":
+            if not slide.get("pros") and not slide.get("cons"):
+                problems.append("pros_cons slide has no pros or cons")
+        if layout == "agenda":
+            items = slide.get("items") or bullets
+            if not items:
+                problems.append("agenda slide has no items")
 
         if problems:
             all_issues.append({

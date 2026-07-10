@@ -1,0 +1,41 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.sm-states-row { display: flex; align-items: center; justify-content: center; gap: 60px; height: 65%; flex-wrap: wrap; }
+.sm-transitions-row { display: flex; align-items: center; justify-content: center; gap: 48px; height: 35%; flex-wrap: wrap; }
+.sm-state {
+  background: #0D1117; border: 2px solid #1E2330; border-radius: 50%;
+  width: 160px; height: 160px; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 12px; font-size: 20px; font-weight: 700; color: {{ text_color }};
+  animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both; opacity: 0;
+}
+.sm-state.start { border-color: {{ accent }}; }
+.sm-state.end { border-color: {{ secondary_accent }}; border-width: 4px; }
+.sm-transition {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 16px; color: #7A8090; opacity: 0; animation: fadeIn .4s ease forwards;
+}
+.sm-transition .arrow { font-size: 30px; color: {{ accent }}; }
+{% for s in states %}
+.sm-state-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.2 + loop.index0 * 0.3) }}s; }
+{% endfor %}
+{% for t in transitions %}
+.sm-transition-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.2 + states|length * 0.3 + loop.index0 * 0.3) }}s; }
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="sm-states-row">
+  {% for s in states %}
+  <div class="sm-state sm-state-{{ loop.index0 }}{% if s.is_start %} start{% endif %}{% if s.is_end %} end{% endif %}">{{ s.label }}</div>
+  {% endfor %}
+</div>
+<div class="sm-transitions-row">
+  {% for t in transitions %}
+  <div class="sm-transition sm-transition-{{ loop.index0 }}">
+    <span class="arrow">&rarr;</span>
+    <span>{{ t.label }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

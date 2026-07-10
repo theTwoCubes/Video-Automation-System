@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.tree-wrap { display: flex; flex-direction: column; align-items: center; height: 100%; gap: 48px; justify-content: center; }
+.tree-level { display: flex; justify-content: center; gap: 40px; width: 100%; }
+.tree-node {
+  background: #0D1117; border: 1px solid #1E2330; border-left: 3px solid {{ accent }};
+  border-radius: 8px; padding: 18px 28px; text-align: center;
+  font-size: 22px; font-weight: 600; color: {{ text_color }};
+  animation: popIn .4s cubic-bezier(.34,1.56,.64,1) both; opacity: 0;
+}
+.tree-node.root { font-size: 26px; border-left-color: {{ secondary_accent }}; }
+{% for node in flat_nodes %}
+.tree-node-{{ node.flat_index }} { animation-delay: {{ "%.1f"|format(0.2 + node.depth * 0.4) }}s; }
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="tree-wrap">
+  {% for level in levels %}
+  <div class="tree-level">
+    {% for node in level %}
+    <div class="tree-node{% if node.is_root %} root{% endif %} tree-node-{{ node.flat_index }}">{{ node.label }}</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

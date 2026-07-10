@@ -5,14 +5,8 @@ from pathlib import Path
 class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
-    DEFAULT_TOPIC: str = "C Programming"
-    TARGET_DURATION_MINUTES: int = 12
-    TARGET_AUDIENCE: str = "beginners"
-
     OUTPUT_DIR: str = "output"
     SQLITE_PATH: str = "data/twocubes.db"
-    USAGE_LOG_PATH: str = "data/usage.sqlite"
-    PROMPTS_DIR: str = "prompts"
     ASSETS_DIR: str = "assets"
 
     VOICE_NAME: str = "en-US-GuyNeural"
@@ -21,11 +15,6 @@ class Settings(BaseSettings):
 
     SLIDE_WIDTH: int = 1920
     SLIDE_HEIGHT: int = 1080
-
-    VIDEO_FPS: int = 30
-    VIDEO_BITRATE: str = "8000k"
-
-    LOG_LEVEL: str = "INFO"
 
     # Gemini model names (free tier)
     LLM_MODEL: str = "gemini-2.5-flash"
@@ -40,6 +29,9 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        # Tolerate stray keys in .env that don't map to a field (e.g. left over
+        # after a setting is retired) instead of hard-failing startup on them.
+        extra = "ignore"
 
     def ensure_dirs(self):
         for d in [self.OUTPUT_DIR, "data", self.ASSETS_DIR]:

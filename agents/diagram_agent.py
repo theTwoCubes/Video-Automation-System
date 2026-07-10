@@ -14,6 +14,12 @@ Given a diagram_type, output ONLY the JSON fields that template needs:
 - call_stack: {"title": str, "frames": [{"label": str, "detail": str}], "mode": "push"|"pop"|"push_pop"}
 - iteration: {"title": str, "items": [str], "highlight_sequence": [int]}
 - flow: {"title": str, "nodes": [{"label": str, "sublabel": str}]}
+- tree: {"title": str, "root": str, "children": [{"label": str, "children": [...]}]} (recursive, max depth 3, max ~10 nodes total)
+  USE WHEN: hierarchical parent-child relationships (inheritance, file systems, expression trees).
+- state_machine: {"title": str, "states": [{"label": str, "is_start": bool, "is_end": bool}], "transitions": [{"label": str}]}
+  USE WHEN: states with labeled transitions (parser/game/protocol states). List transitions in the order they fire.
+- layers_diagram: {"title": str, "layers": [{"label": str, "detail": str}]} (bottom to top, max 6)
+  USE WHEN: stacked abstraction layers (memory segments, network stack, architecture layers).
 
 RULES:
 - Use REAL, concrete example values (real addresses like 0x7ffe..., real variable names, real function names) - never placeholders.
@@ -81,6 +87,36 @@ _FALLBACK_CONTENT = {
             {"label": "Expanded Source", "sublabel": "ready to compile"},
         ],
     },
+    "tree": {
+        "title": "Class Inheritance: Animal Hierarchy",
+        "root": "Animal",
+        "children": [
+            {"label": "Mammal", "children": [{"label": "Dog"}, {"label": "Cat"}]},
+            {"label": "Bird", "children": [{"label": "Eagle"}]},
+        ],
+    },
+    "state_machine": {
+        "title": "Traffic Light State Machine",
+        "states": [
+            {"label": "Red", "is_start": True, "is_end": False},
+            {"label": "Green", "is_start": False, "is_end": False},
+            {"label": "Yellow", "is_start": False, "is_end": True},
+        ],
+        "transitions": [
+            {"label": "Red -> Green"},
+            {"label": "Green -> Yellow"},
+            {"label": "Yellow -> Red"},
+        ],
+    },
+    "layers_diagram": {
+        "title": "Memory Segments: Bottom to Top",
+        "layers": [
+            {"label": "Text (Code)", "detail": "compiled instructions"},
+            {"label": "Data", "detail": "global/static variables"},
+            {"label": "Heap", "detail": "grows upward, dynamic allocation"},
+            {"label": "Stack", "detail": "grows downward, local variables"},
+        ],
+    },
 }
 
 
@@ -103,12 +139,16 @@ class DiagramAgent(BaseAgent):
             if seg.get("type") == "diagram" and seg.get("diagram_ref"):
                 diagram_refs[seg["diagram_ref"]] = seg.get("text", seg["diagram_ref"])
 
-        # also check lesson plan
+        # also check lesson plan, and remember the planner's diagram type guess
+        # per section so it can be used ahead of the blunt keyword classifier
+        planned_diagram_types: dict[str, str] = {}
         for section in lesson_plan.get("sections", []):
-            if section.get("needs_diagram"):
-                did = f"diag_{section['id']}"
-                if did not in diagram_refs:
-                    diagram_refs[did] = section.get("title", lesson_title)
+            did = f"diag_{section.get('id', '')}"
+            recommended = section.get("recommended_diagram_type", "")
+            if recommended and recommended in VALID_DIAGRAM_TYPES:
+                planned_diagram_types[did] = recommended
+            if section.get("needs_diagram") and did not in diagram_refs:
+                diagram_refs[did] = section.get("title", lesson_title)
 
         output_dir = Path(state["output_dir"]) / "diagrams"
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -125,7 +165,7 @@ class DiagramAgent(BaseAgent):
         for diag_id, concept in diagram_refs.items():
             print(f"  Generating {diag_id}: {concept[:60]}")
             out_video = str(output_dir / f"{diag_id}.mp4")
-            diagram_type = self._classify_diagram_type(concept)
+            diagram_type = planned_diagram_types.get(diag_id) or self._classify_diagram_type(concept)
 
             html_content = self._generate_diagram_html(diag_id, lesson_title, concept, diagram_type)
 
@@ -164,6 +204,12 @@ class DiagramAgent(BaseAgent):
 
     def _classify_diagram_type(self, concept: str) -> str:
         concept_lower = concept.lower()
+        if any(w in concept_lower for w in ["inherit", "hierarchy", "tree", "parent", "subclass", "derived"]):
+            return "tree"
+        if any(w in concept_lower for w in ["state", "transition", "protocol", "parser"]):
+            return "state_machine"
+        if any(w in concept_lower for w in ["layer", "abstraction", "segment", "network stack"]):
+            return "layers_diagram"
         if any(w in concept_lower for w in ["stack", "heap", "memory", "pointer", "array"]):
             return "memory_layout"
         if any(w in concept_lower for w in ["compil", "link", "preprocess", "build"]):

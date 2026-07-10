@@ -1,0 +1,27 @@
+{% extends "_base.html" %}
+
+{% block extra_style %}
+.layers-wrap { display: flex; flex-direction: column-reverse; justify-content: center; gap: 16px; height: 100%; }
+.d-layer {
+  background: #0D1117; border: 1px solid #1E2330; border-left: 4px solid {{ accent }};
+  border-radius: 8px; padding: 22px 40px; text-align: center;
+  animation: slideUp .5s ease both; opacity: 0;
+}
+.d-layer:nth-child(odd) { background: #0F1319; }
+.d-layer-label { font-size: 26px; font-weight: 700; color: {{ text_color }}; }
+.d-layer-detail { font-size: 16px; color: #7A8090; margin-top: 6px; }
+{% for layer in layers %}
+.d-layer-{{ loop.index0 }} { animation-delay: {{ "%.1f"|format(0.2 + loop.index0 * 0.35) }}s; }
+{% endfor %}
+{% endblock %}
+
+{% block content %}
+<div class="layers-wrap">
+  {% for layer in layers %}
+  <div class="d-layer d-layer-{{ loop.index0 }}">
+    <div class="d-layer-label">{{ layer.label }}</div>
+    {% if layer.detail %}<div class="d-layer-detail">{{ layer.detail }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -49,6 +49,19 @@ def strip_next_prefix(text) -> str:
     return _LEADING_NEXT_RE.sub("", str(text))
 
 
+def hex_to_rgb(hex_color: str) -> str:
+    """Convert '#RRGGBB' to 'R,G,B' so a brand color can be dropped into a CSS
+    rgba(...) call for translucent tints - CSS rgba() takes numeric components,
+    not a hex literal, so templates can't interpolate {{ accent }} directly."""
+    h = (hex_color or "").lstrip("#")
+    if len(h) != 6:
+        return "0,0,0"
+    try:
+        return f"{int(h[0:2], 16)},{int(h[2:4], 16)},{int(h[4:6], 16)}"
+    except ValueError:
+        return "0,0,0"
+
+
 class SlideRenderer:
     def __init__(self):
         self.env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
@@ -73,19 +86,46 @@ class SlideRenderer:
         template = self.env.get_template("slide.html")
         theme = self.brand.get("slide_themes", {}).get("dark", {})
         data = {k: v for k, v in slide_data.items() if k not in ("left_label", "right_label", "code_language")}
+
+        # Every code-bearing field a layout might use, keyed by the same name the
+        # template gives its <pre data-code-id="..."> element. Layouts with a single
+        # code block (code, split_code) only populate code_content; multi-block
+        # layouts (code_evolution) populate left_code/right_code too. Empty values
+        # are dropped so the JS highlighter has nothing to iterate for them.
+        code_blocks = {
+            key: slide_data[key]
+            for key in ("code_content", "left_code", "right_code")
+            if slide_data.get(key)
+        }
+
+        accent = self.brand.get("accent_color", "#00C896")
+        secondary_accent = self.brand.get("secondary_accent", "#FF6B35")
+        warning_color = self.brand.get("warning_color", "#EF4444")
+        tip_color = self.brand.get("tip_color", "#3B82F6")
+        caution_color = self.brand.get("caution_color", "#F59E0B")
+
         return template.render(
             width=settings.SLIDE_WIDTH,
             height=settings.SLIDE_HEIGHT,
             bg=theme.get("background", self.brand.get("primary_color", "#0D0D0D")),
             text_color=self.brand.get("text_color", "#FFFFFF"),
-            accent=self.brand.get("accent_color", "#00C896"),
-            secondary_accent=self.brand.get("secondary_accent", "#FF6B35"),
+            accent=accent,
+            secondary_accent=secondary_accent,
+            warning_color=warning_color,
+            tip_color=tip_color,
+            caution_color=caution_color,
+            accent_rgb=hex_to_rgb(accent),
+            secondary_accent_rgb=hex_to_rgb(secondary_accent),
+            warning_color_rgb=hex_to_rgb(warning_color),
+            tip_color_rgb=hex_to_rgb(tip_color),
+            caution_color_rgb=hex_to_rgb(caution_color),
             logo_b64=self.logo_b64,
             left_label=slide_data.get("left_label", ""),
             right_label=slide_data.get("right_label", ""),
             slide_index=slide_index,
             total_slides=total_slides,
             code_language=slide_data.get("code_language", "cpp"),
+            code_blocks=code_blocks,
             **data,
         )
 
