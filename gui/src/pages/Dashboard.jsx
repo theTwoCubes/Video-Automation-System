@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
 
@@ -28,17 +28,17 @@ function CourseCard({ course }) {
   const pct = totalLessons > 0 ? Math.round((course.done_lessons / totalLessons) * 100) : 0;
 
   return (
-    <Link to={`/curricula/${course.course_id}`} className={cx(S.card, 'block px-5 py-4 hover:border-[#2a2a2a] transition-all duration-150 group')}>
+    <Link to={`/curricula/${course.id}`} className={cx(S.card, 'block px-5 py-4 hover:border-[#2a2a2a] transition-all duration-150 group')}>
       <div className="flex items-start justify-between gap-2 mb-3">
         <div>
           <div className="text-[13px] font-semibold text-white group-hover:text-teal-300 transition-colors">{course.title}</div>
-          <div className="text-[11px] text-zinc-600 mt-0.5">{course.topic || course.course_id}</div>
+          <div className="text-[11px] text-zinc-600 mt-0.5">{course.topic || course.id}</div>
         </div>
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#111] border border-[#222] text-zinc-500 flex-shrink-0">
           {pct}%
         </span>
       </div>
-      {// progress bar}
+      {/* progress bar */}
       <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden mb-3">
         <div
           className="h-full bg-teal-500 rounded-full transition-all duration-500"
@@ -107,7 +107,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-black text-zinc-200 p-8" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-6xl mx-auto space-y-8">
 
-        {// Header}
+        {/* Header */}
         <div className="flex items-end justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
@@ -125,7 +125,7 @@ export function Dashboard() {
           </button>
         </div>
 
-        {// Alert banner}
+        {/* Alert banner */}
         {alerts?.failed_lessons > 0 && (
           <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-300 text-[13px]">
             <span className="text-base mt-0.5">⚠</span>
@@ -139,7 +139,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {// Stat cards}
+        {/* Stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard value={stats.courses}    label="Courses"    />
           <StatCard value={stats.done}       label="Lessons Done"    color="text-emerald-400" />
@@ -147,7 +147,7 @@ export function Dashboard() {
           <StatCard value={stats.failed}     label="Failed"     color="text-red-400" />
         </div>
 
-        {// Usage}
+        {/* Usage */}
         {usage && (
           <div className={cx(S.card, 'px-5 py-4 flex items-center gap-8 flex-wrap')}>
             <span className={S.label} style={{ marginBottom: 0 }}>LLM Usage</span>
@@ -160,7 +160,7 @@ export function Dashboard() {
           </div>
         )}
 
-        {// Course grid}
+        {/* Course grid */}
         <div>
           <span className={S.label}>Active Courses</span>
           {loading && (
@@ -174,12 +174,12 @@ export function Dashboard() {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
-            {(courses || []).map(c => <CourseCard key={c.course_id} course={c} />)}
+            {(courses || []).map(c => <CourseCard key={c.id} course={c} />)}
           </div>
         </div>
       </div>
 
-      {// Create Course Modal}
+      {/* Create Course Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className={cx(S.card, 'w-full max-w-md p-6 space-y-5')}>

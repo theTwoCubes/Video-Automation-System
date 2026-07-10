@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch, usePolling } from '../hooks/useFetch';
 
@@ -29,7 +29,7 @@ function StatusTag({ status }) {
 export function Curricula() {
   const { courseId } = useParams();
   const { data: courses, refresh: refreshCourses } = useFetch(`${API}/courses`);
-  const course = courses?.find(c => c.id === courseId || c.course_id === courseId);
+  const course = courses?.find(c => c.id === courseId);
 
   const [tab, setTab]           = useState('knowledge');
   const [sourceFile, setFile]   = useState(null);
@@ -47,6 +47,18 @@ export function Curricula() {
   const [selSec,     setSelSec]     = useState(null);
   const [secText,    setSecText]    = useState('');
   const [secLoading, setSecLoading] = useState(false);
+  
+  const [expandedSecs, setExpandedSecs] = useState(new Set());
+  function toggleExpanded(id, e) {
+    e.stopPropagation();
+    setExpandedSecs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
 
   useEffect(() => {
     if (ingestStatus?.status === 'done' || ingestStatus?.status === 'failed') refreshCourses();
@@ -111,7 +123,7 @@ export function Curricula() {
   return (
     <div className="min-h-screen bg-black text-zinc-200 flex flex-col" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {// Header}
+      {/* Header */}
       <div className="px-8 pt-7 pb-5 border-b border-[#111]">
         <Link to="/" className="text-[11px] text-zinc-600 hover:text-teal-400 transition-colors flex items-center gap-1 mb-3 w-fit">
           ← Back to Dashboard
@@ -121,10 +133,10 @@ export function Curricula() {
           <h1 className="text-xl font-bold text-white tracking-tight">{course.title}</h1>
           {course.source?.status && <StatusTag status={course.source.status} />}
         </div>
-        <p className="text-zinc-600 text-[13px] ml-4 mt-1">{course.topic || course.course_id}</p>
+        <p className="text-zinc-600 text-[13px] ml-4 mt-1">{course.topic || course.id}</p>
       </div>
 
-      {// Tabs}
+      {/* Tabs */}
       <div className="flex gap-1 px-8 pt-4 border-b border-[#111]">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
@@ -140,17 +152,17 @@ export function Curricula() {
         ))}
       </div>
 
-      {// Body}
+      {/* Body */}
       <div className="flex-1 p-8 overflow-y-auto">
 
-        {// KNOWLEDGE BASE TAB}
+        {/* KNOWLEDGE BASE TAB */}
         {tab === 'knowledge' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 h-full">
 
-            {// Left: Active PDF + Upload}
+            {/* Left: Active PDF + Upload */}
             <div className="space-y-5">
 
-              {// Active source}
+              {/* Active source */}
               {course.source && (
                 <div className={cx(S.card, 'p-4 flex items-start gap-4')}>
                   <div className="w-10 h-10 bg-[#111] border border-[#1e1e1e] rounded-lg flex items-center justify-center text-xl flex-shrink-0">
@@ -166,7 +178,7 @@ export function Curricula() {
                 </div>
               )}
 
-              {// Upload form}
+              {/* Upload form */}
               <div className={cx(S.card, 'p-5')}>
                 <div className="text-[13px] font-semibold text-white mb-1">
                   {course.source ? '↑ Replace Course PDF' : '↑ Upload Course PDF'}
@@ -174,7 +186,7 @@ export function Curricula() {
                 <p className="text-[11px] text-zinc-600 mb-4">One PDF per course. Must follow the structured LaTeX format.</p>
 
                 <form onSubmit={handleUpload} className="space-y-4">
-                  {// Drop zone}
+                  {/* Drop zone */}
                   <label className={cx(
                     'flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all',
                     sourceFile ? 'border-teal-500/40 bg-teal-500/5' : 'border-[#222] hover:border-[#333]'
@@ -195,7 +207,7 @@ export function Curricula() {
                     )}
                   </label>
 
-                  {// Name input}
+                  {/* Name input */}
                   <div>
                     <span className={S.label}>Display Name</span>
                     <input className={S.input} placeholder="e.g. C++ Complete Guide v2"
@@ -223,7 +235,7 @@ export function Curricula() {
               </div>
             </div>
 
-            {// Right: Section browser}
+            {/* Right: Section browser */}
             <div className={cx(S.card, 'flex flex-col overflow-hidden', 'min-h-[400px]')}>
               <div className="px-5 py-3.5 border-b border-[#1a1a1a] flex items-center justify-between flex-shrink-0">
                 <span className="text-[13px] font-semibold text-white">Section Browser</span>
@@ -242,45 +254,68 @@ export function Curricula() {
                 </div>
               ) : (
                 <div className="flex flex-1 overflow-hidden">
-                  {// Tree}
+                  {/* Tree */}
                   <div className="w-1/2 overflow-y-auto border-r border-[#1a1a1a] p-2 space-y-px">
-                    {topLevel.map(ch => (
+                    {topLevel.map(ch => {
+                      const hasChChildren = children(ch.id).length > 0;
+                      const isChExpanded = expandedSecs.has(ch.id);
+                      return (
                       <div key={ch.id}>
-                        <button onClick={() => handleSectionClick(ch.id)}
-                          className={cx(
-                            'w-full text-left px-2.5 py-1.5 rounded-lg text-[12px] font-medium flex items-center gap-2 transition-colors',
-                            selSec === ch.id ? 'bg-teal-500/10 text-teal-300' : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111]'
-                          )}>
-                          <span className="text-zinc-700 font-mono text-[10px] flex-shrink-0">{ch.id}</span>
-                          <span className="truncate">{ch.title}</span>
-                        </button>
-                        {children(ch.id).map(sec => (
-                          <div key={sec.id}>
-                            <button onClick={() => handleSectionClick(sec.id)}
-                              className={cx(
-                                'w-full text-left px-2.5 py-1 pl-5 rounded-lg text-[11px] flex items-center gap-2 transition-colors',
-                                selSec === sec.id ? 'bg-teal-500/10 text-teal-400' : 'text-zinc-500 hover:text-zinc-300 hover:bg-[#111]'
-                              )}>
-                              <span className="text-zinc-700 font-mono text-[10px] flex-shrink-0">{sec.id}</span>
-                              <span className="truncate">{sec.title}</span>
+                        <div className="flex items-center">
+                          {hasChChildren ? (
+                            <button onClick={(e) => toggleExpanded(ch.id, e)} className="p-1 hover:bg-[#111] rounded text-zinc-500 w-5 h-5 flex items-center justify-center flex-shrink-0 mr-1">
+                              {isChExpanded ? '▼' : '▶'}
                             </button>
-                            {children(sec.id).map(sub => (
-                              <button key={sub.id} onClick={() => handleSectionClick(sub.id)}
+                          ) : <div className="w-5 mr-1 flex-shrink-0" />}
+                          <button onClick={() => handleSectionClick(ch.id)}
+                            className={cx(
+                              'w-full text-left px-2 py-1.5 rounded-lg text-[12px] font-medium flex items-center gap-2 transition-colors',
+                              selSec === ch.id ? 'bg-teal-500/10 text-teal-300' : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#111]'
+                            )}>
+                            <span className="text-zinc-700 font-mono text-[10px] flex-shrink-0">{ch.id}</span>
+                            <span className="truncate">{ch.title}</span>
+                          </button>
+                        </div>
+                        {isChExpanded && children(ch.id).map(sec => {
+                          const hasSecChildren = children(sec.id).length > 0;
+                          const isSecExpanded = expandedSecs.has(sec.id);
+                          return (
+                          <div key={sec.id}>
+                            <div className="flex items-center pl-4">
+                              {hasSecChildren ? (
+                                <button onClick={(e) => toggleExpanded(sec.id, e)} className="p-1 hover:bg-[#111] rounded text-zinc-500 w-5 h-5 flex items-center justify-center flex-shrink-0 mr-1">
+                                  {isSecExpanded ? '▼' : '▶'}
+                                </button>
+                              ) : <div className="w-5 mr-1 flex-shrink-0" />}
+                              <button onClick={() => handleSectionClick(sec.id)}
                                 className={cx(
-                                  'w-full text-left px-2.5 py-1 pl-8 rounded-lg text-[10px] flex items-center gap-2 transition-colors',
-                                  selSec === sub.id ? 'bg-teal-500/10 text-teal-400' : 'text-zinc-600 hover:text-zinc-400 hover:bg-[#111]'
+                                  'w-full text-left px-2 py-1 rounded-lg text-[11px] flex items-center gap-2 transition-colors',
+                                  selSec === sec.id ? 'bg-teal-500/10 text-teal-400' : 'text-zinc-500 hover:text-zinc-300 hover:bg-[#111]'
                                 )}>
-                                <span className="text-zinc-700 font-mono flex-shrink-0">{sub.id}</span>
-                                <span className="truncate">{sub.title}</span>
+                                <span className="text-zinc-700 font-mono text-[10px] flex-shrink-0">{sec.id}</span>
+                                <span className="truncate">{sec.title}</span>
                               </button>
+                            </div>
+                            {isSecExpanded && children(sec.id).map(sub => (
+                              <div key={sub.id} className="flex items-center pl-10">
+                                <div className="w-5 mr-1 flex-shrink-0" />
+                                <button onClick={() => handleSectionClick(sub.id)}
+                                  className={cx(
+                                    'w-full text-left px-2 py-1 rounded-lg text-[10px] flex items-center gap-2 transition-colors',
+                                    selSec === sub.id ? 'bg-teal-500/10 text-teal-400' : 'text-zinc-600 hover:text-zinc-400 hover:bg-[#111]'
+                                  )}>
+                                  <span className="text-zinc-700 font-mono flex-shrink-0">{sub.id}</span>
+                                  <span className="truncate">{sub.title}</span>
+                                </button>
+                              </div>
                             ))}
                           </div>
-                        ))}
+                        )})}
                       </div>
-                    ))}
+                    )})}
                   </div>
 
-                  {// Text preview}
+                  {/* Text preview */}
                   <div className="w-1/2 overflow-y-auto p-4">
                     {!selSec && (
                       <div className="text-zinc-700 text-[12px] mt-4 text-center italic">
@@ -300,7 +335,7 @@ export function Curricula() {
           </div>
         )}
 
-        {// CURRICULUM TAB}
+        {/* CURRICULUM TAB */}
         {tab === 'curriculum' && (
           <div className="max-w-3xl space-y-5">
 
@@ -353,20 +388,71 @@ export function Curricula() {
               </div>
             )}
 
-            {// Output JSON}
+            {/* Output Curriculum */}
             {(!currStatus || currStatus.status === 'done') && (
-              <div className={cx(S.card, 'overflow-hidden')}>
-                <div className="px-4 py-2.5 border-b border-[#1a1a1a] flex items-center gap-2 bg-[#0a0a0a]">
-                  <span className="w-2 h-2 rounded-full bg-[#222]" />
-                  <span className="text-[10px] font-mono text-zinc-600">curriculum.json</span>
-                </div>
-                <div className="p-4 overflow-x-auto max-h-96">
-                  <pre className="text-[11px] text-zinc-400 font-mono leading-relaxed">
-                    {currStatus?.curriculum
-                      ? JSON.stringify(currStatus.curriculum, null, 2)
-                      : 'No curriculum generated yet.'}
-                  </pre>
-                </div>
+              <div className="space-y-4">
+                {(() => {
+                  const currData = currStatus?.curriculum || course.curriculum;
+                  if (!currData || !currData.lectures) {
+                    return (
+                      <div className={cx(S.card, 'p-6 text-center text-zinc-500 text-[13px]')}>
+                        No curriculum generated yet.
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className={cx(S.card, 'overflow-hidden')}>
+                      <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center justify-between bg-[#0a0a0a]">
+                        <span className="text-[13px] font-semibold text-white">Generated Curriculum</span>
+                        <span className="text-[11px] font-mono text-zinc-500 bg-[#111] px-2 py-1 rounded-md border border-[#222]">
+                          {currData.total_lectures || currData.lectures.length} lessons
+                        </span>
+                      </div>
+                      <div className="divide-y divide-[#1a1a1a] max-h-[600px] overflow-y-auto">
+                        {currData.lectures.map((lec, i) => (
+                          <div key={i} className="p-5 hover:bg-[#080808] transition-colors">
+                            <div className="flex items-start justify-between gap-4 mb-2">
+                              <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-bold text-teal-500 bg-teal-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
+                                  {lec.position || (i + 1)}
+                                </span>
+                                <h3 className="text-[14px] font-medium text-white">{lec.title}</h3>
+                              </div>
+                              <span className="text-[10px] text-zinc-500 whitespace-nowrap bg-[#111] border border-[#222] px-2 py-1 rounded-md flex-shrink-0">
+                                {lec.estimated_minutes} min
+                              </span>
+                            </div>
+                            
+                            <div className="pl-11">
+                              <div className="flex items-center flex-wrap gap-2 mb-2">
+                                <span className={cx(
+                                  "text-[10px] px-2 py-0.5 rounded-sm border",
+                                  lec.difficulty === 'beginner' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                  lec.difficulty === 'intermediate' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                  'bg-red-500/10 text-red-400 border-red-500/20'
+                                )}>
+                                  {lec.difficulty}
+                                </span>
+                                {lec.topic_tags?.slice(0, 4).map(tag => (
+                                  <span key={tag} className="text-[10px] text-zinc-400 bg-[#111] px-1.5 py-0.5 rounded-sm">#{tag}</span>
+                                ))}
+                                {lec.topic_tags?.length > 4 && (
+                                  <span className="text-[10px] text-zinc-600">+{lec.topic_tags.length - 4}</span>
+                                )}
+                              </div>
+                              
+                              <div className="text-[11px] text-zinc-500 mt-2 flex items-center gap-1.5 flex-wrap">
+                                <span className="text-zinc-600">Primary Sections:</span> 
+                                <span className="font-mono text-zinc-400">{lec.primary_sections?.join(', ')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>

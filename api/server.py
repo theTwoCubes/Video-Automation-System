@@ -1,4 +1,4 @@
-﻿"""
+"""
 FastAPI backend for the theTwoCubes GUI dashboard.
 Run: uvicorn api.server:app --reload --port 8000
 """
@@ -78,12 +78,21 @@ def list_courses():
                         "section_count": src.section_count,
                         "status": src.status,
                     }
+            import json
+            curriculum_data = None
+            if c.curriculum:
+                try:
+                    curriculum_data = json.loads(c.curriculum)
+                except Exception:
+                    pass
+
             result.append({
                 "id": c.id,
                 "title": c.title,
                 "topic": c.topic,
                 "target_audience": getattr(c, "target_audience", ""),
                 "source": source_data,
+                "curriculum": curriculum_data,
                 "total_lessons": len(lessons),
                 "done_lessons": done,
                 "pending_lessons": sum(1 for l in lessons if l.status == "pending"),
@@ -170,24 +179,6 @@ def list_lessons(course_id: str):
     finally:
         db.close()
 
-
-@app.get("/api/lessons/{lesson_id}/slides")
-def get_slides(lesson_id: str):
-    db = _db()
-    if not db:
-        return {"slides": []}
-    try:
-        from db import models
-        lesson = db.get(models.Lesson, lesson_id)
-        if not lesson or not lesson.output_dir:
-            raise HTTPException(status_code=404, detail="Lesson not found")
-        slide_dir = Path(lesson.output_dir) / "slides"
-        if not slide_dir.exists():
-            return {"slides": []}
-        slides = sorted(slide_dir.glob("*.png"))
-        return {"slides": [str(s) for s in slides]}
-    finally:
-        db.close()
 
 
 # PDF Processing (replaces old ingestion + ChromaDB)
@@ -773,10 +764,10 @@ def list_rendered_lessons():
             lesson_id = lesson_dir.name.split("_", 1)[1] if "_" in lesson_dir.name else lesson_dir.name
             title = "Unknown"
             try:
-                plan_cp = cp_dir / "lesson_planner.json"
+                plan_cp = cp_dir / "plan_lesson.json"
                 if plan_cp.exists():
                     plan = json.loads(plan_cp.read_text(encoding="utf-8"))
-                    title = plan.get("lesson_title", plan.get("title", title))
+                    title = plan.get("lesson_plan", {}).get("title", title)
             except Exception:
                 pass
             has_video = bool(list(lesson_dir.glob("*_final.mp4"))) or (lesson_dir / "lesson_rerendered.mp4").exists()
