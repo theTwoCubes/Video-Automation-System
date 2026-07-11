@@ -11,12 +11,31 @@ Runs ffprobe on the composed video and checks:
 from __future__ import annotations
 import subprocess
 import re
+import shutil
 from pathlib import Path
 
 
+def _find_ffprobe(ffmpeg_exe: str) -> str | None:
+    """Best-effort locate an ffprobe binary alongside the resolved ffmpeg one.
+
+    ffmpeg_exe usually comes from imageio_ffmpeg.get_ffmpeg_exe(), which only
+    ships an ffmpeg binary - the naive ffmpeg_exe.replace('ffmpeg', 'ffprobe')
+    path never exists, so probing silently failed and every video got flagged
+    with false 'No video/audio track found' issues regardless of its actual
+    content. Fall back to PATH, and let the caller use ffmpeg-based probing
+    (_probe_streams_via_ffmpeg) if neither is found.
+    """
+    candidate = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+    if candidate != ffmpeg_exe and Path(candidate).exists():
+        return candidate
+    return shutil.which("ffprobe")
+
+
 def _ffprobe(video_path: str, ffmpeg_exe: str) -> dict:
-    """Run ffprobe and return parsed stream info."""
-    probe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
+    """Run ffprobe and return parsed stream info, or {} if ffprobe is unavailable."""
+    probe_exe = _find_ffprobe(ffmpeg_exe)
+    if not probe_exe:
+        return {}
     cmd = [
         probe_exe, "-v", "quiet",
         "-print_format", "json",
@@ -26,12 +45,32 @@ def _ffprobe(video_path: str, ffmpeg_exe: str) -> dict:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         if r.returncode != 0:
-            # fallback: parse ffmpeg -i stderr
             return {}
         import json
         return json.loads(r.stdout)
     except Exception:
         return {}
+
+
+def _probe_streams_via_ffmpeg(video_path: str, ffmpeg_exe: str) -> dict:
+    """Fallback stream detection when no ffprobe binary is available at all.
+    Parses `ffmpeg -i` stderr, which always lists each stream's type and (for
+    video) resolution even though it's meant for humans, not machines."""
+    r = subprocess.run([ffmpeg_exe, "-i", str(video_path)], capture_output=True, text=True)
+    stderr = r.stderr
+
+    streams = []
+    video_match = re.search(r"Stream #\d+:\d+.*?Video:.*?(\d{2,5})x(\d{2,5})", stderr)
+    if video_match:
+        streams.append({
+            "codec_type": "video",
+            "width": int(video_match.group(1)),
+            "height": int(video_match.group(2)),
+        })
+    if re.search(r"Stream #\d+:\d+.*?Audio:", stderr):
+        streams.append({"codec_type": "audio"})
+
+    return {"streams": streams, "format": {}}
 
 
 def _get_duration_ffmpeg(path: str, ffmpeg_exe: str) -> float:
@@ -86,8 +125,10 @@ def validate_video(
         issues.append(f"File too small ({size_mb:.2f} MB) - likely corrupt or empty")
         return {"passed": False, "issues": issues, "metrics": metrics}
 
-    # Stream info
+    # Stream info - fall back to parsing `ffmpeg -i` when ffprobe isn't installed
     info = _ffprobe(video_path, ffmpeg_exe)
+    if not info.get("streams"):
+        info = _probe_streams_via_ffmpeg(video_path, ffmpeg_exe)
     streams = info.get("streams", [])
 
     video_streams = [s for s in streams if s.get("codec_type") == "video"]

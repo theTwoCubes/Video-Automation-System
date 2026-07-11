@@ -155,7 +155,7 @@ class SlideRenderer:
             await b.close()
         return output_path
 
-    async def _render_slides_async(self, slides: list, output_dir: str) -> list:
+    async def _render_slides_async(self, slides: list, output_dir: str, prefix: str = "") -> list:
         """Render all slides in a single shared Playwright browser session."""
         from playwright.async_api import async_playwright
         Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -164,7 +164,8 @@ class SlideRenderer:
         async with async_playwright() as p:
             browser = await p.chromium.launch()
             for i, slide_data in enumerate(slides):
-                out = str(Path(output_dir) / f"slide_{i:04d}.png")
+                slide_id = slide_data.get("id") or f"slide_{i:04d}"
+                out = str(Path(output_dir) / f"{prefix}{slide_id}.png")
                 await self.render_slide_async(slide_data, out, slide_index=i, total_slides=total, browser=browser)
                 paths.append(out)
                 print(f"  Rendered slide {i + 1}/{total}")
@@ -174,14 +175,14 @@ class SlideRenderer:
     def render_slide(self, slide_data: dict, output_path: str, slide_index: int = 0, total_slides: int = 0) -> str:
         return asyncio.run(self.render_slide_async(slide_data, output_path, slide_index, total_slides))
 
-    def render_slides(self, slides: list[dict], output_dir: str) -> list[str]:
+    def render_slides(self, slides: list[dict], output_dir: str, prefix: str = "") -> list[str]:
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import nest_asyncio
                 nest_asyncio.apply()
-                return loop.run_until_complete(self._render_slides_async(slides, output_dir))
+                return loop.run_until_complete(self._render_slides_async(slides, output_dir, prefix))
             else:
-                return asyncio.run(self._render_slides_async(slides, output_dir))
+                return asyncio.run(self._render_slides_async(slides, output_dir, prefix))
         except Exception:
-            return asyncio.run(self._render_slides_async(slides, output_dir))
+            return asyncio.run(self._render_slides_async(slides, output_dir, prefix))

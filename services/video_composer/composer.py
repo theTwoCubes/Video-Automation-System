@@ -37,7 +37,7 @@ def _fwd(p: Path) -> str:
     return str(p.resolve()).replace("\\", "/")
 
 
-_SILENCE_GAP_MS = 300
+_SILENCE_GAP_MS = 500
 
 
 def _make_gap_silence(reference_dir: Path, ffmpeg_exe: str, gap_ms: int = _SILENCE_GAP_MS) -> Path:
@@ -101,8 +101,8 @@ def _apply_ducked_music(
     output_path: str,
     ffmpeg_exe: str,
     bg_track: str = "assets/music/bg_track.mp3",
-    bg_volume: float = 0.5,
-    ducking_ratio: float = 8.0,
+    bg_volume: float = 0.15,
+    ducking_ratio: float = 14.0,
 ) -> str:
     """
     Mix background music with sidechain ducking.
@@ -119,7 +119,7 @@ def _apply_ducked_music(
     filter_complex = (
         f"[1:a]volume={bg_volume}[bg_raw];"
         f"[0:a]asplit=2[sc][main];"
-        f"[bg_raw][sc]sidechaincompress=threshold=0.02:ratio={ducking_ratio}:attack=100:release=1000[bg_ducked];"
+        f"[bg_raw][sc]sidechaincompress=threshold=0.015:ratio={ducking_ratio}:attack=50:release=800[bg_ducked];"
         f"[main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2[out_a]"
     )
     cmd = [
@@ -185,13 +185,15 @@ def _apply_xfade_transitions(
         offset += max(durations[i - 1] - transition_duration, 0.1)
         out_v = f"[v{i}]"
         out_a = f"[a{i}]"
-        # use hint for the incoming segment
         trans = hints[i] if hints[i] in _VALID_TRANSITIONS else "fade"
         vf_parts.append(
             f"{last_v}[{i}:v]xfade=transition={trans}:duration={transition_duration}:offset={offset:.3f}{out_v}"
         )
+        # Clean audio concat with short fade-out/fade-in instead of crossfade
+        # which blends two narration segments together and sounds garbled
+        fade_ms = int(transition_duration * 1000)
         af_parts.append(
-            f"{last_a}[{i}:a]acrossfade=d={transition_duration}{out_a}"
+            f"{last_a}[{i}:a]concat=n=2:v=0:a=1{out_a}"
         )
         last_v = out_v
         last_a = out_a
@@ -258,8 +260,48 @@ def _apply_ken_burns(
 ANIMATION_PRESETS = {
     "minimal": {"transition_duration": 0.3, "ken_burns": False},
     "smooth":  {"transition_duration": 0.5, "ken_burns": False},
-    "dynamic": {"transition_duration": 0.5, "ken_burns": False},  # layout-aware transitions
+    "dynamic": {"transition_duration": 0.5, "ken_burns": False},
 }
+
+# Layout-aware transition mapping: gives each layout type a visually fitting transition
+_LAYOUT_TRANSITIONS = {
+    "title": "fadeblack",
+    "chapter_title": "fadeblack",
+    "agenda": "slideleft",
+    "content": "fade",
+    "prose": "fade",
+    "analogy": "smoothleft",
+    "timeline": "slideleft",
+    "code": "wipedown",
+    "code_output": "wipedown",
+    "two_column": "wipeleft",
+    "comparison": "wipeleft",
+    "big_number": "zoomin",
+    "quote": "dissolve",
+    "key_insight": "dissolve",
+    "hook": "fadeblack",
+    "summary": "fadeblack",
+    "quiz": "slideup",
+    "bar_chart": "slideup",
+    "think_pause": "dissolve",
+    "warning": "fade",
+    "tip": "fade",
+    "definition": "fade",
+    "mental_model": "smoothleft",
+    "numbered_steps": "slideleft",
+    "cycle": "circlecrop",
+    "checkpoint": "fade",
+}
+
+
+def resolve_transition_hints(slide_contents: list) -> list:
+    """Generate layout-aware transition hints from slide data."""
+    hints = []
+    for slide in slide_contents:
+        layout = slide.get("layout", "content")
+        hint = _LAYOUT_TRANSITIONS.get(layout, "fade")
+        hints.append(hint)
+    return hints
 
 
 
@@ -350,8 +392,8 @@ def compose_video_aligned(
     animation_preset: str = "smooth",
     ken_burns: bool = False,
     music_track: str = "assets/music/bg_track.mp3",
-    bg_volume: float = 0.5,
-    ducking_ratio: float = 8.0,
+    bg_volume: float = 0.15,
+    ducking_ratio: float = 14.0,
     intro_sting: str = "",
     outro_music: str = "",
     lesson_title: str = "",

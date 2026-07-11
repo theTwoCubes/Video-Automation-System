@@ -110,7 +110,11 @@ class VoiceAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.tts = get_tts()
-        self._executor = ThreadPoolExecutor(max_workers=8)
+        # 4, not 8 - edge-tts's websocket endpoint drops connections more often
+        # under heavier concurrent load, and each failed call now retries with
+        # backoff (see EdgeTTSProvider.synthesize_sync), so fewer parallel
+        # connections trades a bit of wall-clock time for materially fewer drops.
+        self._executor = ThreadPoolExecutor(max_workers=4)
 
     def run(self, state: dict) -> dict:
         print("[VoiceAgent] Synthesizing audio...")

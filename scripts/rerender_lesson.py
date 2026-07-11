@@ -17,6 +17,11 @@ import json
 import sys
 from pathlib import Path
 
+# Force unbuffered output so logs appear in real-time
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+
 # ensure project root is in path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -90,6 +95,9 @@ def rerender_voice(output_dir: Path, profile: dict, voice_override: str = None) 
 
     from providers.tts.edge_tts_provider import EdgeTTSProvider
     tts = EdgeTTSProvider()
+    tts.voice = voice_name
+    tts.rate = rate
+    tts.pitch = pitch
 
     # Write to isolated folder to preserve original audio
     audio_dir = output_dir / "audio_rerender"
@@ -102,7 +110,7 @@ def rerender_voice(output_dir: Path, profile: dict, voice_override: str = None) 
             continue
         out_path = str(audio_dir / f"seg_{i:04d}.mp3")
         try:
-            tts.synthesize(text, out_path, voice=voice_name, rate=rate, pitch=pitch)
+            tts.synthesize_sync(text, out_path)
             audio_paths.append(out_path)
             print(f"  Segment {i + 1}/{len(segments)}: {len(text)} chars")
         except Exception as e:

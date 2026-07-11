@@ -11,7 +11,7 @@ import subprocess
 from collections import OrderedDict
 from pathlib import Path
 from agents.base_agent import BaseAgent
-from services.video_composer.composer import compose_video_aligned
+from services.video_composer.composer import compose_video_aligned, _LAYOUT_TRANSITIONS
 from services.slide_renderer.renderer import SlideRenderer
 
 # A single slide_id should never hold the screen for longer than this - past it,
@@ -129,7 +129,8 @@ class VideoAgent(BaseAgent):
                       f"for this segment until the slide render is fixed.")
                 img = fb
             sd = slide_content_map.get(slide_id, {})
-            hint = sd.get("transition_hint", "fade")
+            layout = sd.get("layout", "content")
+            hint = _LAYOUT_TRANSITIONS.get(layout, sd.get("transition_hint", "fade"))
 
             for chunk in self._split_by_duration(audio_diag_pairs, ffmpeg_exe, MAX_SLIDE_SECONDS):
                 chunk_audios = [a for a, _ in chunk]
@@ -403,10 +404,10 @@ class VideoAgent(BaseAgent):
             out = segments_dir / f"diagram_{i:04d}.mp4"
             cmd = [
                 ffmpeg_exe, "-y",
-                "-stream_loop", "-1", "-i", _fwd(Path(diagram_video)),
+                "-i", _fwd(Path(diagram_video)),
                 "-i", _fwd(merged),
                 "-t", f"{total_dur:.3f}",
-                "-vf", "scale=1920:1080:flags=lanczos",
+                "-vf", f"scale=1920:1080:flags=lanczos,tpad=stop_mode=clone:stop_duration={total_dur:.3f}",
                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
                 "-c:a", "aac", "-b:a", "192k",
                 "-shortest",
