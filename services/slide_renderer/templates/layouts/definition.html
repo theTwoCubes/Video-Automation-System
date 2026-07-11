@@ -1,0 +1,18 @@
+      {% if not tag %}<div class="def-label">Definition</div>{% endif %}
+      <h2 class="{% if headline|length > 35 %}long-title{% endif %}{% if headline|length > 55 %} very-long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="def-box">
+        <div class="def-equation">
+          {% set eq = bullets[0] if bullets else '' %}
+          {% if '=' in eq %}
+            <span class="eq-lhs">{{ eq.split('=')[0].strip()|e }}</span>
+            <span class="eq-op">=</span>
+            <span class="eq-rhs">{{ eq.split('=', 1)[1].strip()|e }}</span>
+          {% else %}
+            {{ eq|e }}
+          {% endif %}
+        </div>
+      </div>
+      {% if bullets|length > 1 %}<div class="def-description">{{ bullets[1]|md }}</div>{% endif %}
+      {% if context %}<div class="def-context">{{ context|md }}</div>{% endif %}
+
+    {# ===== CHAPTER TITLE ===== #}

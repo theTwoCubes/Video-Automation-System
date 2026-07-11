@@ -6,6 +6,7 @@ from typing import Literal
 from langgraph.graph import StateGraph, END
 
 from contracts.schemas import PipelineState
+from contracts.validation import validate_step
 from agents.lesson_planner_agent import LessonPlannerAgent
 from agents.script_agent import ScriptAgent
 from agents.code_agent import CodeAgent
@@ -78,6 +79,20 @@ def _with_checkpoint(step_name: str, agent_fn):
             err_msg = f"Exception in {step_name}:\n{e}\n{traceback.format_exc()}"
             print(f"[Error] {err_msg}")
             result = {**state, "error": err_msg}
+
+        # Validate this agent's declared outputs at its own boundary, so a
+        # malformed/empty result fails here with a clear message rather than
+        # crashing a downstream agent. Warnings are advisory; errors are fatal
+        # and prevent a bad output from being checkpointed.
+        if not result.get("error"):
+            errs, warns = validate_step(step_name, result)
+            for w in warns:
+                print(f"[Validate:{step_name}] WARNING: {w}")
+            if errs:
+                msg = (f"Boundary validation failed after {step_name}: "
+                       + "; ".join(errs))
+                print(f"[Validate:{step_name}] ERROR: {msg}")
+                result = {**result, "error": msg}
 
         if output_dir and not result.get("error") and fields:
             _save_checkpoint(output_dir, step_name, result, fields)

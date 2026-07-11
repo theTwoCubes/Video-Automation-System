@@ -6,9 +6,11 @@ const links = [
   { to: '/testing',  icon: '⬡', label: 'Testing Studio', accent: true },
 ];
 
+// Settings routes to a real page; Docs opens the live FastAPI reference. Both
+// previously pointed at nonexistent routes that silently redirected home.
 const bottom = [
-  { to: '/settings',    icon: '⊙', label: 'Settings' },
-  { to: '/docs',        icon: '◎', label: 'Docs'     },
+  { to: '/settings', icon: '⊙', label: 'Settings' },
+  { href: 'http://localhost:8000/docs', icon: '◎', label: 'API Docs', external: true },
 ];
 
 export function Sidebar() {
@@ -52,10 +54,21 @@ export function Sidebar() {
 
       {/* Bottom links */}
       <div className="px-3 py-4 border-t border-[#111] space-y-0.5">
-        {bottom.map(({ to, icon, label }) => (
+        {bottom.map((item) => item.external ? (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] text-zinc-600 hover:text-zinc-400 transition-all duration-150"
+          >
+            <span className="text-sm leading-none w-4 text-center flex-shrink-0">{item.icon}</span>
+            {item.label}
+          </a>
+        ) : (
           <NavLink
-            key={to}
-            to={to}
+            key={item.to}
+            to={item.to}
             className={({ isActive }) =>
               [
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] transition-all duration-150',
@@ -63,8 +76,8 @@ export function Sidebar() {
               ].join(' ')
             }
           >
-            <span className="text-sm leading-none w-4 text-center flex-shrink-0">{icon}</span>
-            {label}
+            <span className="text-sm leading-none w-4 text-center flex-shrink-0">{item.icon}</span>
+            {item.label}
           </NavLink>
         ))}
       </div>

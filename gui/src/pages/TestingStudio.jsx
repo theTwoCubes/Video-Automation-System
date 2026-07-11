@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 
+import { S, cx } from '../lib/ui';
+
 const API = 'http://localhost:8000';
-const cx = (...a) => a.filter(Boolean).join(' ');
 
 // Data hook
 function useAPI(url, deps = []) {
@@ -19,14 +20,6 @@ function useAPI(url, deps = []) {
   }, deps);
   return { data, loading, error };
 }
-
-// Design tokens
-const S = {
-  label: 'text-[10px] font-bold text-teal-400 uppercase tracking-[0.15em] mb-1.5 block',
-  card:  'bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl',
-  input: 'w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition-colors',
-  pill:  'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
-};
 
 // Status pill
 function StatusPill({ status }) {
@@ -103,62 +96,128 @@ function LogPanel({ lines, status }) {
   );
 }
 
-// Slide gallery
-function SlideGallery({ lessonId, refreshKey }) {
-  const { data: slides, loading } = useAPI(
-    `/api/lessons/${lessonId}/slides`,
-    [lessonId, refreshKey]
-  );
+// Slide studio - preview, thumbnail strip, per-slide text editor, and a
+// before/after view after re-rendering a single edited slide.
+const EDIT_FIELDS = ['headline', 'subtitle', 'paragraph', 'callout', 'whats_next',
+  'connection', 'explanation', 'number', 'label', 'context', 'question'];
+
+function SlideStudio({ lessonId, refreshKey }) {
+  const { data: slideList, loading } = useAPI(`/api/lessons/${lessonId}/slides`, [lessonId, refreshKey]);
+  const { data: contents } = useAPI(`/api/lessons/${lessonId}/slide-contents`, [lessonId, refreshKey]);
+  const slides = slideList || [];
+  const specs = (contents && contents.slide_contents) || [];
+
   const [sel, setSel] = useState(0);
+  const [draft, setDraft] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [beforeUrl, setBeforeUrl] = useState(null);
+  const [afterUrl, setAfterUrl] = useState(null);
 
   useEffect(() => { setSel(0); }, [lessonId, refreshKey]);
+  useEffect(() => {
+    setDraft(specs[sel] ? { ...specs[sel] } : {});
+    setBeforeUrl(null); setAfterUrl(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sel, contents]);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-40 text-zinc-600 text-sm">
-      Loading slides...
-    </div>
+    <div className="flex items-center justify-center h-40 text-zinc-600 text-sm">Loading slides...</div>
   );
-  if (!slides?.length) return (
-    <div className="flex items-center justify-center h-40 text-zinc-700 text-sm italic">
-      No slides found
-    </div>
+  if (!slides.length) return (
+    <div className="flex items-center justify-center h-40 text-zinc-700 text-sm italic">No slides found</div>
   );
+
+  const spec = specs[sel] || {};
+  const present = EDIT_FIELDS.filter(f => f in spec);
+  const setField = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+
+  async function rerender() {
+    if (!spec.id) return;
+    setBusy(true); setBeforeUrl(`${API}/static/${slides[sel]}`); setAfterUrl(null);
+    try {
+      const res = await fetch(`${API}/api/lessons/${lessonId}/slides/${spec.id}/rerender`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: draft }),
+      });
+      const data = await res.json();
+      if (res.ok && data.path) setAfterUrl(`${API}/static/${data.path}?v=${Date.now()}`);
+      else alert(data.detail || 'Re-render failed');
+    } catch { alert('Re-render failed'); }
+    finally { setBusy(false); }
+  }
 
   return (
     <div className="space-y-3">
       {/* main preview */}
-      <div className={cx(S.card, 'overflow-hidden relative group')}>
-        <img
-          src={`${API}/static/${slides[sel]}`}
-          alt={`Slide ${sel + 1}`}
-          className="w-full block"
-          onError={e => { e.target.alt = 'Image unavailable'; }}
-        />
+      <div className={cx(S.card, 'overflow-hidden relative')}>
+        <img src={`${API}/static/${slides[sel]}`} alt={`Slide ${sel + 1}`} className="w-full block" />
         <div className="absolute bottom-2 right-3 bg-black/60 text-zinc-400 text-[10px] font-mono px-2 py-1 rounded">
           {sel + 1} / {slides.length}
         </div>
       </div>
       {/* thumbnail strip */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {slides.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => setSel(i)}
-            className={cx(
-              'flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden border-2 transition-all duration-150',
-              i === sel
-                ? 'border-teal-500 ring-1 ring-teal-500/30'
-                : 'border-[#222] hover:border-[#444]'
-            )}
-          >
-            <img
-              src={`${API}/static/${s}`}
-              alt={`Slide ${i + 1}`}
-              className="w-full h-full object-cover"
-            />
+          <button key={i} onClick={() => setSel(i)}
+            className={cx('flex-shrink-0 w-20 h-12 rounded-lg overflow-hidden border-2 transition-all duration-150',
+              i === sel ? 'border-teal-500 ring-1 ring-teal-500/30' : 'border-[#222] hover:border-[#444]')}>
+            <img src={`${API}/static/${s}`} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
+
+      {/* per-slide editor */}
+      {spec.id && (
+        <div className={cx(S.card, 'p-4 space-y-3')}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] font-mono text-zinc-500">{spec.id} · {spec.layout}</span>
+            <button onClick={rerender} disabled={busy}
+              className={cx('text-[12px] font-bold px-3 py-1.5 rounded-lg transition-colors',
+                busy ? 'bg-[#111] text-zinc-500 border border-[#222]' : 'bg-teal-500 hover:bg-teal-400 text-black')}>
+              {busy ? 'Rendering…' : '↻ Re-render slide'}
+            </button>
+          </div>
+          {present.map(f => {
+            const val = String(draft[f] ?? '');
+            return (
+              <div key={f}>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{f}</span>
+                {val.length > 60 ? (
+                  <textarea className={cx(S.input, 'resize-none h-16')} value={val} onChange={e => setField(f, e.target.value)} />
+                ) : (
+                  <input className={S.input} value={val} onChange={e => setField(f, e.target.value)} />
+                )}
+              </div>
+            );
+          })}
+          {Array.isArray(spec.bullets) && (
+            <div>
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wide">bullets (one per line)</span>
+              <textarea className={cx(S.input, 'resize-none h-24')}
+                value={(draft.bullets || []).join('\n')}
+                onChange={e => setField('bullets', e.target.value.split('\n').filter(x => x.trim() !== ''))} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* before / after */}
+      {(beforeUrl || afterUrl) && (
+        <div>
+          <span className={S.label}>Before / After</span>
+          <div className="grid grid-cols-2 gap-3">
+            <div className={cx(S.card, 'overflow-hidden')}>
+              <div className="text-[10px] text-zinc-500 px-2 py-1 border-b border-[#1a1a1a]">Before</div>
+              {beforeUrl && <img src={beforeUrl} alt="before" className="w-full block" />}
+            </div>
+            <div className={cx(S.card, 'overflow-hidden')}>
+              <div className="text-[10px] text-teal-400 px-2 py-1 border-b border-[#1a1a1a]">After</div>
+              {afterUrl ? <img src={afterUrl} alt="after" className="w-full block" />
+                : <div className="h-40 flex items-center justify-center text-zinc-700 text-xs">rendering…</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -441,10 +500,10 @@ export function TestingStudio() {
                 <StatusPill status={status} />
               </div>
 
-              {/* Slide gallery */}
+              {/* Slide studio: preview + per-slide editor */}
               <div>
-                <span className={S.label}>Slide Gallery</span>
-                <SlideGallery
+                <span className={S.label}>Slide Studio</span>
+                <SlideStudio
                   key={`${lesson.lesson_id}-${refreshGallery}`}
                   lessonId={lesson.lesson_id}
                   refreshKey={refreshGallery}

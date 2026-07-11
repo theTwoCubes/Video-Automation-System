@@ -1,4 +1,5 @@
 ﻿from agents.base_agent import BaseAgent
+from config.settings import settings
 
 
 SYSTEM_PROMPT = """You are a code generation agent for theTwoCubes Learning.
@@ -106,13 +107,55 @@ class CodeAgent(BaseAgent):
             if not source_code:
                 continue
 
-            # Bypass execution for security reasons. Assume LLM code is valid.
-            result["actual_output"] = result.get("expected_output", "")
-            result["is_validated"] = True
             result["id"] = code_id
 
-            print(f"  Generated (Unsandboxed): {code_id}")
+            if settings.ENABLE_CODE_EXECUTION:
+                # Opt-in: actually run the generated code in a sandboxed
+                # subprocess and record REAL output. A compile/runtime failure
+                # is a genuine validation failure - retry generation.
+                exec_result = self._execute(language, source_code)
+                if exec_result is None:
+                    # language unsupported / toolchain missing - can't validate,
+                    # but don't fabricate output. Ship it flagged unvalidated.
+                    result["actual_output"] = ""
+                    result["is_validated"] = False
+                    print(f"  Generated (unvalidated - no runner for {language}): {code_id}")
+                    return result
+                if not exec_result.success:
+                    print(f"  Attempt {attempt+1}: code failed to run, regenerating...\n"
+                          f"    {exec_result.stderr[:160]}")
+                    continue
+                result["actual_output"] = exec_result.stdout.strip()
+                result["is_validated"] = True
+                print(f"  Validated by execution: {code_id}")
+                return result
+
+            # Execution disabled (default). Do NOT claim validation and do NOT
+            # copy expected_output into actual_output - showing fabricated output
+            # as if it were real is a correctness/trust liability in a teaching
+            # product. The slide/QA layers treat unvalidated code accordingly.
+            result["actual_output"] = ""
+            result["is_validated"] = False
+            print(f"  Generated (execution disabled - unvalidated): {code_id}")
             return result
 
         # all attempts failed
         return {"id": code_id, "is_validated": False}
+
+    def _execute(self, language: str, source_code: str):
+        """Run code via the sandbox executor. Returns an ExecutionResult, or
+        None if the language/toolchain isn't available (so the caller can ship
+        the example flagged unvalidated rather than failing the lesson)."""
+        try:
+            from services.code_sandbox.executor import execute_code, LANGUAGE_CONFIGS
+            if language.lower() not in LANGUAGE_CONFIGS:
+                return None
+            res = execute_code(language, source_code)
+            # A missing compiler/runtime surfaces as exit 127 - treat as "no
+            # runner", not as a code defect worth regenerating over.
+            if res.exit_code == 127:
+                return None
+            return res
+        except Exception as e:
+            print(f"  Sandbox unavailable ({e}); shipping unvalidated.")
+            return None

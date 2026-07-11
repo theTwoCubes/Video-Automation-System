@@ -1,0 +1,19 @@
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="terminal-window">
+        <div class="terminal-chrome">
+          <div class="t-dot-r"></div>
+          <div class="t-dot-y"></div>
+          <div class="t-dot-g"></div>
+        </div>
+        <div class="terminal-body">
+          {% for b in bullets %}
+            {% if b.startswith('#') or b.startswith('//') %}
+              <span class="terminal-output">{{ b|e }}</span>
+            {% else %}
+              <div><span class="terminal-prompt">$</span>{{ b|e }}</div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+    {# ===== DEFINITION ===== #}

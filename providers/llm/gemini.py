@@ -6,12 +6,39 @@ from tenacity import retry, stop_after_attempt, wait_random_exponential
 from providers.llm.base import LLMProvider
 from config.settings import settings
 
-# Per-million token prices for gemini-2.5-flash (no thinking)
+# Per-million token prices for gemini-2.5-flash. Thinking tokens are billed at
+# the output rate, so the guard/report account for them accurately now that
+# reasoning is enabled by default (see settings.LLM_THINKING_BUDGET).
 _PRICE_INPUT_PER_M  = 0.075
 _PRICE_OUTPUT_PER_M = 0.30
-_PRICE_THINK_PER_M  = 0.0   # thinking disabled
+_PRICE_THINK_PER_M  = 0.30
 
 _usage_log: list[dict] = []
+
+
+def _loads_tolerant(text: str) -> dict:
+    """Parse model JSON, tolerating the two failure modes Gemini exhibits even
+    with response_mime_type=application/json: trailing prose after the closing
+    brace, and a truncated tail. A strict json.loads failure used to trigger a
+    full (billed) 8x retry of the whole call; this recovers the common cases
+    first and only re-raises when the payload is genuinely unparseable."""
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # Slice to the outermost JSON object/array and retry.
+    start = min([i for i in (text.find("{"), text.find("[")) if i != -1], default=-1)
+    if start != -1:
+        opener = text[start]
+        closer = "}" if opener == "{" else "]"
+        end = text.rfind(closer)
+        if end > start:
+            try:
+                return json.loads(text[start:end + 1])
+            except json.JSONDecodeError:
+                pass
+    # Last resort: let the original error surface so the caller/retry can act.
+    return json.loads(text)
 
 
 def get_usage_log() -> list[dict]:
@@ -52,8 +79,17 @@ class GeminiProvider(LLMProvider):
                 f"Set MAX_COST_USD_PER_RUN=0 to disable or increase the limit in .env"
             )
 
+    def _resolve_thinking(self, thinking_budget: int | None) -> int:
+        """Resolve the thinking budget for a call: explicit override wins,
+        otherwise the configured default. Reasoning-heavy agents (plan, script,
+        slide selection) inherit the default; cheap mechanical callers pass 0."""
+        if thinking_budget is not None:
+            return max(0, thinking_budget)
+        return max(0, settings.LLM_THINKING_BUDGET)
+
     @retry(stop=stop_after_attempt(8), wait=wait_random_exponential(multiplier=2, min=5, max=120))
-    def complete(self, system: str, user: str, temperature: float = 0.7) -> str:
+    def complete(self, system: str, user: str, temperature: float = 0.7,
+                 thinking_budget: int | None = None) -> str:
         self._check_budget()
         prompt = f"{system}\n\n{user}"
         response = self.client.models.generate_content(
@@ -61,14 +97,17 @@ class GeminiProvider(LLMProvider):
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=temperature,
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=self._resolve_thinking(thinking_budget)
+                ),
             ),
         )
         self._log_usage("complete", response)
         return response.text.strip()
 
     @retry(stop=stop_after_attempt(8), wait=wait_random_exponential(multiplier=2, min=5, max=120))
-    def complete_json(self, system: str, user: str) -> dict:
+    def complete_json(self, system: str, user: str,
+                      thinking_budget: int | None = None) -> dict:
         self._check_budget()
         prompt = f"{system}\n\n{user}"
         response = self.client.models.generate_content(
@@ -77,7 +116,9 @@ class GeminiProvider(LLMProvider):
             config=types.GenerateContentConfig(
                 temperature=0.3,
                 response_mime_type="application/json",
-                thinking_config=types.ThinkingConfig(thinking_budget=0),
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=self._resolve_thinking(thinking_budget)
+                ),
             ),
         )
         self._log_usage("complete_json", response)
@@ -85,7 +126,7 @@ class GeminiProvider(LLMProvider):
         text = re.sub(r"^```json\s*", "", text)
         text = re.sub(r"^```\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-        return json.loads(text)
+        return _loads_tolerant(text)
 
     def _log_usage(self, method: str, response):
         try:

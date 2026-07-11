@@ -1,0 +1,15 @@
+      <div class="layout-prose" style="padding:0; display:contents;">
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
+      {% if paragraph %}<div class="prose-paragraph">{{ paragraph|md }}</div>{% endif %}
+      <div class="prose-divider"></div>
+      <div class="prose-bullets">
+        {% for b in bullets[:3] %}
+        <div class="prose-bullet">
+          <div class="prose-bullet-dot"></div>
+          <div class="prose-bullet-text">{{ b|md }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      </div>
+
+    {# ===== SUMMARY ===== #}

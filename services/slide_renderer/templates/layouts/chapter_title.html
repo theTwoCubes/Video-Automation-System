@@ -1,0 +1,6 @@
+      <div class="chapter-line"></div>
+      <h2 class="{% if headline|length > 40 %}long-title{% endif %}">{{ headline|md }}</h2>
+      {% if subtitle %}<div class="chapter-subtitle">{{ subtitle|md }}</div>{% endif %}
+      <div class="chapter-line"></div>
+
+    {# ===== AGENDA ===== #}

@@ -1,0 +1,6 @@
+      {% set big_num_value = (number or (bullets[0] if bullets else ''))|string %}
+      <div class="big-number-value{% if big_num_value|length > 8 %} long-value{% endif %}{% if big_num_value|length > 14 %} very-long-value{% endif %}">{{ big_num_value|e }}</div>
+      {% if label %}<div class="big-number-label">{{ label|md }}</div>{% endif %}
+      {% if context %}<div class="big-number-context">{{ context|md }}</div>{% endif %}
+
+    {# ===== QUOTE ===== #}

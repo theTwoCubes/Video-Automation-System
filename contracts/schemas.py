@@ -25,6 +25,7 @@ class LessonPlan(BaseModel):
 
 class ScriptSegment(BaseModel):
     id: str
+    slide_id: str = "slide_001"  # which slide this segment narrates over
     type: str  # narration | code_demo | diagram
     text: str = ""
     duration_estimate_seconds: int = 0

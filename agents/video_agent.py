@@ -13,20 +13,16 @@ from pathlib import Path
 from agents.base_agent import BaseAgent
 from services.video_composer.composer import compose_video_aligned, _LAYOUT_TRANSITIONS
 from services.slide_renderer.renderer import SlideRenderer
+from services.media.ffmpeg import (
+    get_audio_duration,
+    seconds_to_srt_time as _seconds_to_srt_time,
+)
 
 # A single slide_id should never hold the screen for longer than this - past it,
 # audio keeps playing over a frozen frame with nothing changing on screen. Slide
 # groups longer than this get split into multiple chunks of the same image, each
 # getting its own Ken Burns zoom / transition instead of one dead-static hold.
 MAX_SLIDE_SECONDS = 45.0
-
-
-def _seconds_to_srt_time(s: float) -> str:
-    h = int(s // 3600)
-    m = int((s % 3600) // 60)
-    sec = s % 60
-    ms = int((sec - int(sec)) * 1000)
-    return f"{h:02d}:{m:02d}:{int(sec):02d},{ms:03d}"
 
 
 def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> str:
@@ -301,16 +297,10 @@ class VideoAgent(BaseAgent):
         return state
 
     def _audio_dur(self, path: str) -> float:
-        import re, subprocess, shutil
         try:
-            f = shutil.which("ffmpeg") or "ffmpeg"
-            r = subprocess.run([f, "-i", path], capture_output=True, text=True)
-            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.?\d*)", r.stderr)
-            if m:
-                return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+            return get_audio_duration(path, default=0.0)
         except Exception:
-            pass
-        return 0.0
+            return 0.0
 
     def _build_code_reveals(
         self,

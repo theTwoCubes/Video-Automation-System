@@ -37,6 +37,7 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 
 - **Knowledge Ingestion**: Ingest PDFs, Markdown directories, or web pages into a ChromaDB vector store and SQLite-backed catalog.
 - **Agentic Curriculum Planning**: Gemini 2.5 Flash generates a structured, prerequisite-aware multi-lesson curriculum from the ingested material.
+- **Presentation Engine**: A machine-readable design system (`services/slide_renderer/layout_catalog.py`) drives layout choice. The slide LLM is handed the catalog — per-layout caps, families, density budgets, and hard rules — as data (not prose), a selection engine audits the deck for diversity/rhythm/density, and a render linter enforces the density budget before rendering. Design tokens live in one place (`templates/_tokens.html`). See `CHANGES.md` and the design blueprint.
 - **Slide Diversity**: 35 distinct slide layouts spanning opening/structural, concept, code, comparison, process, data, engagement, warning, and summary categories (title, content, prose, split_code, quiz, warning, tip, big_number, timeline, and more) — with enforced variety rules and per-section layout recommendations from the LessonPlannerAgent.
 - **Animated Diagrams**: 8 diagram types (pipeline, memory layout, call stack, iteration, flow, tree, state machine, layered architecture) rendered as animated MP4s from structured LLM content, not freehand HTML.
 - **Professional Slide Rendering**: Dark-themed, brand-token-driven (no hardcoded colors), 1920×1080 slides rendered via Playwright with embedded fonts — no CDN dependency.
@@ -59,7 +60,7 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 | **Slide Rendering** | Playwright → 1920×1080 PNG, Jinja2 HTML templates |
 | **Video Composition** | FFmpeg (transitions, ducking, intros, Ken Burns) |
 | **Voice Synthesis** | edge-tts (Azure Neural voices, free tier) |
-| **Frontend** | React 19, React Router, Vite, Vanilla CSS |
+| **Frontend** | React 19, React Router, Vite, Tailwind CSS v4 |
 
 ---
 
@@ -86,11 +87,18 @@ videoAutomation/
 │   └── test_pipeline.py         # Fixture-based pipeline (no LLM)
 │
 ├── services/
+│   ├── media/
+│   │   └── ffmpeg.py            # Shared FFmpeg utils (locate, probe, run_ffmpeg, silence)
 │   ├── video_composer/
-│   │   └── composer.py          # FFmpeg: segments, transitions, ducking, intro/outro
+│   │   └── composer.py          # FFmpeg: single-timeline segments, ducking, intro/outro
 │   ├── slide_renderer/
-│   │   ├── renderer.py          # Playwright HTML → PNG
-│   │   └── templates/slide.html # 35 slide layouts, brand-token-driven CSS
+│   │   ├── renderer.py          # Playwright HTML → PNG (deterministic; server-side highlighting)
+│   │   ├── layout_catalog.py    # Machine-readable design system + layout catalog (LLM brief)
+│   │   ├── selection.py         # Layout selection engine: candidates + deck diversity audit
+│   │   └── templates/
+│   │       ├── base.html        # Master: chrome, CSS, tokens, dynamic layout include
+│   │       ├── layouts/*.html   # One partial per layout (36 files)
+│   │       └── _tokens.html     # Design tokens (single source: color, type scale, radius)
 │   ├── diagram_renderer/
 │   │   ├── renderer.py          # Structured content → animated diagram HTML
 │   │   ├── html_animator.py     # Playwright frame capture → FFmpeg → MP4
@@ -124,7 +132,8 @@ videoAutomation/
 │       └── Sidebar.jsx
 │
 ├── db/
-│   ├── models.py                # KnowledgeSource, Course, Lesson ORM models
+│   ├── models.py                # KnowledgeSource, Course, Lesson, Job ORM models
+│   ├── jobs.py                  # Durable job store (replaces in-memory API task dicts)
 │   └── database.py              # SQLAlchemy session factory
 │
 ├── scripts/
@@ -141,7 +150,13 @@ videoAutomation/
 │       ├── intro_sting.mp3
 │       └── outro_music.mp3
 │
-├── contracts/schemas.py         # TypedDict: PipelineState
+├── contracts/
+│   ├── schemas.py               # TypedDict: PipelineState + Pydantic models
+│   └── validation.py            # Per-agent output boundary validation
+├── gui/src/
+│   ├── lib/ui.js                # Shared UI tokens + 11-stage pipeline model
+│   └── pages/Settings.jsx       # Profiles / voices / usage
+├── CHANGES.md                   # Blueprint implementation log (all phases)
 ├── requirements.txt
 └── .env.example
 ```

@@ -20,6 +20,18 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "models/gemini-embedding-001"
 
+    # Default thinking budget (tokens) for reasoning-heavy LLM calls (plan, script,
+    # slide selection). 0 disables reasoning entirely. Cheap mechanical calls
+    # (QA/SEO/quiz) pass their own budget of 0 at the call site. The cost guard
+    # below bounds the extra spend that thinking incurs.
+    LLM_THINKING_BUDGET: int = 4096
+
+    # Opt-in sandboxed execution of LLM-generated code examples. OFF by default:
+    # running generated code executes arbitrary programs on the host, so it is a
+    # deliberate, explicit choice. When off, code is marked unvalidated and no
+    # fabricated output is shown (see agents/code_agent.py).
+    ENABLE_CODE_EXECUTION: bool = False
+
     # Cost guard - set 0 to disable
     MAX_COST_USD_PER_RUN: float = 0.50
 

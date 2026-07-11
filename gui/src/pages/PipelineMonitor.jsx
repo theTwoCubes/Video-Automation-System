@@ -1,14 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFetch, usePolling } from '../hooks/useFetch';
+import { S, cx, STAGES, pipelineProgress } from '../lib/ui';
 
 const API = 'http://localhost:8000/api';
-const cx = (...a) => a.filter(Boolean).join(' ');
-
-const S = {
-  label: 'text-[10px] font-bold text-teal-400 uppercase tracking-[0.15em] mb-1.5 block',
-  card:  'bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl',
-  input: 'w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition-colors',
-};
 
 function StatusPill({ status }) {
   if (!status) return null;
@@ -23,6 +17,29 @@ function StatusPill({ status }) {
     <span className={cx('inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap', cls)}>
       {label}
     </span>
+  );
+}
+
+// Live production monitor: turns the raw log stream into an 11-stage progress
+// strip (blueprint §14/§23), replacing coarse pending/processing/done status.
+function StageStepper({ logs }) {
+  const { index, done } = pipelineProgress(logs);
+  return (
+    <div className="px-4 py-2.5 border-b border-[#1a1a1a] bg-[#080808] flex flex-wrap gap-1.5 flex-shrink-0">
+      {STAGES.map((s, i) => {
+        const state = done || i < index ? 'done' : i === index ? 'active' : 'pending';
+        return (
+          <span key={s.key} className={cx(
+            'text-[10px] font-mono px-2 py-1 rounded-md border whitespace-nowrap',
+            state === 'done'   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+            : state === 'active' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse'
+            : 'bg-[#111] text-zinc-600 border-[#1e1e1e]'
+          )}>
+            {state === 'done' ? '✓ ' : state === 'active' ? '● ' : ''}{s.label}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -63,6 +80,9 @@ export function PipelineMonitor() {
     }
   }, [logs]);
 
+  const progress = pipelineProgress(logs);
+  const running = activeLessonId && logs.length > 0 && !progress.done;
+
   async function handleStartGeneration(lesson) {
     if (lesson.status === 'done' || lesson.status === 'failed') {
       if (!window.confirm(`Warning: Lesson "${lesson.title}" is currently marked as ${lesson.status.toUpperCase()}.\n\nGenerating it again will overwrite the existing video and files.\n\nAre you sure you want to proceed?`)) {
@@ -73,6 +93,15 @@ export function PipelineMonitor() {
       setActiveLessonId(lesson.id);
       await fetch(`${API}/lessons/${lesson.id}/generate`, { method: 'POST' });
     } catch { alert("Failed to start generation"); }
+  }
+
+  async function handleCancel() {
+    if (!activeLessonId) return;
+    if (!window.confirm('Stop the running generation for this lesson?')) return;
+    try {
+      const r = await fetch(`${API}/lessons/${activeLessonId}/cancel`, { method: 'POST' });
+      if (!r.ok) alert('No running generation to cancel.');
+    } catch { alert('Failed to cancel'); }
   }
 
   return (
@@ -175,8 +204,18 @@ export function PipelineMonitor() {
               <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
                 Live Output {activeLessonId ? `· ${activeLessonId.slice(0,8)}` : ''}
               </span>
+              {running && (
+                <button
+                  onClick={handleCancel}
+                  className="ml-auto text-[10px] font-bold px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"
+                >
+                  ■ Cancel
+                </button>
+              )}
             </div>
-            
+
+            {activeLessonId && <StageStepper logs={logs} />}
+
             <div ref={logsContainerRef} className="flex-1 overflow-y-auto p-5 bg-black font-mono text-[11px] leading-relaxed break-all">
               {!activeLessonId ? (
                 <div className="text-zinc-700 italic h-full flex items-center justify-center">

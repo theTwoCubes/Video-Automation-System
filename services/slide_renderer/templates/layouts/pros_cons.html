@@ -1,0 +1,13 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="pc-wrap">
+        <div class="pc-panel pros">
+          <div class="pc-panel-label">Advantages</div>
+          {% for b in (pros or left_bullets)[:4] %}<div class="pc-item"><div class="pc-icon">&#10003;</div><div class="pc-text">{{ b|md }}</div></div>{% endfor %}
+        </div>
+        <div class="pc-panel cons">
+          <div class="pc-panel-label">Disadvantages</div>
+          {% for b in (cons or right_bullets)[:4] %}<div class="pc-item"><div class="pc-icon">&#10007;</div><div class="pc-text">{{ b|md }}</div></div>{% endfor %}
+        </div>
+      </div>
+
+    {# ===== TABLE ===== #}

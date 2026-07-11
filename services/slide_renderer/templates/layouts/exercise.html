@@ -1,0 +1,15 @@
+      <div class="exercise-card">
+        <div class="exercise-tag">&#127919; Challenge</div>
+        <h3 class="{% if headline|length > 45 %}long-title{% endif %}{% if headline|length > 65 %} very-long-title{% endif %}">{{ headline|md }}</h3>
+        <div class="exercise-items">
+          {% for b in bullets %}
+          <div class="exercise-item">
+            <div class="ex-num">{{ loop.index }}.</div>
+            <div class="ex-text">{{ b|strip_leading_number|md }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if hint %}<div class="exercise-hint">Hint: {{ hint|md }}</div>{% endif %}
+      </div>
+
+    {# ===== COMPARISON / ERROR_FIX ===== #}

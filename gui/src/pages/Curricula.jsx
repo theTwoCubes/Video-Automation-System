@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useFetch, usePolling } from '../hooks/useFetch';
+import { S, cx } from '../lib/ui';
 
 const API = 'http://localhost:8000/api';
-const cx = (...a) => a.filter(Boolean).join(' ');
-
-const S = {
-  label: 'text-[10px] font-bold text-teal-400 uppercase tracking-[0.15em] mb-1.5 block',
-  card:  'bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl',
-  input: 'w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition-colors',
-};
 
 function StatusTag({ status }) {
   const map = {
@@ -57,6 +51,47 @@ export function Curricula() {
       else next.add(id);
       return next;
     });
+  }
+
+  // Curriculum drag-to-reorder. `lectures` is the working copy; it re-inits
+  // only when the underlying set of lecture titles changes (a fresh
+  // generation), so a manual reorder is never clobbered by a poll.
+  const liveCurriculum = currStatus?.curriculum || course?.curriculum;
+  const [lectures, setLectures] = useState(null);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderSaved, setOrderSaved] = useState(false);
+  const lectureSig = JSON.stringify((liveCurriculum?.lectures || []).map(l => l.title));
+  useEffect(() => {
+    if (liveCurriculum?.lectures) setLectures(liveCurriculum.lectures.map(l => ({ ...l })));
+    setOrderSaved(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lectureSig]);
+
+  function reorderLecture(from, to) {
+    if (from === null || from === to) return;
+    setLectures(prev => {
+      const next = [...(prev || [])];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next.map((l, i) => ({ ...l, position: i + 1 }));
+    });
+    setOrderSaved(false);
+  }
+
+  async function saveOrder() {
+    if (!lectures) return;
+    setSavingOrder(true); setOrderSaved(false);
+    try {
+      const payload = JSON.stringify({ ...liveCurriculum, lectures });
+      const res = await fetch(`${API}/courses/${courseId}/curriculum`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curriculum: payload }),
+      });
+      if (res.ok) { setOrderSaved(true); refreshCourses(); }
+      else alert('Failed to save order');
+    } catch { alert('Failed to save order'); }
+    finally { setSavingOrder(false); }
   }
 
 
@@ -400,20 +435,39 @@ export function Curricula() {
                       </div>
                     );
                   }
-                  
+                  const list = lectures || currData.lectures;
+
                   return (
                     <div className={cx(S.card, 'overflow-hidden')}>
-                      <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center justify-between bg-[#0a0a0a]">
+                      <div className="px-5 py-4 border-b border-[#1a1a1a] flex items-center justify-between gap-3 bg-[#0a0a0a]">
                         <span className="text-[13px] font-semibold text-white">Generated Curriculum</span>
-                        <span className="text-[11px] font-mono text-zinc-500 bg-[#111] px-2 py-1 rounded-md border border-[#222]">
-                          {currData.total_lectures || currData.lectures.length} lessons
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-600">drag to reorder</span>
+                          <button onClick={saveOrder} disabled={savingOrder}
+                            className={cx('text-[11px] font-bold px-3 py-1 rounded-md transition-colors',
+                              savingOrder ? 'bg-[#111] text-zinc-500 border border-[#222]'
+                              : orderSaved ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-teal-500 hover:bg-teal-400 text-black')}>
+                            {savingOrder ? 'Saving…' : orderSaved ? '✓ Saved' : 'Save order'}
+                          </button>
+                          <span className="text-[11px] font-mono text-zinc-500 bg-[#111] px-2 py-1 rounded-md border border-[#222]">
+                            {list.length} lessons
+                          </span>
+                        </div>
                       </div>
                       <div className="divide-y divide-[#1a1a1a] max-h-[600px] overflow-y-auto">
-                        {currData.lectures.map((lec, i) => (
-                          <div key={i} className="p-5 hover:bg-[#080808] transition-colors">
+                        {list.map((lec, i) => (
+                          <div key={`${lec.title}-${i}`}
+                            draggable
+                            onDragStart={() => setDragIdx(i)}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={() => { reorderLecture(dragIdx, i); setDragIdx(null); }}
+                            onDragEnd={() => setDragIdx(null)}
+                            className={cx('p-5 transition-colors cursor-move',
+                              dragIdx === i ? 'bg-teal-500/5' : 'hover:bg-[#080808]')}>
                             <div className="flex items-start justify-between gap-4 mb-2">
                               <div className="flex items-center gap-3">
+                                <span className="text-zinc-700 select-none">⋮⋮</span>
                                 <span className="text-[11px] font-bold text-teal-500 bg-teal-500/10 px-2 py-0.5 rounded-full flex-shrink-0">
                                   {lec.position || (i + 1)}
                                 </span>
@@ -423,7 +477,7 @@ export function Curricula() {
                                 {lec.estimated_minutes} min
                               </span>
                             </div>
-                            
+
                             <div className="pl-11">
                               <div className="flex items-center flex-wrap gap-2 mb-2">
                                 <span className={cx(
@@ -441,9 +495,9 @@ export function Curricula() {
                                   <span className="text-[10px] text-zinc-600">+{lec.topic_tags.length - 4}</span>
                                 )}
                               </div>
-                              
+
                               <div className="text-[11px] text-zinc-500 mt-2 flex items-center gap-1.5 flex-wrap">
-                                <span className="text-zinc-600">Primary Sections:</span> 
+                                <span className="text-zinc-600">Primary Sections:</span>
                                 <span className="font-mono text-zinc-400">{lec.primary_sections?.join(', ')}</span>
                               </div>
                             </div>

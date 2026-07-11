@@ -1,0 +1,15 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="analogy-wrap">
+        <div class="analogy-panel real">
+          <div class="analogy-label">{{ (left_label or 'Real World')|md }}</div>
+          <div class="analogy-text">{{ (left_content or (left_bullets[0] if left_bullets else ''))|md }}</div>
+        </div>
+        <div class="analogy-connector">&#8594;</div>
+        <div class="analogy-panel tech">
+          <div class="analogy-label">{{ (right_label or 'In Code')|md }}</div>
+          <div class="analogy-text">{{ (right_content or (right_bullets[0] if right_bullets else ''))|md }}</div>
+        </div>
+      </div>
+      {% if connection %}<div class="analogy-connection">{{ connection|md }}</div>{% endif %}
+
+    {# ===== CODE OUTPUT ===== #}

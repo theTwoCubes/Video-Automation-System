@@ -1,15 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useFetch } from '../hooks/useFetch';
+import { S, cx } from '../lib/ui';
 
 const API = 'http://localhost:8000/api';
-const cx = (...a) => a.filter(Boolean).join(' ');
-
-const S = {
-  label: 'text-[10px] font-bold text-teal-400 uppercase tracking-[0.15em] mb-1.5 block',
-  card:  'bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl',
-  input: 'w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-teal-500 transition-colors',
-};
 
 function StatCard({ value, label, color = 'text-white' }) {
   return (

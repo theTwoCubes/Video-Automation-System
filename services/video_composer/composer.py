@@ -3,41 +3,41 @@ import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-
-def _get_ffmpeg() -> str:
-    try:
-        import imageio_ffmpeg
-        return imageio_ffmpeg.get_ffmpeg_exe()
-    except Exception:
-        pass
-    sys_ffmpeg = shutil.which("ffmpeg")
-    if sys_ffmpeg:
-        return sys_ffmpeg
-    raise RuntimeError("FFmpeg not found. Run: pip install imageio-ffmpeg")
+from services.media.ffmpeg import (
+    get_ffmpeg as _get_ffmpeg,
+    fwd as _fwd,
+    get_audio_duration as _shared_audio_duration,
+)
 
 
-def _get_audio_duration(audio_path: str, ffmpeg_exe: str) -> float:
-    """Get audio duration using ffmpeg -i (no ffprobe needed)."""
-    import re
-    result = subprocess.run(
-        [ffmpeg_exe, "-i", audio_path],
-        capture_output=True, text=True,
-    )
-    match = re.search(r'Duration:\s*(\d+):(\d+):(\d+\.?\d*)', result.stderr)
-    if match:
-        h = int(match.group(1))
-        m = int(match.group(2))
-        s = float(match.group(3))
-        return h * 3600 + m * 60 + s
-    return 5.0
+def _get_audio_duration(audio_path: str, ffmpeg_exe: str = None) -> float:
+    """Composer defaults to 5.0s when a duration can't be read, so a segment
+    still gets a non-zero length rather than being dropped. Delegates to the
+    shared probe (services/media/ffmpeg.py); the name is kept because other
+    modules import it from here."""
+    return _shared_audio_duration(audio_path, ffmpeg_exe, default=5.0)
 
 
-def _fwd(p: Path) -> str:
-    """Absolute forward-slash path for FFmpeg on Windows."""
-    return str(p.resolve()).replace("\\", "/")
+def _fade_suffix(total_dur: float, fade: float = None) -> str:
+    """Return a ',fade=in,fade=out' filter suffix for a segment of the given
+    duration, or '' when the segment is too short to fade cleanly. Applied to
+    the video stream only, inside the segment's own timeline, so it never
+    shortens the segment or desyncs the audio."""
+    if fade is None:
+        fade = _FADE_DUR
+    if total_dur <= 2 * fade + 0.2:
+        return ""
+    return (f",fade=t=in:st=0:d={fade:.2f}"
+            f",fade=t=out:st={total_dur - fade:.3f}:d={fade:.2f}")
 
 
 _SILENCE_GAP_MS = 500
+
+# Short fade baked into each slide segment's own timeline so consecutive slides
+# dip softly into one another. Because it lives INSIDE each segment (rather than
+# overlapping neighbours like xfade did), the video and audio timelines stay the
+# same length and never drift out of sync - the fix for BUG-01.
+_FADE_DUR = 0.18
 
 
 def _make_gap_silence(reference_dir: Path, ffmpeg_exe: str, gap_ms: int = _SILENCE_GAP_MS) -> Path:
@@ -109,6 +109,11 @@ def _apply_ducked_music(
     Music automatically ducks when narration plays, rises during pauses.
     Uses -stream_loop -1 to loop music without loading it all into memory.
     """
+    # An empty/whitespace track (e.g. the no_music profile) must be treated as
+    # "no music" - Path("") resolves to the current directory, which exists, so
+    # a naive .exists() check would try to mux the cwd and fail the whole step.
+    if not bg_track or not str(bg_track).strip():
+        return video_path
     bg = Path(bg_track)
     if not bg.exists():
         print(f"  Background music not found: {bg_track}")
@@ -144,11 +149,6 @@ def _apply_ducked_music(
     return video_path
 
 
-# Legacy alias for any existing callers
-def _mix_background_music(video_path: str, output_path: str, ffmpeg_exe: str) -> str:
-    return _apply_ducked_music(video_path, output_path, ffmpeg_exe)
-
-
 def _apply_xfade_transitions(
     segment_files: List[Path],
     durations: List[float],
@@ -161,6 +161,12 @@ def _apply_xfade_transitions(
     Apply per-layout xfade transitions between video segments. (B.2)
     transition_hints[i] = transition type for segment i coming in.
     Returns True on success, False if fallback to simple concat.
+
+    RETAINED BUT UNUSED: overlapping xfade shortens the video timeline while the
+    per-segment audio does not, which desynced narration (BUG-01). Composition
+    now concatenates on a single shared timeline with per-segment baked fades.
+    A future layout-aware transition system (blueprint §17) must overlap audio
+    and video by the SAME amount before this can be re-enabled.
     """
     n = len(segment_files)
     if n <= 1:
@@ -234,7 +240,8 @@ def _apply_ken_burns(
     Only used for slides where duration > KEN_BURNS_THRESHOLD.
     Returns path to created MP4 or None on failure.
     """
-    # scale up first to avoid zoompan pixel shortage
+    # scale up first to avoid zoompan pixel shortage. Fade is baked in here
+    # because the caller muxes this clip with -c:v copy (can't add it later).
     cmd = [
         ffmpeg_exe, "-y",
         "-loop", "1",
@@ -244,7 +251,7 @@ def _apply_ken_burns(
             f"scale=3840:2160:flags=lanczos,"
             f"zoompan=z='min(zoom+0.0002,1.06)':d={int(duration * fps)}"
             f":x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1920x1080,"
-            f"fps={fps}"
+            f"fps={fps}{_fade_suffix(duration)}"
         ),
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
         "-an",
@@ -292,17 +299,6 @@ _LAYOUT_TRANSITIONS = {
     "cycle": "circlecrop",
     "checkpoint": "fade",
 }
-
-
-def resolve_transition_hints(slide_contents: list) -> list:
-    """Generate layout-aware transition hints from slide data."""
-    hints = []
-    for slide in slide_contents:
-        layout = slide.get("layout", "content")
-        hint = _LAYOUT_TRANSITIONS.get(layout, "fade")
-        hints.append(hint)
-    return hints
-
 
 
 def _compose_intro_card(lesson_title: str, renderer, output_path: str, ffmpeg_exe: str, intro_sting: str) -> bool:
@@ -481,14 +477,16 @@ def compose_video_aligned(
                     print(f"  Slide {i+1}/{len(slide_audio_pairs)}: Ken Burns {total_dur:.1f}s")
                     continue
 
-        # Standard: loop static image for exact audio duration - no apad
+        # Standard: loop static image for exact audio duration - no apad.
+        # The fade suffix gives a soft in/out dip within this segment's own
+        # timeline (BUG-01: no cross-segment overlap, so audio stays in sync).
         cmd = [
             ffmpeg_exe, "-y",
             "-loop", "1",
             "-i", _fwd(slide_abs),
             "-i", _fwd(merged_audio),
             "-t", f"{total_dur:.3f}",
-            "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
+            "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}{_fade_suffix(total_dur)}",
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
             "-c:a", "aac", "-b:a", "192k",
             "-shortest",
@@ -507,47 +505,42 @@ def compose_video_aligned(
     if not segment_files:
         raise RuntimeError("No video segments produced.")
 
-    # apply xfade transitions
-    transitioned_path = output_abs.parent / "segments" / "with_transitions.mp4"
-    used_transitions = False
-
-    if use_transitions and len(segment_files) > 1:
-        print("  Applying slide transitions...")
-        success = _apply_xfade_transitions(
-            segment_files, segment_durations, transitioned_path, ffmpeg_exe,
-            transition_duration=transition_duration,
-            transition_hints=used_transition_hints,
-        )
-        if success:
-            used_transitions = True
-            print("  Transitions applied.")
-        else:
-            print("  Transitions failed, using simple concat.")
-
-    if used_transitions:
-        final_pre_music = transitioned_path
-    else:
-        concat_file = segments_dir / "concat.txt"
-        with open(concat_file, "w", encoding="utf-8") as f:
-            for seg in segment_files:
-                f.write(f"file '{_fwd(seg)}'\n")
-        print(f"  Concatenating {len(segment_files)} segments...")
+    # Concatenate on a SINGLE shared timeline. We intentionally no longer use
+    # overlapping xfade transitions here: xfade shortens the video timeline by
+    # the overlap while the concatenated per-segment audio does not, so narration
+    # drifts progressively ahead of the visuals (BUG-01). Each segment already
+    # carries a short baked-in fade in/out, so slides still dip softly while
+    # audio and video advance in lockstep.
+    concat_file = segments_dir / "concat.txt"
+    with open(concat_file, "w", encoding="utf-8") as f:
+        for seg in segment_files:
+            f.write(f"file '{_fwd(seg)}'\n")
+    print(f"  Concatenating {len(segment_files)} segments (shared timeline)...")
+    cmd = [
+        ffmpeg_exe, "-y",
+        "-f", "concat", "-safe", "0",
+        "-i", _fwd(concat_file),
+        "-c", "copy",
+        _fwd(output_abs),
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        # -c copy needs identical params across segments; a prebuilt segment
+        # (code reveal / diagram) can differ. Re-encode as a safety net so one
+        # odd segment can't abort the whole compose.
+        print("  Stream-copy concat failed; re-encoding segments...")
         cmd = [
             ffmpeg_exe, "-y",
             "-f", "concat", "-safe", "0",
             "-i", _fwd(concat_file),
-            "-c", "copy",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
+            "-c:a", "aac", "-b:a", "192k",
             _fwd(output_abs),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(f"Final concat failed: {result.stderr[-300:]}")
-        final_pre_music = output_abs
-
-    # Ensure the pre-music file exists at the final output location before music mixing
-    if used_transitions and str(final_pre_music) != str(output_abs):
-        if not output_abs.exists():
-            shutil.copy2(str(final_pre_music), str(output_abs))
+    final_pre_music = output_abs
 
     # mix background music (with sidechain ducking)
     final_path = _apply_ducked_music(
@@ -594,9 +587,3 @@ def compose_video_aligned(
     size_mb = output_abs.stat().st_size / (1024 * 1024)
     print(f"  Video saved: {output_abs} ({size_mb:.1f} MB)")
     return str(output_abs)
-
-
-# backward compat
-def compose_video(slide_paths, audio_paths, output_path, fps=30):
-    pairs = [(s, [a]) for s, a in zip(slide_paths, audio_paths)]
-    return compose_video_aligned(pairs, output_path, fps)

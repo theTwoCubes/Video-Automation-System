@@ -1,0 +1,29 @@
+      <div class="split-code-wrap">
+        <div class="split-code-left">
+          <h2 class="{% if headline|length > 40 %}long-title{% endif %}">{{ headline|md }}</h2>
+          {% if paragraph %}<div class="split-paragraph">{{ paragraph|md }}</div>{% endif %}
+          <div class="split-bullets">
+            {% for b in bullets[:3] %}
+            <div class="split-bullet">
+              <div class="split-bullet-dot"></div>
+              <div class="split-bullet-text">{{ b|md }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="split-code-right">
+          <div class="code-window">
+            <div class="code-titlebar">
+              <div class="code-dot-r"></div>
+              <div class="code-dot-y"></div>
+              <div class="code-dot-g"></div>
+              <div class="code-filename">{{ code_filename or (code_language + ('.py' if code_language == 'python' else '.cpp' if code_language in ['cpp','c++'] else '.js' if code_language == 'javascript' else '.' + (code_language or 'txt'))) }}</div>
+            </div>
+            <div class="code-body">
+              <pre class="code-block" style="font-size:{{ code_html.code_content.size }}px">{{ code_html.code_content.html }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    {# ===== TWO COLUMN ===== #}

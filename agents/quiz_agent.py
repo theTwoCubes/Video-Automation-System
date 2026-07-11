@@ -86,7 +86,8 @@ class QuizAgent(BaseAgent):
         )
 
         try:
-            result = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
+            # Mechanical extraction from provided text - no reasoning needed.
+            result = self.llm.complete_json(SYSTEM_PROMPT, user_msg, thinking_budget=0)
             questions = result.get("questions", [])
         except Exception as e:
             print(f"  Quiz LLM error: {e}")

@@ -1,0 +1,6 @@
+      <div class="mental-model-card">
+        <h2 class="{% if headline|length > 55 %}long-title{% endif %}">{{ headline|md }}</h2>
+        {% if explanation %}<div class="mental-model-explanation">{{ explanation|md }}</div>{% endif %}
+      </div>
+
+    {# ===== RESOURCES ===== #}

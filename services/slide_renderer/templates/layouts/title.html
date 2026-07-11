@@ -1,0 +1,6 @@
+      {% if lesson_number %}<div class="lesson-badge">Lesson {{ lesson_number }}</div>{% endif %}
+      <h1 class="{% if headline|length > 60 %}long-title{% endif %}{% if headline|length > 80 %} very-long-title{% endif %}">{{ headline|md }}</h1>
+      <div class="title-accent"></div>
+      {% if subtitle %}<div class="subtitle">{{ subtitle|md }}</div>{% elif bullets and bullets|length > 0 %}<div class="subtitle">{{ bullets[0]|md }}</div>{% endif %}
+
+    {# ===== CONTENT ===== #}

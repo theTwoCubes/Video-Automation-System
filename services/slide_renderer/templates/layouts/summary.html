@@ -1,0 +1,16 @@
+      <div class="summary-header">
+        <div class="summary-icon">&#10003;</div>
+        <h2 class="{% if (headline or 'Key Takeaways')|length > 45 %}long-title{% endif %}{% if (headline or 'Key Takeaways')|length > 65 %} very-long-title{% endif %}">{{ (headline or 'Key Takeaways')|md }}</h2>
+      </div>
+      <div class="divider"></div>
+      <div class="summary-items">
+        {% for b in bullets %}
+        <div class="summary-item">
+          <div class="check-icon">&#10003;</div>
+          <div class="summary-text">{{ b|md }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if whats_next %}<div class="summary-whats-next">Next: {{ whats_next|strip_next_prefix|md }}</div>{% endif %}
+
+    {# ===== CODE ===== #}

@@ -1,0 +1,18 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="evolution-wrap">
+        <div class="evolution-panel">
+          <div class="evolution-panel-label">{{ (left_label or 'Before')|md }}</div>
+          <div class="code-window">
+            <div class="code-body"><pre class="code-block" style="font-size:{{ code_html.left_code.size }}px">{{ code_html.left_code.html }}</pre></div>
+          </div>
+        </div>
+        <div class="evolution-arrow">&#8594;</div>
+        <div class="evolution-panel">
+          <div class="evolution-panel-label">{{ (right_label or 'After')|md }}</div>
+          <div class="code-window">
+            <div class="code-body"><pre class="code-block" style="font-size:{{ code_html.right_code.size }}px">{{ code_html.right_code.html }}</pre></div>
+          </div>
+        </div>
+      </div>
+
+    {# ===== SNIPPET ===== #}

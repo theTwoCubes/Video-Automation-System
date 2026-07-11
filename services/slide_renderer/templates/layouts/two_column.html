@@ -1,0 +1,17 @@
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="two-col-wrap">
+        <div class="col-panel">
+          <div class="col-panel-label">{{ (left_label or 'Concept')|md }}</div>
+          <div class="col-bullets">
+            {% for b in left_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b|md }}</div></div>{% endfor %}
+          </div>
+        </div>
+        <div class="col-panel">
+          <div class="col-panel-label">{{ (right_label or 'Example')|md }}</div>
+          <div class="col-bullets">
+            {% for b in right_bullets %}<div class="col-bullet"><div class="col-bullet-dot"></div><div class="col-bullet-text">{{ b|md }}</div></div>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+    {# ===== NUMBERED STEPS ===== #}

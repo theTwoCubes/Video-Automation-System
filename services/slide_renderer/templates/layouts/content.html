@@ -1,0 +1,14 @@
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}{% if headline|length > 70 %} very-long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="content-body">
+        <div class="content-bullets">
+          {% for b in bullets[:4] %}
+          <div class="bullet-item">
+            <div class="bullet-dot"></div>
+            <div class="bullet-text">{{ b|md }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% if callout %}<div class="content-callout">{{ callout|md }}</div>{% endif %}
+
+    {# ===== PROSE ===== #}

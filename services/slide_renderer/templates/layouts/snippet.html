@@ -1,0 +1,5 @@
+      <h2 class="{% if headline|length > 40 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="snippet-box"><pre>{{ code_content|e }}</pre></div>
+      {% if explanation %}<div class="snippet-explanation">{{ explanation|md }}</div>{% endif %}
+
+    {# ===== PROS CONS ===== #}

@@ -18,6 +18,7 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from db.usage_log import get_usage_report
+from db.jobs import create_job, update_job, append_log, get_job, list_jobs
 
 app = FastAPI(title="theTwoCubes Dashboard API")
 
@@ -36,8 +37,12 @@ _output_dir = ROOT / "output"
 _output_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=_output_dir), name="static")
 
-# track test run status in memory (lightweight)
-_test_runs: dict[str, dict] = {}
+# Async job state (ingest, curricula, test runs, re-renders) is persisted via
+# db.jobs so it survives an API reload and works across multiple workers.
+
+# Live generation subprocesses, keyed by lesson_id, so a run can be cancelled.
+# Intentionally in-memory: only the worker that spawned a child can signal it.
+_running_procs: dict = {}
 
 
 def _db():
@@ -49,12 +54,7 @@ def _db():
         return None
 
 
-#  In-memory Task Tracking 
-
-_ingest_tasks: dict[str, dict] = {}
-_curricula_tasks: dict[str, dict] = {}
-
-#  Courses & Lessons 
+#  Courses & Lessons
 
 @app.get("/api/courses")
 def list_courses():
@@ -215,7 +215,7 @@ def add_pdf_source(
         shutil.copyfileobj(file.file, buffer)
 
     task_id = f"proc_{datetime.now(timezone.utc).strftime('%H%M%S')}"
-    _ingest_tasks[task_id] = {"status": "running", "source_id": None, "error": None}
+    create_job("ingest", task_id, status="running", source_id=None, error=None)
 
     def _do_process():
         try:
@@ -244,14 +244,12 @@ def add_pdf_source(
                 if c:
                     c.source_id = src.id
                 db2.commit()
-                _ingest_tasks[task_id]["status"] = "done"
-                _ingest_tasks[task_id]["source_id"] = src.id
-                _ingest_tasks[task_id]["section_count"] = len(sections)
+                update_job(task_id, status="done", source_id=src.id,
+                           section_count=len(sections))
             finally:
                 db2.close()
         except Exception as e:
-            _ingest_tasks[task_id]["status"] = "failed"
-            _ingest_tasks[task_id]["error"] = str(e)
+            update_job(task_id, status="failed", error=str(e))
             print(f"[ProcessPDF] ERROR: {e}")
 
     background_tasks.add_task(_do_process)
@@ -260,9 +258,10 @@ def add_pdf_source(
 
 @app.get("/api/ingest/{task_id}")
 def get_ingest_status(task_id: str):
-    if task_id not in _ingest_tasks:
+    job = get_job(task_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Task not found")
-    return _ingest_tasks[task_id]
+    return job
 
 
 # Section Browser (replaces old query endpoint)
@@ -347,7 +346,7 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
         db.close()
 
     task_id = f"curr_{datetime.now(timezone.utc).strftime('%H%M%S')}"
-    _curricula_tasks[task_id] = {"status": "running", "curriculum": None, "error": None}
+    create_job("curricula", task_id, status="running", curriculum=None, error=None)
 
     def _do_generate():
         try:
@@ -389,12 +388,10 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
             finally:
                 db2.close()
 
-            _curricula_tasks[task_id]["status"] = "done"
-            _curricula_tasks[task_id]["curriculum"] = curriculum
-            _curricula_tasks[task_id]["lecture_count"] = len(lectures)
+            update_job(task_id, status="done", curriculum=curriculum,
+                       lecture_count=len(lectures))
         except Exception as e:
-            _curricula_tasks[task_id]["status"] = "failed"
-            _curricula_tasks[task_id]["error"] = str(e)
+            update_job(task_id, status="failed", error=str(e))
             print(f"[CurriculumGen] ERROR: {e}")
 
     background_tasks.add_task(_do_generate)
@@ -402,9 +399,10 @@ def generate_curriculum(req: CurriculaGenerateRequest, background_tasks: Backgro
 
 @app.get("/api/curricula/tasks/{task_id}")
 def get_curricula_status(task_id: str):
-    if task_id not in _curricula_tasks:
+    job = get_job(task_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Task not found")
-    return _curricula_tasks[task_id]
+    return job
 
 class CurriculumEditRequest(BaseModel):
     curriculum: str
@@ -458,19 +456,22 @@ def stream_logs(course_id: str):
     log_file = ROOT / "logs" / f"{course_id}.log"
     
     def log_generator():
+        # SSE frames are delimited by a real blank line (\n\n). Emitting the
+        # literal characters "\\n\\n" produces malformed events the browser
+        # never dispatches - the reason this course-level stream showed nothing.
         if not log_file.exists():
-            yield "data: Waiting for logs to start...\\n\\n"
+            yield "data: Waiting for logs to start...\n\n"
             while not log_file.exists():
                 time.sleep(1)
-        
-        with open(log_file, "r") as f:
+
+        with open(log_file, "r", encoding="utf-8", errors="replace") as f:
             f.seek(0, os.SEEK_END) # start from end to only get live logs
             while True:
                 line = f.readline()
                 if not line:
                     time.sleep(0.5)
                     continue
-                yield f"data: {line}\\n\\n"
+                yield f"data: {line.rstrip()}\n\n"
                 
     return StreamingResponse(log_generator(), media_type="text/event-stream")
 
@@ -494,14 +495,11 @@ class TestRunRequest(BaseModel):
 def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
     """Trigger a test pipeline run with fixture data."""
     run_id = f"run_{datetime.now(timezone.utc).strftime('%H%M%S')}"
-    _test_runs[run_id] = {
-        "id": run_id,
-        "status": "running",
-        "fixture": req.fixture_path,
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "video_path": None,
-        "error": None,
-    }
+    create_job(
+        "test", run_id, status="running", fixture=req.fixture_path,
+        started_at=datetime.now(timezone.utc).isoformat(),
+        video_path=None, error=None,
+    )
 
     def _do_run():
         try:
@@ -511,15 +509,17 @@ def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
                 force_restart=req.force_restart,
                 from_step=req.from_step,
             )
-            _test_runs[run_id]["status"] = "done" if not result.get("error") else "failed"
-            _test_runs[run_id]["video_path"] = result.get("video_path", "")
-            _test_runs[run_id]["error"] = result.get("error")
-            _test_runs[run_id]["video_quality"] = result.get("video_quality", {})
-            _test_runs[run_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            update_job(
+                run_id,
+                status="done" if not result.get("error") else "failed",
+                video_path=result.get("video_path", ""),
+                error=result.get("error"),
+                video_quality=result.get("video_quality", {}),
+                completed_at=datetime.now(timezone.utc).isoformat(),
+            )
         except Exception as e:
-            _test_runs[run_id]["status"] = "failed"
-            _test_runs[run_id]["error"] = str(e)
-            _test_runs[run_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            update_job(run_id, status="failed", error=str(e),
+                       completed_at=datetime.now(timezone.utc).isoformat())
 
     background_tasks.add_task(_do_run)
     return {"run_id": run_id, "status": "started"}
@@ -528,14 +528,15 @@ def run_test(req: TestRunRequest, background_tasks: BackgroundTasks):
 @app.get("/api/test/runs")
 def list_test_runs():
     """Return all test run statuses."""
-    return list(_test_runs.values())
+    return list_jobs("test")
 
 
 @app.get("/api/test/runs/{run_id}")
 def get_test_run(run_id: str):
-    if run_id not in _test_runs:
+    job = get_job(run_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Run not found")
-    return _test_runs[run_id]
+    return job
 
 
 #  Quiz 
@@ -621,7 +622,7 @@ def generate_lesson(lesson_id: str, background_tasks: BackgroundTasks):
             with open(log_file, "w", encoding="utf-8") as f:
                 f.write(f"Starting video generation for lesson {lesson_id}...\n")
                 process = subprocess.Popen(
-                    ["python", "-m", "scripts.generate_next_video", "--course-id", course_id, "--lesson-id", lesson_id],
+                    [sys.executable, "-m", "scripts.generate_next_video", "--course-id", course_id, "--lesson-id", lesson_id],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
@@ -630,16 +631,47 @@ def generate_lesson(lesson_id: str, background_tasks: BackgroundTasks):
                     cwd=str(Path.cwd()),
                     env={**os.environ, "PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
                 )
-                for line in process.stdout:
-                    f.write(line)
-                    f.flush()
-                process.wait()
-                f.write(f"\nPipeline finished with exit code {process.returncode}\n")
-        
+                # Track the child so it can be cancelled. Only the worker that
+                # spawned it can signal it, so an in-process handle is the right
+                # scope here.
+                _running_procs[lesson_id] = process
+                try:
+                    for line in process.stdout:
+                        f.write(line)
+                        f.flush()
+                    process.wait()
+                    f.write(f"\nPipeline finished with exit code {process.returncode}\n")
+                finally:
+                    _running_procs.pop(lesson_id, None)
+
         background_tasks.add_task(_run_pipeline)
         return {"status": "started", "lesson_id": lesson_id}
     finally:
         db.close()
+
+
+@app.post("/api/lessons/{lesson_id}/cancel")
+def cancel_lesson(lesson_id: str):
+    """Terminate a running generation for this lesson, if one is in flight in
+    this worker. Marks the lesson failed so the UI reflects the stop."""
+    proc = _running_procs.get(lesson_id)
+    if not proc:
+        raise HTTPException(status_code=404, detail="No running generation for this lesson")
+    try:
+        proc.terminate()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not cancel: {e}")
+    db = _db()
+    if db:
+        try:
+            from db import models
+            lesson = db.get(models.Lesson, lesson_id)
+            if lesson and lesson.status == "processing":
+                lesson.status = "failed"
+                db.commit()
+        finally:
+            db.close()
+    return {"status": "cancelled", "lesson_id": lesson_id}
 
 from fastapi.responses import StreamingResponse
 import asyncio
@@ -797,17 +829,24 @@ def get_lesson_slides(lesson_id: str):
         for lesson_dir in course_dir.iterdir():
             if lesson_id not in lesson_dir.name:
                 continue
-            # prefer isolated rerender folder
-            for folder_name in ("slides_rerender", "slides"):
-                slides_dir = lesson_dir / folder_name
-                if slides_dir.exists():
-                    paths = sorted(slides_dir.glob("*.png"))
-                    if paths:
-                        # return paths relative to the output root so /static/ can serve them
-                        return [
-                            str(p.relative_to(output_root)).replace("\\", "/")
-                            for p in paths
-                        ]
+            # Merge the original slides with any re-rendered ones, per filename:
+            # a single-slide edit (or a full re-render) drops files into
+            # slides_rerender/ that override the matching original, so an edit to
+            # one slide shows correctly next to the unchanged rest.
+            merged: dict = {}
+            base = lesson_dir / "slides"
+            over = lesson_dir / "slides_rerender"
+            if base.exists():
+                for p in base.glob("*.png"):
+                    merged[p.name] = p
+            if over.exists():
+                for p in over.glob("*.png"):
+                    merged[p.name] = p  # override the original
+            if merged:
+                return [
+                    str(merged[name].relative_to(output_root)).replace("\\", "/")
+                    for name in sorted(merged)
+                ]
     raise HTTPException(status_code=404, detail=f"No slides found for lesson {lesson_id}")
 
 
@@ -828,9 +867,78 @@ def get_lesson_video_path(lesson_id: str):
     raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} video not found")
 
 
-#  RERENDER 
+#  SINGLE-SLIDE EDIT + RE-RENDER
 
-_rerender_tasks: dict = {}
+def _find_lesson_dir(lesson_id: str):
+    """Locate a lesson's output directory by its (possibly short) id."""
+    output_root = ROOT / "output"
+    if not output_root.exists():
+        return None
+    for course_dir in output_root.iterdir():
+        if not course_dir.is_dir():
+            continue
+        for lesson_dir in course_dir.iterdir():
+            if lesson_dir.is_dir() and lesson_id in lesson_dir.name:
+                return lesson_dir
+    return None
+
+
+@app.get("/api/lessons/{lesson_id}/slide-contents")
+def get_slide_contents(lesson_id: str):
+    """Return the editable slide spec objects for a lesson (from the checkpoint),
+    so the studio can show and edit each slide's fields."""
+    lesson_dir = _find_lesson_dir(lesson_id)
+    if not lesson_dir:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    cp = lesson_dir / "checkpoints" / "generate_slides.json"
+    if not cp.exists():
+        raise HTTPException(status_code=400, detail="No slides checkpoint for this lesson")
+    data = json.loads(cp.read_text(encoding="utf-8"))
+    return {"slide_contents": data.get("slide_contents", [])}
+
+
+class SlideEditRequest(BaseModel):
+    fields: dict
+
+
+@app.post("/api/lessons/{lesson_id}/slides/{slide_id}/rerender")
+def rerender_one_slide(lesson_id: str, slide_id: str, req: SlideEditRequest):
+    """Merge edited fields into one slide, persist them to the checkpoint, and
+    re-render just that slide. Returns the new image path for a before/after."""
+    lesson_dir = _find_lesson_dir(lesson_id)
+    if not lesson_dir:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    cp = lesson_dir / "checkpoints" / "generate_slides.json"
+    if not cp.exists():
+        raise HTTPException(status_code=400, detail="No slides checkpoint for this lesson")
+
+    data = json.loads(cp.read_text(encoding="utf-8"))
+    slides = data.get("slide_contents", [])
+    idx = next((i for i, s in enumerate(slides) if s.get("id") == slide_id), None)
+    if idx is None:
+        raise HTTPException(status_code=404, detail=f"Slide {slide_id} not found")
+
+    slides[idx].update(req.fields or {})
+
+    from services.slide_renderer.renderer import SlideRenderer
+    out_dir = lesson_dir / "slides_rerender"
+    out_dir.mkdir(exist_ok=True)
+    out_path = out_dir / f"{slide_id}.png"
+    try:
+        SlideRenderer().render_slide(slides[idx], str(out_path),
+                                     slide_index=idx, total_slides=len(slides))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Render failed: {e}")
+
+    # Persist the edit so it survives a full re-render.
+    data["slide_contents"] = slides
+    cp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    rel = str(out_path.relative_to(ROOT / "output")).replace("\\", "/")
+    return {"slide_id": slide_id, "path": rel, "slide": slides[idx]}
+
+
+#  RERENDER
 
 
 class RerenderRequest(BaseModel):
@@ -842,11 +950,8 @@ class RerenderRequest(BaseModel):
 
 
 def _run_rerender(task_id: str, req: RerenderRequest):
-    _rerender_tasks[task_id] = {
-        "status": "running", "log": [],
-        "started_at": datetime.now(timezone.utc).isoformat()
-    }
-    log = _rerender_tasks[task_id]["log"]
+    create_job("rerender", task_id, status="running", log=[],
+               started_at=datetime.now(timezone.utc).isoformat())
     try:
         cmd = [
             sys.executable,
@@ -865,14 +970,15 @@ def _run_rerender(task_id: str, req: RerenderRequest):
             text=True, bufsize=1,
         )
         for line in proc.stdout:
-            log.append(line.rstrip())
+            append_log(task_id, line.rstrip())
         proc.wait()
-        _rerender_tasks[task_id]["status"] = "done" if proc.returncode == 0 else "error"
-        _rerender_tasks[task_id]["returncode"] = proc.returncode
+        update_job(task_id, status="done" if proc.returncode == 0 else "error",
+                   returncode=proc.returncode,
+                   finished_at=datetime.now(timezone.utc).isoformat())
     except Exception as e:
-        _rerender_tasks[task_id]["status"] = "error"
-        log.append(f"Exception: {e}")
-    _rerender_tasks[task_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+        append_log(task_id, f"Exception: {e}")
+        update_job(task_id, status="error",
+                   finished_at=datetime.now(timezone.utc).isoformat())
 
 
 @app.post("/api/rerender")
@@ -885,9 +991,10 @@ def start_rerender(req: RerenderRequest, background_tasks: BackgroundTasks):
 
 @app.get("/api/rerender/{task_id}")
 def get_rerender_status(task_id: str):
-    if task_id not in _rerender_tasks:
+    job = get_job(task_id)
+    if not job:
         raise HTTPException(status_code=404, detail="Task not found")
-    return _rerender_tasks[task_id]
+    return job
 
 
 @app.get("/api/rerender/{task_id}/stream")
@@ -898,7 +1005,7 @@ async def stream_rerender_log(task_id: str):
     async def generator():
         sent = 0
         while True:
-            task = _rerender_tasks.get(task_id)
+            task = get_job(task_id)
             if not task:
                 yield 'data: {"error": "not found"}\n\n'
                 return

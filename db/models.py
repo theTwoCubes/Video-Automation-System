@@ -110,6 +110,21 @@ class SEOMetadata(Base):
     lesson: Mapped["Lesson"] = relationship("Lesson", back_populates="seo")
 
 
+class Job(Base):
+    """Durable, restart-safe record for the async background tasks the API used
+    to hold only in process memory (PDF ingest, curriculum gen, test runs,
+    re-renders). `data` is a JSON blob so each job kind can store its own shape
+    (logs, source_id, video_path, ...) without a schema change."""
+    __tablename__ = "jobs"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(40))  # ingest|curricula|test|rerender
+    status: Mapped[str] = mapped_column(String(20), default="running")
+    data: Mapped[str] = mapped_column(Text, default="{}")  # JSON
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
 class PipelineJob(Base):
     __tablename__ = "pipeline_jobs"
 

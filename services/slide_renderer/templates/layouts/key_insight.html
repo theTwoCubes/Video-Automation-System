@@ -1,0 +1,4 @@
+      <h2 class="{% if headline|length > 70 %}long-title{% endif %}">{{ headline|md }}</h2>
+      {% if subtitle %}<div class="insight-subtitle">{{ subtitle|md }}</div>{% endif %}
+
+    {# ===== BIG NUMBER ===== #}

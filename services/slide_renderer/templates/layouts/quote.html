@@ -1,0 +1,7 @@
+      {% if headline %}<div class="quote-context">{{ headline|md }}</div>{% endif %}
+      <div class="quote-mark">&#8220;</div>
+      {% set quote_body = text or (bullets[0] if bullets else '') %}
+      <div class="quote-text{% if quote_body|length > 120 %} long-title{% endif %}{% if quote_body|length > 200 %} very-long-title{% endif %}">{{ quote_body|md }}</div>
+      {% if attribution %}<div class="quote-attribution">&mdash; {{ attribution|md }}</div>{% endif %}
+
+    {# ===== ANALOGY ===== #}

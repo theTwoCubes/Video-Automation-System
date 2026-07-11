@@ -6,6 +6,8 @@ Returns detailed issues list. Also provides auto_fix_slides() for simple repairs
 """
 from __future__ import annotations
 
+from services.slide_renderer.layout_catalog import density_score, capacity
+
 VAGUE_WORDS = {
     "understanding", "exploring", "introduction", "overview", "basics",
     "aspects", "elements", "things", "various", "looking", "discussing",
@@ -123,6 +125,15 @@ def validate_slides(slides: list[dict]) -> list[dict]:
             items = slide.get("items") or bullets
             if not items:
                 problems.append("agenda slide has no items")
+
+        #  Density budget (blueprint §13/§21) - flag an overloaded slide so the
+        #  engine can split it. A little slack avoids flagging near-full slides.
+        score = density_score(slide)
+        cap = capacity(layout)
+        if score > cap * 1.15:
+            problems.append(
+                f"over density: {score:.0f} vs '{layout}' capacity {cap:.0f} - split this slide"
+            )
 
         if problems:
             all_issues.append({

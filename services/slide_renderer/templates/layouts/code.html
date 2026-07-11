@@ -1,0 +1,15 @@
+      <h2 class="{% if headline|length > 55 %}long-title{% endif %}{% if headline|length > 75 %} very-long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="code-window">
+        <div class="code-titlebar">
+          <div class="code-dot-r"></div>
+          <div class="code-dot-y"></div>
+          <div class="code-dot-g"></div>
+          <div class="code-filename">{{ code_filename or (code_language + ('.py' if code_language == 'python' else '.cpp' if code_language in ['cpp','c++'] else '.js' if code_language == 'javascript' else '.' + code_language)) }}</div>
+        </div>
+        <div class="code-body">
+          <pre class="code-block" style="font-size:{{ code_html.code_content.size }}px">{{ code_html.code_content.html }}</pre>
+        </div>
+        {% if caption %}<div class="code-caption">{{ caption|md }}</div>{% endif %}
+      </div>
+
+    {# ===== SPLIT CODE ===== #}

@@ -1,0 +1,13 @@
+      {% set resources_headline = headline or 'Further Reading' %}
+      <h2 class="{% if resources_headline|length > 40 %}long-title{% endif %}">{{ resources_headline|md }}</h2>
+      <div class="resource-list">
+        {% for item in (items or bullets)[:5] %}
+        <div class="resource-item">
+          <div class="resource-icon">&#128214;</div>
+          <div>
+            <div class="resource-title">{{ (item.title if item is mapping else item)|md }}</div>
+            {% if item is mapping and item.description %}<div class="resource-desc">{{ item.description|md }}</div>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>

@@ -177,7 +177,9 @@ All settings have sensible defaults and can be overridden in `.env`:
 | `LLM_MODEL` | `gemini-2.5-flash` | LLM model name |
 | `SQLITE_PATH` | `data/twocubes.db` | SQLite database path |
 | `OUTPUT_DIR` | `output` | Root folder for generated videos |
-| `MAX_COST_USD_PER_RUN` | `0.50` | Hard cost cap per pipeline run |
+| `MAX_COST_USD_PER_RUN` | `0.50` | Hard cost cap per pipeline run (raise it — reasoning now costs more) |
+| `LLM_THINKING_BUDGET` | `4096` | Gemini reasoning tokens for plan/script/slide agents (0 disables) |
+| `ENABLE_CODE_EXECUTION` | `false` | Opt-in: run generated code in a sandbox to capture real output (runs arbitrary code on the host) |
 | `KEN_BURNS_THRESHOLD_SECONDS` | `7.0` | Slides longer than this get Ken Burns |
 | `SLIDE_WIDTH` / `SLIDE_HEIGHT` | `1920` / `1080` | Slide canvas resolution |
 

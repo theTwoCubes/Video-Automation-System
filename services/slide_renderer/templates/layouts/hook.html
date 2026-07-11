@@ -1,0 +1,4 @@
+      <h2 class="{% if headline|length > 60 %}long-title{% endif %}{% if headline|length > 90 %} very-long-title{% endif %}">{{ headline|md }}</h2>
+      {% if subtitle %}<div class="hook-subtitle">{{ subtitle|md }}</div>{% endif %}
+
+    {# ===== KEY INSIGHT ===== #}

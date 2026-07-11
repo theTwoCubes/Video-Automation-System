@@ -1,0 +1,12 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="timeline-track">
+        {% for ev in (events or bullets)[:6] %}
+        <div class="timeline-event">
+          <div class="timeline-dot"></div>
+          <div class="timeline-label">{{ (ev.label if ev is mapping else ev)|md }}</div>
+          {% if ev is mapping and ev.description %}<div class="timeline-desc">{{ ev.description|md }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+    {# ===== CYCLE ===== #}

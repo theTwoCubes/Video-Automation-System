@@ -1,0 +1,10 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="cycle-wrap">
+        {% for s in (steps or bullets)[:6] %}
+        {% if not loop.first %}<div class="cycle-arrow">&#8594;</div>{% endif %}
+        <div class="cycle-step">{{ s|strip_leading_number|md }}</div>
+        {% endfor %}
+        <div class="cycle-arrow">&#8635;</div>
+      </div>
+
+    {# ===== BAR CHART ===== #}

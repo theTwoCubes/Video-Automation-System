@@ -1,0 +1,15 @@
+      <div class="quiz-label">{{ (headline or 'Quick Check')|md }}</div>
+      {% set quiz_q = question|string %}
+      <div class="quiz-question{% if quiz_q|length > 60 %} long-title{% endif %}{% if quiz_q|length > 100 %} very-long-title{% endif %}">{{ quiz_q|md }}</div>
+      <div class="quiz-options">
+        {% for opt in options[:4] %}
+        {% set opt_label = (opt.label if opt is mapping else '') %}
+        {% set opt_text = (opt.text if opt is mapping else opt)|string %}
+        <div class="quiz-option {% if opt_label == answer %}correct{% endif %}">
+          <div class="quiz-option-letter">{{ opt_label|e }}</div>
+          <div class="quiz-option-text{% if opt_text|length > 60 %} long-title{% endif %}">{{ opt_text|md }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+    {# ===== THINK PAUSE ===== #}

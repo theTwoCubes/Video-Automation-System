@@ -1,0 +1,7 @@
+      <div class="warning-tag">&#9888; Warning</div>
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="warning-items">
+        {% for b in bullets[:3] %}<div class="warning-item"><div class="warning-dot"></div><div class="warning-text">{{ b|md }}</div></div>{% endfor %}
+      </div>
+
+    {# ===== TIP ===== #}

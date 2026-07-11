@@ -1,0 +1,8 @@
+      <div class="tip-tag">&#128161; Pro Tip</div>
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="tip-items">
+        {% for b in bullets[:3] %}<div class="tip-item"><div class="tip-dot"></div><div class="tip-text">{{ b|md }}</div></div>{% endfor %}
+      </div>
+      {% if callout %}<div class="tip-callout">{{ callout|md }}</div>{% endif %}
+
+    {# ===== CHECKPOINT ===== #}

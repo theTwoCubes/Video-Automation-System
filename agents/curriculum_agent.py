@@ -94,6 +94,21 @@ class CurriculumAgent(BaseAgent):
                 lec["primary_sections"] = [s for s in lec.get("primary_sections", []) if s in valid_section_ids]
                 lec["reference_sections"] = [s for s in lec.get("reference_sections", []) if s in valid_section_ids]
 
+        # Drop any lecture left with zero primary sections after filtering. Such
+        # a lecture has no source material to teach from - the downstream planner
+        # would "expand aggressively" from just a title, producing a hollow,
+        # ungrounded lesson. Better to omit it than to generate filler.
+        kept = [lec for lec in lectures if lec.get("primary_sections")]
+        dropped = len(lectures) - len(kept)
+        if dropped:
+            print(f"  WARNING: dropped {dropped} lecture(s) with no valid primary sections.")
+        lectures = kept
+        if not lectures:
+            raise RuntimeError(
+                "CurriculumAgent: no lectures retained any valid section IDs. "
+                "The PDF section index and the planned curriculum do not line up."
+            )
+
         # Assign positions
         for i, lec in enumerate(lectures):
             lec["position"] = i + 1

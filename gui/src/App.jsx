@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Curricula } from './pages/Curricula';
 import { PipelineMonitor } from './pages/PipelineMonitor';
 import { TestingStudio } from './pages/TestingStudio';
+import { Settings } from './pages/Settings';
 import './index.css';
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
             <Route path="/curricula/:courseId" element={<Curricula />} />
             <Route path="/pipeline" element={<PipelineMonitor />} />
             <Route path="/testing" element={<TestingStudio />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

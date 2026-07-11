@@ -102,7 +102,7 @@ class QAAgent(BaseAgent):
         )
 
         try:
-            qa_result = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
+            qa_result = self.llm.complete_json(SYSTEM_PROMPT, user_msg, thinking_budget=0)
         except Exception as e:
             qa_result = {
                 "score": 50,

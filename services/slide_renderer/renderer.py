@@ -49,6 +49,85 @@ def strip_next_prefix(text) -> str:
     return _LEADING_NEXT_RE.sub("", str(text))
 
 
+# ---------------------------------------------------------------------------
+# Server-side syntax highlighting (blueprint §14). Previously this ran as an
+# in-page <script> after the screenshot's wait, which raced the capture. Doing
+# it in Python bakes the highlighted markup straight into the HTML, so there is
+# nothing async left to race and the output is deterministic.
+# ---------------------------------------------------------------------------
+_CODE_KWS = ("int|float|double|char|bool|void|long|short|unsigned|signed|const|"
+             "static|auto|return|if|else|while|for|do|break|continue|switch|case|"
+             "default|class|struct|public|private|protected|new|delete|nullptr|"
+             "true|false|this|using|namespace|std|template|typename|virtual|"
+             "override|explicit|inline|extern|typedef|enum|operator")
+_CODE_TOKEN_RE = re.compile(
+    r'(//[^\n]*)'                                                # 1 line comment
+    r'|(#(?:include|define|pragma|ifdef|ifndef|endif|if|else|elif)[^\n]*)'  # 2 preproc
+    r'|("(?:[^"\\]|\\.)*")'                                      # 3 string
+    r"|('(?:[^'\\]|\\.)')"                                       # 4 char literal
+    r'|\b(' + _CODE_KWS + r')\b'                                 # 5 keyword
+    r'|\b(\d+\.?\d*(?:[fFuUlL]|ull|ll)?)\b'                      # 6 number
+    r'|(<<|>>|::|->|[=!<>+\-*/&|^~%]+)'                          # 7 operator
+)
+# line-count -> font-size px, per code window tier (matches the old JS TIER_SETS)
+_CODE_TIERS = {
+    "full":  [(16, 26), (21, 20), (26, 16), (32, 13), (10 ** 9, 11)],
+    "split": [(22, 22), (27, 18), (33, 15), (41, 12), (10 ** 9, 10)],
+}
+# which code field(s) each layout renders, and at which tier
+_LAYOUT_CODE_TIERS = {
+    "code": {"code_content": "full"},
+    "split_code": {"code_content": "split"},
+    "code_output": {"code_content": "split"},
+    "code_evolution": {"left_code": "split", "right_code": "split"},
+}
+_TOK_CLASS = {1: "tok-cmt", 2: "tok-pp", 3: "tok-str", 4: "tok-str",
+              5: "tok-kw", 6: "tok-num", 7: "tok-op"}
+
+
+def _esc_code(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def highlight_code(code) -> Markup:
+    """Tokenize C/C++-ish code into <span class="tok-*"> markup, line by line."""
+    out_lines = []
+    for line in str(code or "").split("\n"):
+        if line.lstrip().startswith("//"):
+            out_lines.append(f'<span class="tok-cmt">{_esc_code(line)}</span>')
+            continue
+        parts, last = [], 0
+        for m in _CODE_TOKEN_RE.finditer(line):
+            parts.append(_esc_code(line[last:m.start()]))
+            for gi, cls in _TOK_CLASS.items():
+                if m.group(gi) is not None:
+                    parts.append(f'<span class="{cls}">{_esc_code(m.group(gi))}</span>')
+                    break
+            last = m.end()
+        parts.append(_esc_code(line[last:]))
+        out_lines.append("".join(parts))
+    return Markup("\n".join(out_lines))
+
+
+def _code_font_size(line_count: int, tier: str = "full") -> int:
+    for max_lines, size in _CODE_TIERS.get(tier, _CODE_TIERS["full"]):
+        if line_count <= max_lines:
+            return size
+    return _CODE_TIERS.get(tier, _CODE_TIERS["full"])[-1][1]
+
+
+def build_code_html(slide_data: dict) -> dict:
+    """For the slide's layout, return {field: {'html': Markup, 'size': px}} for
+    each code field it renders, pre-highlighted and pre-sized."""
+    out = {}
+    for field, tier in _LAYOUT_CODE_TIERS.get(slide_data.get("layout", ""), {}).items():
+        raw = slide_data.get(field) or ""
+        if str(raw).strip():
+            out[field] = {"html": highlight_code(raw),
+                          "size": _code_font_size(len(str(raw).split("\n")), tier)}
+    return out
+
+
 def hex_to_rgb(hex_color: str) -> str:
     """Convert '#RRGGBB' to 'R,G,B' so a brand color can be dropped into a CSS
     rgba(...) call for translucent tints - CSS rgba() takes numeric components,
@@ -83,7 +162,7 @@ class SlideRenderer:
         return ""
 
     def _render_html(self, slide_data: dict, slide_index: int = 0, total_slides: int = 0) -> str:
-        template = self.env.get_template("slide.html")
+        template = self.env.get_template("base.html")
         theme = self.brand.get("slide_themes", {}).get("dark", {})
         data = {k: v for k, v in slide_data.items() if k not in ("left_label", "right_label", "code_language")}
 
@@ -126,8 +205,26 @@ class SlideRenderer:
             total_slides=total_slides,
             code_language=slide_data.get("code_language", "cpp"),
             code_blocks=code_blocks,
+            code_html=build_code_html(slide_data),
             **data,
         )
+
+    @staticmethod
+    async def _await_ready(page) -> None:
+        """Block until the slide is deterministically ready to capture: the
+        embedded @font-face files have loaded (so text metrics are final) and
+        the in-page setup script has finished highlighting/sizing code. Without
+        this a screenshot can race those and capture a fallback font or
+        un-highlighted code (BUG-09). Each wait is best-effort so a slide that
+        legitimately has no code still renders."""
+        try:
+            await page.wait_for_function("window.__slideReady === true", timeout=5000)
+        except Exception:
+            pass
+        try:
+            await page.evaluate("() => document.fonts && document.fonts.ready")
+        except Exception:
+            pass
 
     async def render_slide_async(
         self, slide_data: dict, output_path: str,
@@ -140,6 +237,7 @@ class SlideRenderer:
                 viewport={"width": settings.SLIDE_WIDTH, "height": settings.SLIDE_HEIGHT}
             )
             await page.set_content(html, wait_until="networkidle")
+            await self._await_ready(page)
             await page.screenshot(path=output_path, type="png", full_page=False)
             await page.close()
             return output_path
@@ -151,6 +249,7 @@ class SlideRenderer:
                 viewport={"width": settings.SLIDE_WIDTH, "height": settings.SLIDE_HEIGHT}
             )
             await page.set_content(html, wait_until="networkidle")
+            await self._await_ready(page)
             await page.screenshot(path=output_path, type="png", full_page=False)
             await b.close()
         return output_path

@@ -17,9 +17,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-
-def _fwd(p: Path) -> str:
-    return str(p.resolve()).replace("\\", "/")
+from services.media.ffmpeg import fwd as _fwd
 
 
 def capture_animation_frames(
@@ -49,6 +47,13 @@ def capture_animation_frames(
                 viewport={"width": width, "height": height}
             )
             await page.set_content(html_content, wait_until="domcontentloaded")
+
+            # Ensure embedded fonts are loaded before the first frame, else the
+            # opening frames can capture in a fallback font (BUG-09).
+            try:
+                await page.evaluate("() => document.fonts && document.fonts.ready")
+            except Exception:
+                pass
 
             # let CSS animations start
             await page.wait_for_timeout(100)

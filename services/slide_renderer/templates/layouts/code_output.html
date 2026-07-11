@@ -1,0 +1,16 @@
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="code-output-wrap">
+        <div class="code-window">
+          <div class="code-titlebar">
+            <div class="code-dot-r"></div><div class="code-dot-y"></div><div class="code-dot-g"></div>
+            <div class="code-filename">{{ code_filename or (code_language + '.cpp') }}</div>
+          </div>
+          <div class="code-body"><pre class="code-block" style="font-size:{{ code_html.code_content.size }}px">{{ code_html.code_content.html }}</pre></div>
+        </div>
+        <div class="output-panel">
+          <div class="output-label">Output</div>
+          {% for line in (output_lines or bullets) %}<div class="output-line">{{ line|e }}</div>{% endfor %}
+        </div>
+      </div>
+
+    {# ===== CODE EVOLUTION ===== #}

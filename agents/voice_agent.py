@@ -16,22 +16,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from agents.base_agent import BaseAgent
 from providers.tts.edge_tts_provider import get_tts
 from config.pronunciation_lexicon import preprocess_for_tts
-
-
-def _get_ffmpeg() -> str:
-    try:
-        import imageio_ffmpeg
-        return imageio_ffmpeg.get_ffmpeg_exe()
-    except Exception:
-        pass
-    f = shutil.which("ffmpeg")
-    if f:
-        return f
-    raise RuntimeError("FFmpeg not found.")
-
-
-def _fwd(p) -> str:
-    return str(Path(p).resolve()).replace("\\", "/")
+from services.media.ffmpeg import (
+    get_ffmpeg as _get_ffmpeg,
+    fwd as _fwd,
+    get_audio_duration as _get_audio_duration,
+)
 
 
 def _loudnorm(audio_path: str, ffmpeg_exe: str) -> None:
@@ -69,14 +58,6 @@ def _trim_silence(audio_path: str, ffmpeg_exe: str) -> None:
             Path(tmp).unlink()
     elif Path(tmp).exists():
         Path(tmp).unlink()
-
-
-def _get_audio_duration(path: str, ffmpeg_exe: str) -> float:
-    r = subprocess.run([ffmpeg_exe, "-i", path], capture_output=True, text=True)
-    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.?\d*)", r.stderr)
-    if m:
-        return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
-    return 0.0
 
 
 def _concat_mp3s(parts: list[str], out: str, ffmpeg_exe: str) -> None:
@@ -140,7 +121,12 @@ class VoiceAgent(BaseAgent):
             out_path = str(audio_dir / f"seg_{i:04d}.mp3")
             tasks.append((i, text, out_path, seg))
 
+        self._failed_indices: list[int] = []
         audio_paths = self._synthesize_parallel(tasks, len(narration_segments))
+        if self._failed_indices:
+            print(f"  WARNING: {len(self._failed_indices)} segment(s) fell back to "
+                  f"silence after TTS failures: {self._failed_indices}")
+            state["tts_failures"] = self._failed_indices
 
         # process: trim silence, then normalize
         try:
@@ -159,16 +145,35 @@ class VoiceAgent(BaseAgent):
         print(f"  Generated {len(audio_paths)} audio segments.")
         return state
 
-    def _synthesize_one(self, args: tuple) -> tuple[int, str]:
+    def _synthesize_one(self, args: tuple) -> tuple[int, str, bool]:
         i, text, out_path, seg = args
 
-        # Handle [PAUSE] markers by splitting into sub-segments with silence
-        if "[PAUSE]" in text:
-            return i, self._synthesize_with_pauses(i, text, out_path, seg)
+        try:
+            # Handle [PAUSE] markers by splitting into sub-segments with silence
+            if "[PAUSE]" in text:
+                return i, self._synthesize_with_pauses(i, text, out_path, seg), True
+            self.tts.synthesize_sync(text, out_path)
+            return i, out_path, True
+        except Exception as e:
+            # A single dropped segment must not discard a whole (paid) lesson.
+            # Substitute a silence clip sized to the text so downstream audio↔
+            # slide alignment stays intact, and flag it for review.
+            print(f"  Segment {i} TTS failed after retries ({e}); inserting silence.")
+            self._make_placeholder_silence(text, out_path)
+            return i, out_path, False
 
-        # If TTS fails, we let the exception propagate so the pipeline stops.
-        self.tts.synthesize_sync(text, out_path)
-        return i, out_path
+    def _make_placeholder_silence(self, text: str, out_path: str) -> None:
+        """Write a silence clip roughly as long as the text would have taken to
+        speak (~2.5 words/sec), so the timeline doesn't collapse where a segment
+        failed. Falls back to an empty file if ffmpeg is unavailable."""
+        try:
+            ffmpeg_exe = _get_ffmpeg()
+        except Exception:
+            Path(out_path).touch()
+            return
+        words = max(1, len((text or "").split()))
+        dur_ms = int(min(20000, max(1500, words / 2.5 * 1000)))
+        _make_silence(dur_ms, out_path, ffmpeg_exe)
 
     def _synthesize_with_pauses(self, i: int, text: str, out_path: str, seg: dict) -> str:
         """Synthesize text containing [PAUSE] markers, inserting 600ms silence."""
@@ -215,11 +220,19 @@ class VoiceAgent(BaseAgent):
         for future in as_completed(futures):
             idx = futures[future]
             try:
-                i, path = future.result()
+                i, path, ok = future.result()
                 results[idx] = path
+                if not ok:
+                    self._failed_indices.append(i)
             except Exception as e:
-                print(f"  Synthesis thread error: {e}")
-                raise RuntimeError(f"Audio synthesis failed for segment: {e}") from e
+                # _synthesize_one already swallows TTS errors; this is a last-
+                # resort guard so an unexpected thread error still can't abort
+                # the run. Drop in a silence placeholder to preserve alignment.
+                print(f"  Synthesis thread error on segment {idx}: {e}")
+                _, text, out_path, _seg = tasks[idx]
+                self._make_placeholder_silence(text, out_path)
+                results[idx] = out_path
+                self._failed_indices.append(idx)
             completed += 1
             print(f"  Synthesized {completed}/{total}")
 

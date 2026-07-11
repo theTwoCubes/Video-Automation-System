@@ -1,0 +1,9 @@
+      <h2 class="{% if headline|length > 45 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <table class="data-table{% if rows|length > 4 %} many-rows{% endif %}">
+        {% if headers %}<tr>{% for h in headers[:4] %}<th>{{ h|md }}</th>{% endfor %}</tr>{% endif %}
+        {% for row in rows[:6] %}
+        <tr>{% for cell in row[:4] %}{% set cell_str = cell|string %}<td class="{% if '`' in cell_str %}is-code{% endif %}">{{ cell_str|md }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </table>
+
+    {# ===== TIMELINE ===== #}

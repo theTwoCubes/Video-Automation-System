@@ -1,0 +1,44 @@
+/* ============================================================
+   DESIGN TOKENS - the single source for the slide visual system
+   (blueprint §10-§11, §13 "The Design System"). Brand values are
+   injected from config/brand.json via the renderer context; the
+   neutral ramp, radius, and type scale are the presentation-engine
+   design system. Layouts reference these custom properties so the
+   look is defined once and cannot drift per layout.
+   ============================================================ */
+:root {
+  /* ground + surface elevations (deep slate, biased toward the accent) */
+  --ground: {{ bg | default('#0D0F12') }};
+  --surface: #14171D;
+  --surface-2: #1A1E26;
+  --line: #1E2330;
+
+  /* ink ramp - three foreground weights (never pure #FFF on video) */
+  --ink: {{ text_color | default('#E8EAF0') }};
+  --ink-soft: #C8CDD8;
+  --muted: #8A90A0;
+  --faint: #5A6070;
+
+  /* brand accent + semantic status (status is never the accent) */
+  --accent: {{ accent }};
+  --accent-rgb: {{ accent_rgb }};
+  --emphasis: {{ secondary_accent }};
+  --warning: {{ warning_color }};
+  --tip: {{ tip_color }};
+  --caution: {{ caution_color }};
+
+  /* radius + vertical rhythm */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --baseline: 8px;
+
+  /* type scale (px @1080p, ~1.25 modular); --fs-floor is the hard minimum */
+  --fs-hero: 100px;
+  --fs-section: 58px;
+  --fs-title: 52px;
+  --fs-body-lg: 34px;
+  --fs-body: 30px;
+  --fs-floor: 24px;
+  --fs-caption: 20px;
+  --fs-eyebrow: 15px;
+}

@@ -1,0 +1,11 @@
+      <div class="checkpoint-header">
+        <div class="checkpoint-icon">&#128278;</div>
+        {% set checkpoint_headline = headline or 'So Far' %}
+        <h2 class="{% if checkpoint_headline|length > 30 %}long-title{% endif %}">{{ checkpoint_headline|md }}</h2>
+      </div>
+      <div class="checkpoint-items">
+        {% for b in bullets[:4] %}<div class="checkpoint-item"><div class="checkpoint-dot"></div><div class="checkpoint-text">{{ b|md }}</div></div>{% endfor %}
+      </div>
+      {% if transition %}<div class="checkpoint-transition">{{ transition|md }}</div>{% endif %}
+
+    {# ===== MENTAL MODEL ===== #}

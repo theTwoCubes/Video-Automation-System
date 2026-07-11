@@ -15,17 +15,12 @@ import re
 from pathlib import Path
 from typing import Optional
 
-
-def _fwd(p: Path) -> str:
-    return str(p.resolve()).replace("\\", "/")
+from services.media.ffmpeg import fwd as _fwd, get_audio_duration as _shared_audio_duration
 
 
-def _get_audio_duration(path: str, ffmpeg_exe: str) -> float:
-    result = subprocess.run([ffmpeg_exe, "-i", path], capture_output=True, text=True)
-    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.?\d*)", result.stderr)
-    if m:
-        return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
-    return 5.0
+def _get_audio_duration(path: str, ffmpeg_exe: str = None) -> float:
+    """Defaults to 5.0s when unreadable, matching the code-reveal fallback."""
+    return _shared_audio_duration(path, ffmpeg_exe, default=5.0)
 
 
 #  B.4: Weighted per-line duration 
@@ -68,6 +63,22 @@ def _compute_frame_durations(lines: list[str], total_duration: float) -> list[fl
 
 #  Frame rendering 
 
+def _reveal_lines(code: str) -> list[str]:
+    """The canonical list of lines used for a progressive reveal: strip leading
+    blank lines only (interior/trailing blanks are kept so spacing is faithful).
+
+    This is the SINGLE source of truth for which lines become reveal frames.
+    Both the frame renderer and the per-line weight computation call it, so the
+    two lists always have the same length - previously they used different
+    filters, so the weighted-timing path silently fell back to uniform timing
+    on nearly every slide."""
+    reveals: list[str] = []
+    for line in code.split("\n"):
+        if reveals or line.strip():
+            reveals.append(line)
+    return reveals
+
+
 def _render_reveal_frames(
     slide_data: dict,
     frames_dir: Path,
@@ -76,14 +87,7 @@ def _render_reveal_frames(
     total_slides: int = 0,
 ) -> list[str]:
     """Render one PNG per code line (progressive reveal)."""
-    code = slide_data.get("code_content", "")
-    raw_lines = code.split("\n")
-
-    # strip leading blank lines only
-    reveals: list[str] = []
-    for line in raw_lines:
-        if reveals or line.strip():
-            reveals.append(line)
+    reveals = _reveal_lines(slide_data.get("code_content", ""))
 
     if len(reveals) <= 1:
         return []
@@ -135,12 +139,11 @@ def create_code_reveal_segment(
     audio_dur = _get_audio_duration(merged_audio, ffmpeg_exe)
     n = len(frame_paths)
 
-    # get the code lines to compute weights
-    code = slide_data.get("code_content", "")
-    raw_lines = code.split("\n")
-    reveals = [l for l in raw_lines if reveals_seen_blank(raw_lines, l)]
+    # Compute per-line weights from the SAME line list the frames were rendered
+    # from, so counts match and the weighted timing actually applies. Equal
+    # distribution remains only as a defensive fallback if they ever diverge.
+    reveals = _reveal_lines(slide_data.get("code_content", ""))
     if len(reveals) != n:
-        # fallback to equal distribution
         frame_durations = [audio_dur / n] * n
     else:
         frame_durations = _compute_frame_durations(reveals, audio_dur)
@@ -173,8 +176,3 @@ def create_code_reveal_segment(
     else:
         print(f"    Code reveal failed, using static: {result.stderr[-120:]}")
         return None
-
-
-def reveals_seen_blank(lines: list[str], line: str) -> bool:
-    """Helper to replicate the 'skip leading blanks' logic."""
-    return True  # simplified - actual filtering done in _render_reveal_frames

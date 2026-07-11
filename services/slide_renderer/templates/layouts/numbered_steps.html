@@ -1,0 +1,11 @@
+      <h2 class="{% if headline|length > 50 %}long-title{% endif %}">{{ headline|md }}</h2>
+      <div class="steps-list">
+        {% for b in bullets[:5] %}
+        <div class="step-row">
+          <div class="step-num">{{ loop.index }}</div>
+          <div class="step-text">{{ b|strip_leading_number|md }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+    {# ===== EXERCISE ===== #}

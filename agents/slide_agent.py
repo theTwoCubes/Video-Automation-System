@@ -2,6 +2,8 @@
 from agents.base_agent import BaseAgent
 from services.slide_renderer.renderer import SlideRenderer
 from services.slide_validator.validator import validate_slides, auto_fix_slides, print_validation_report
+from services.slide_renderer.layout_catalog import design_brief_json
+from services.slide_renderer import selection
 
 # Layout -> default transition when this slide is shown after a non-code slide
 LAYOUT_TRANSITIONS = {
@@ -351,6 +353,16 @@ class SlideAgent(BaseAgent):
             code_refs=json.dumps(code_refs)[:1500],
         )
 
+        # Hand the LLM the machine-readable design system (blueprint §22): the
+        # per-layout caps, families, density budgets, and hard rules as data, so
+        # it chooses like a deck designer working within a system rather than
+        # improvising. Reasoning is enabled for this call via the provider
+        # default (BUG-07), which is what lets it weigh the rubric.
+        user_msg += (
+            "\n\nMACHINE-READABLE DESIGN SYSTEM - obey these layout caps, "
+            "families, density budgets, and rules exactly:\n" + design_brief_json()
+        )
+
         result = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
         slides_spec = result.get("slides", [])
 
@@ -439,6 +451,12 @@ class SlideAgent(BaseAgent):
         if issues:
             print("  Auto-fixing simple issues...")
             final_slides = auto_fix_slides(final_slides)
+
+        # Deck-level design-system audit (diversity, rhythm, density) - reports
+        # violations of the rules the brief asks the LLM to follow, so they show
+        # up in the pipeline log and can be tracked over time.
+        print(selection.audit_summary(final_slides))
+        state["layout_audit"] = selection.audit(final_slides)
 
         slide_dir = f"{output_dir}/slides"
         slide_paths = self.renderer.render_slides(final_slides, slide_dir)
