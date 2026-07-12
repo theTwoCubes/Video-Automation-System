@@ -108,12 +108,18 @@ Format: "slide_001", "slide_002", etc.
   what is being discussed - the audio and the visual must stay in sync, not just the
   audio droning on over one frozen slide.
 
-VISUAL SYNCHRONIZATION:
+VISUAL SYNCHRONIZATION & DIAGRAM PACING:
 You are the central authority for the lesson. Your narration script drives what code and diagrams will be generated later. 
 If the lesson plan marks a section with `needs_diagram: true` or `needs_code: true`, you MUST explicitly narrate what is happening in that visual.
 - For code: narrate the variable names, the function logic, and the expected output you want the Code Generator to write.
 - For diagrams: narrate the shapes, the flow, and the visual metaphor you want the Diagram Generator to draw.
 Your spoken words will be passed directly to the Code and Diagram AI to ensure they build exactly what you described.
+
+CRITICAL DIAGRAM PACING RULE:
+A diagram is effectively a COMPLETELY DIFFERENT SLIDE visually. When you tag a segment with `diagram_ref`, the video cuts away from the text slide and fills the screen with the diagram. When you leave `diagram_ref` empty, it cuts back to the text slide.
+- You have absolute control over this pacing. You can show the diagram before explaining the slide, during it, or after.
+- If you want the diagram to stay on screen for multiple sentences, you MUST tag ALL of those consecutive segments with the SAME `diagram_ref`.
+- Use this capability purposefully and deliberately. Do not toggle erratically back and forth between the slide and the diagram every single sentence, as rapid visual flashing will disorient the viewer. Group your diagram-focused sentences together smoothly.
 
 DEPTH REQUIREMENT: The reference material may be brief. You MUST go into deep, technical depth, but FOCUS EXCLUSIVELY ON WHAT IS IMPORTANT. 
 Do NOT generate vague filler, repetitive fluff, or unnecessarily drawn-out explanations just to increase length. Teach the hard, complex parts with absolute clarity and precision. 
@@ -218,9 +224,8 @@ def _backfill_diagram_refs(script: dict, lesson_plan: dict) -> None:
     if not segments:
         return
         
-    # Strip any potentially hallucinated/out-of-order refs from the LLM
-    for seg in segments:
-        seg["diagram_ref"] = ""
+    # Trust the LLM's placement first! We no longer wipe them.
+    # We will only backfill if a required diagram is missing entirely.
 
     last_assigned_idx = 0
     sections = lesson_plan.get("sections", [])
@@ -230,6 +235,12 @@ def _backfill_diagram_refs(script: dict, lesson_plan: dict) -> None:
             continue
             
         want_ref = f"diag_{section['id']}"
+        
+        # Check if the AI already successfully placed this diagram
+        if any(s.get("diagram_ref") == want_ref for s in segments):
+            print(f"  [ScriptAgent] AI successfully placed {want_ref} on its own. Trusting AI timing.")
+            continue
+            
         section_text = section.get("title", "") + " " + " ".join(section.get("key_points", []))
         section_words = set(re.findall(r"[a-z0-9']+", section_text.lower()))
         if not section_words:
@@ -271,11 +282,8 @@ def _backfill_code_refs(script: dict, lesson_plan: dict) -> None:
     """Deterministically assigns code references using monotonic sequence mapping,
     ensuring code references appear chronologically and match the lesson plan's needs_code flags."""
     segments = script.get("segments", [])
-    if not segments:
-        return
-        
-    for seg in segments:
-        seg["code_ref"] = ""
+    # Trust the LLM's placement first!
+    # We will only backfill if a required code block is missing entirely.
 
     last_assigned_idx = 0
     sections = lesson_plan.get("sections", [])
@@ -285,6 +293,12 @@ def _backfill_code_refs(script: dict, lesson_plan: dict) -> None:
             continue
             
         want_ref = f"code_{section['id']}"
+        
+        # Check if the AI already successfully placed this code
+        if any(s.get("code_ref") == want_ref for s in segments):
+            print(f"  [ScriptAgent] AI successfully placed {want_ref} on its own. Trusting AI timing.")
+            continue
+            
         section_text = section.get("title", "") + " " + " ".join(section.get("key_points", []))
         section_words = set(re.findall(r"[a-z0-9']+", section_text.lower()))
         if not section_words:

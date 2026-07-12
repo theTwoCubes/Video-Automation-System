@@ -1,4 +1,15 @@
+<div class="decor-dots"></div>
+<div class="decor-cross"></div>
+<div class="decor-square"></div>
+<div class="decor-angle-tl"></div>
+<div class="decor-angle-br"></div>
+<div class="decor-grid-mini"></div>
+<div class="decor-circle-dashed"></div>
+
 <div class="outro-center">
+  {% if outro_logo_b64 %}
+    <img class="outro-logo" src="data:image/png;base64,{{ outro_logo_b64 }}" alt="Outro Logo">
+  {% endif %}
   <div class="outro-heading">THANKS FOR WATCHING</div>
   <div class="outro-subtext">Like &amp; Subscribe for more such videos</div>
 </div>

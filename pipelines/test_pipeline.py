@@ -89,7 +89,7 @@ def run_test_pipeline(
         "target_audience": fixture.get("target_audience", "beginners"),
         "estimated_duration_minutes": fixture.get("estimated_duration_minutes", 10),
         "difficulty": fixture.get("difficulty", "beginner"),
-        "previous_lesson_summary": None,
+        "past_lessons_history": None,
         "next_lesson_title": fixture.get("next_lesson_title", ""),
         "profile": fixture.get("profile", None),
         "lesson_plan": fixture.get("lesson_plan"),

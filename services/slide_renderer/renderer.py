@@ -142,21 +142,29 @@ def hex_to_rgb(hex_color: str) -> str:
 
 class SlideRenderer:
     def __init__(self):
-        self.env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
+        self.env = Environment(
+            loader=FileSystemLoader(TEMPLATE_DIR),
+            autoescape=True,
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
         self.env.filters["md"] = render_inline_markdown
         self.env.filters["strip_leading_number"] = strip_leading_number
         self.env.filters["strip_next_prefix"] = strip_next_prefix
+        
         self.brand = self._load_brand()
-        self.logo_b64 = self._load_logo()
+        self.logo_b64 = self._load_b64(SLIDES_LOGO_PATH)
+        self.intro_logo_b64 = self._load_b64(Path("assets/logos/MainScreenLogo.png"))
+        self.outro_logo_b64 = self._load_b64(Path("assets/logos/EndScreenLogo.png"))
 
     def _load_brand(self) -> dict:
         with open("config/brand.json") as f:
             return json.load(f)
 
-    def _load_logo(self) -> str:
-        """Return base64-encoded logo PNG if the file exists, else empty string."""
-        if SLIDES_LOGO_PATH.exists():
-            data = SLIDES_LOGO_PATH.read_bytes()
+    def _load_b64(self, path: Path) -> str:
+        """Return base64-encoded PNG if the file exists, else empty string."""
+        if path.exists():
+            data = path.read_bytes()
             return base64.b64encode(data).decode("utf-8")
         return ""
 
@@ -198,6 +206,8 @@ class SlideRenderer:
             tip_color_rgb=hex_to_rgb(tip_color),
             caution_color_rgb=hex_to_rgb(caution_color),
             logo_b64=self.logo_b64,
+            intro_logo_b64=self.intro_logo_b64,
+            outro_logo_b64=self.outro_logo_b64,
             left_label=slide_data.get("left_label", ""),
             right_label=slide_data.get("right_label", ""),
             slide_index=slide_index,

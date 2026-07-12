@@ -368,6 +368,7 @@ def compose_video_aligned(
                     "-i", _fwd(merged_audio),
                     "-t", f"{total_dur:.3f}",
                     "-c:v", "copy",
+                    "-af", "apad",
                     *_AUDIO_ARGS,
                     "-shortest",
                     _fwd(seg_out),
@@ -389,8 +390,8 @@ def compose_video_aligned(
             "-t", f"{total_dur:.3f}",
             "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}{_fade_suffix(total_dur)}",
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
+            "-af", "apad",
             *_AUDIO_ARGS,
-            "-shortest",
             _fwd(seg_out),
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)

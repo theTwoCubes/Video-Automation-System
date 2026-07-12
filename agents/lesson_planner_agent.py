@@ -1,4 +1,4 @@
-﻿"""
+"""
 Lesson Planner Agent
 """
 from agents.base_agent import BaseAgent
@@ -168,16 +168,24 @@ class LessonPlannerAgent(BaseAgent):
         difficulty = state.get("difficulty", "beginner")
         section_text = state.get("section_text", "No reference material available.")
 
-        # Lesson continuity - inject previous lesson's summary
-        prev_summary = state.get("previous_lesson_summary")
-        if prev_summary:
-            bullets = prev_summary.get("key_takeaways", [])
-            prev_title = prev_summary.get("title", "")
-            continuity_block = (
-                f"PREVIOUS LESSON ({prev_title}) ALREADY COVERED - do NOT re-explain:\n"
-                + "\n".join(f"  - {b}" for b in bullets[:5])
-                + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n"
-            )
+        # Lesson continuity - inject past lessons' summaries
+        past_lessons = state.get("past_lessons_history") or []
+        if past_lessons:
+            history_blocks = []
+            for past in past_lessons:
+                bullets = past.get("key_takeaways", [])
+                past_title = past.get("title", "")
+                if bullets:
+                    history_blocks.append(f"- {past_title}:\n" + "\n".join(f"    * {b}" for b in bullets[:3]))
+            
+            if history_blocks:
+                continuity_block = (
+                    "PREVIOUS RECENT LESSONS ALREADY COVERED - do NOT re-explain these concepts fundamentally:\n"
+                    + "\n".join(history_blocks)
+                    + "\n\nBuild ON these concepts. Reference them briefly but never re-teach.\n"
+                )
+            else:
+                continuity_block = ""
         else:
             continuity_block = ""
 

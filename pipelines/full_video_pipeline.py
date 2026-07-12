@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Literal
@@ -269,7 +269,7 @@ def run_pipeline(
     target_audience: str = "beginners",
     estimated_duration_minutes: int = 12,
     force_restart: bool = False,
-    previous_lesson_summary: dict | None = None,
+    past_lessons_history: list[dict] | None = None,
     difficulty: str = "beginner",
     next_lesson_title: str = "",
     profile_name: str = "default",
@@ -334,7 +334,7 @@ def run_pipeline(
         "target_audience": target_audience,
         "estimated_duration_minutes": estimated_duration_minutes,
         "difficulty": difficulty,
-        "previous_lesson_summary": previous_lesson_summary,
+        "past_lessons_history": past_lessons_history,
         "next_lesson_title": next_lesson_title,
         "profile": profile,
         "lesson_plan": None,

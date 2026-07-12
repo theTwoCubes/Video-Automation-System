@@ -1,4 +1,4 @@
-﻿"""
+"""
 Code reveal animator - B.4 (weighted timing) from FuturePLAN.md.
 
 Line timing weights:
@@ -162,12 +162,12 @@ def create_code_reveal_segment(
         "-f", "concat", "-safe", "0", "-i", _fwd(concat_file),
         "-i", _fwd(Path(merged_audio)),
         "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
-        "-af", "apad=pad_dur=0.8",
+        "-af", "apad",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
         # Canonical audio format (48k mono) so this code-reveal segment
         # stream-copies cleanly with the static segments in the final concat.
         "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "1",
-        "-shortest",
+        "-t", f"{audio_dur:.3f}",
         _fwd(output_abs),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Course Batch Runner - F.1 from FuturePLAN.md
 
 Generates all pending lessons in a course sequentially.
@@ -109,7 +109,7 @@ def main():
 
     succeeded = 0
     failed_list = []
-    prev_summary = None
+    past_lessons = []
     start_time = datetime.now(timezone.utc)
 
     for idx, lesson in enumerate(pending):
@@ -151,7 +151,7 @@ def main():
                 estimated_duration_minutes=lesson.get("estimated_duration_minutes", 12),
                 difficulty=lesson.get("difficulty", "beginner"),
                 force_restart=args.force_restart,
-                previous_lesson_summary=prev_summary,
+                past_lessons_history=past_lessons,
                 next_lesson_title=next_lesson_title,
                 profile_name=args.profile,
             )
@@ -162,8 +162,8 @@ def main():
             video_path = final.get("video_path", "")
             _mark_lesson_done(lid, video_path)
 
-            # build previous_lesson_summary for next lesson (lesson continuity)
-            prev_summary = {
+            # build past_lessons_history for next lesson (lesson continuity)
+            new_summary = {
                 "title": title,
                 "key_takeaways": (
                     final.get("seo_metadata", {}).get("key_takeaways", [])
@@ -172,6 +172,7 @@ def main():
                         for b in s.get("bullets", [])][:5]
                 ),
             }
+            past_lessons = (past_lessons + [new_summary])[-5:]
 
             succeeded += 1
             elapsed = (datetime.now(timezone.utc) - start_time).seconds

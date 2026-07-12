@@ -1,4 +1,4 @@
-﻿from typing import Optional, List
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
@@ -106,7 +106,7 @@ class PipelineState(TypedDict):
     target_audience: str
     estimated_duration_minutes: int
     difficulty: str
-    previous_lesson_summary: Optional[dict]
+    past_lessons_history: Optional[List[dict]]
     next_lesson_title: str            # real title of the following curriculum lesson, "" if none
     profile: Optional[dict]           # loaded profile dict (voice/music/slides/rendering) - see config/profile_loader.py
     # Pipeline outputs

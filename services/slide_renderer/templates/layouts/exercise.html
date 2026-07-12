@@ -1,6 +1,6 @@
 <div style="display: flex; gap: 40px; height: 100%; align-items: stretch; width: 100%;">
       <div class="exercise-card" style="flex: 1; display: flex; flex-direction: column;">
-        <div class="exercise-tag">&#127919; Challenge</div>
+        <div class="exercise-tag">Challenge</div>
         <h3 class="{% if headline|length > 45 %}long-title{% endif %}{% if headline|length > 65 %} very-long-title{% endif %}">{{ headline|md }}</h3>
         <div class="exercise-items" style="flex-grow: 1;">
           {% for b in bullets %}

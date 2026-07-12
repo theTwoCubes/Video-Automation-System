@@ -115,7 +115,11 @@ NARRATION SCRIPT:
 "{narration}"
 
 CRITICAL SYNCHRONIZATION REQUIREMENT:
-You MUST generate code that exactly matches the above narration script. If the script mentions specific variable names, function names, error messages, or logical flows, you MUST use those exact names and flows in your code. Do not invent contradictory variables.
+The provided NARRATION SCRIPT is the exact voiceover that will play while your code is shown.
+You MUST generate code that exactly matches the narration script. 
+If the script mentions specific variable names, function names, error messages, or literal values, you MUST use those exact names and values in your code. 
+Failure to match the script will result in a video where the audio completely contradicts the visuals, confusing the viewer.
+PRIORITIZE THE NARRATION SCRIPT OVER THE CONCEPT DESCRIPTION if they conflict.
 
 Generate a code example as JSON:
 

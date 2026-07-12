@@ -488,10 +488,10 @@ class VideoAgent(BaseAgent):
                 "-t", f"{total_dur:.3f}",
                 "-vf", f"scale=1920:1080:flags=lanczos,tpad=stop_mode=clone:stop_duration={total_dur:.3f}",
                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
+                "-af", "apad",
                 # Canonical audio format so this prebuilt segment stream-copies
                 # cleanly alongside the static segments in the final concat.
                 "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "1",
-                "-shortest",
                 _fwd(out),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
