@@ -9,6 +9,7 @@ from contracts.schemas import PipelineState
 from contracts.validation import validate_step
 from agents.lesson_planner_agent import LessonPlannerAgent
 from agents.script_agent import ScriptAgent
+from agents.phonetic_agent import PhoneticAgent
 from agents.code_agent import CodeAgent
 from agents.diagram_agent import DiagramAgent
 from agents.slide_agent import SlideAgent
@@ -108,6 +109,10 @@ def node_plan_lesson(state: PipelineState) -> PipelineState:
 
 def node_write_script(state: PipelineState) -> PipelineState:
     return ScriptAgent().run(state)
+
+
+def node_phonetic_script(state: PipelineState) -> PipelineState:
+    return PhoneticAgent().run(state)
 
 
 def node_generate_code(state: PipelineState) -> PipelineState:
@@ -219,6 +224,7 @@ def build_pipeline() -> StateGraph:
     # wrap every node with checkpoint logic
     graph.add_node("plan_lesson",          _with_checkpoint("plan_lesson",          node_plan_lesson))
     graph.add_node("write_script",         _with_checkpoint("write_script",         node_write_script))
+    graph.add_node("phonetic_script",      _with_checkpoint("phonetic_script",      node_phonetic_script))
     graph.add_node("generate_code",        _with_checkpoint("generate_code",        node_generate_code))
     graph.add_node("generate_diagrams",    _with_checkpoint("generate_diagrams",    node_generate_diagrams))
     graph.add_node("generate_slides",      _with_checkpoint("generate_slides",      node_generate_slides))
@@ -233,7 +239,8 @@ def build_pipeline() -> StateGraph:
     graph.set_entry_point("plan_lesson")
 
     graph.add_edge("plan_lesson",       "write_script")
-    graph.add_edge("write_script",      "generate_code")
+    graph.add_edge("write_script",      "phonetic_script")
+    graph.add_edge("phonetic_script",   "generate_code")
     graph.add_edge("generate_code",     "generate_diagrams")
     graph.add_edge("generate_diagrams", "generate_slides")
     graph.add_edge("generate_slides",   "synthesize_voice")

@@ -23,24 +23,26 @@ from services.media.ffmpeg import (
 
 MAX_SLIDE_SECONDS = 9999.0  # Increased to prevent repeated transitions on the same slide
 
-def _wrap_srt_text(text: str) -> str:
-    """Trim narration to a subtitle: drop [PAUSE] markers and wrap to <=3 lines
-    of ~80 chars so a long sentence doesn't overflow the caption area."""
+def _wrap_srt_text(text: str) -> list[str]:
+    """Trim narration to a subtitle: drop [PAUSE] markers and chunk into 
+    approx 6-word lines for faster, more granular reading on screen."""
     text = (text or "").strip().replace("[PAUSE]", "")
-    if len(text) <= 80:
-        return text
     words = text.split()
-    lines, cur_line, cur_len = [], [], 0
+    
+    if len(words) <= 6:
+        return [text]
+        
+    lines, cur_line = [], []
     for w in words:
-        if cur_len + len(w) + 1 > 80:
+        if len(cur_line) >= 6:
             lines.append(" ".join(cur_line))
-            cur_line, cur_len = [w], len(w)
+            cur_line = [w]
         else:
             cur_line.append(w)
-            cur_len += len(w) + 1
+            
     if cur_line:
         lines.append(" ".join(cur_line))
-    return "\n".join(lines[:3])
+    return lines
 
 
 def _generate_srt(aligned_pairs: list, pair_slide_ids: list, slide_contents: list, text_by_audio: dict, segments_dir,
@@ -85,15 +87,21 @@ def _generate_srt(aligned_pairs: list, pair_slide_ids: list, slide_contents: lis
             if j > 0:
                 t += gap_s
             dur = get_audio_duration(ap, default=0.0) if Path(ap).exists() else 0.0
-            text = _wrap_srt_text(text_by_audio.get(ap, ""))
-            if text and dur > 0:
-                end_s = t + dur
-                if seg_end is not None:
-                    end_s = min(end_s, seg_end)
-                idx += 1
-                srt_lines.append(
-                    f"{idx}\n{_seconds_to_srt_time(t)} --> {_seconds_to_srt_time(end_s)}\n{text}\n"
-                )
+            lines = _wrap_srt_text(text_by_audio.get(ap, ""))
+            if lines and dur > 0:
+                # Group into chunks of 2 lines max
+                chunks = ["\n".join(lines[i:i+2]) for i in range(0, len(lines), 2)]
+                chunk_dur = dur / len(chunks)
+                
+                for i, chunk in enumerate(chunks):
+                    chunk_start = t + (i * chunk_dur)
+                    chunk_end = chunk_start + chunk_dur
+                    if seg_end is not None:
+                        chunk_end = min(chunk_end, seg_end)
+                    idx += 1
+                    srt_lines.append(
+                        f"{idx}\n{_seconds_to_srt_time(chunk_start)} --> {_seconds_to_srt_time(chunk_end)}\n{chunk}\n"
+                    )
             t += dur
 
         # advance by the true segment length; fall back to the summed audio

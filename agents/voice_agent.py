@@ -1,4 +1,4 @@
-﻿"""
+"""
 VoiceAgent - Synthesizes narration segments to MP3 using edge-tts.
 """
 
@@ -103,7 +103,8 @@ class VoiceAgent(BaseAgent):
 
         tasks = []
         for i, seg in enumerate(narration_segments):
-            text = seg.get("text", "").strip()
+            # Use phonetic text if available, fallback to raw text
+            text = seg.get("spoken_text", seg.get("text", "")).strip()
             if not text:
                 continue
             text = preprocess_for_tts(text)
