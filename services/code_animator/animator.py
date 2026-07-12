@@ -164,7 +164,9 @@ def create_code_reveal_segment(
         "-vf", f"scale=1920:1080:flags=lanczos,fps={fps}",
         "-af", "apad=pad_dur=0.8",
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
-        "-c:a", "aac", "-b:a", "192k",
+        # Canonical audio format (48k mono) so this code-reveal segment
+        # stream-copies cleanly with the static segments in the final concat.
+        "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "1",
         "-shortest",
         _fwd(output_abs),
     ]

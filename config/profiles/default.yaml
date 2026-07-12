@@ -7,8 +7,10 @@ voice:
   rate: "+0%"
   pitch: "+0Hz"
 
+# bg_track intentionally empty: no background music under narration in the main
+# body (it competed with the voice). Intro/outro keep their own short stings.
 music:
-  bg_track: "assets/music/bg_track.mp3"
+  bg_track: ""
   intro_sting: "assets/music/intro_sting.mp3"
   outro_music: "assets/music/outro_music.mp3"
   bg_volume: 0.5

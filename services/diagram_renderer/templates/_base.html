@@ -18,25 +18,24 @@ body {
 .diagram {
   width: {{ width }}px; height: {{ height }}px;
   position: relative;
-  background: {{ bg }};
+  background: linear-gradient(180deg, #0D0D0D 0%, #17121F 100%);
 }
-.bar {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
-  background: linear-gradient(180deg, {{ accent }}, {{ secondary_accent }});
-}
-.d-tag {
-  position: absolute; top: 36px; right: 48px;
-  font-size: 15px; font-weight: 700; color: {{ accent }}; opacity: .8;
-  letter-spacing: 0.08em; text-transform: uppercase;
-}
+/* Chrome borders — match the thumbnail / slide frame */
+.chrome-top    { position: absolute; top: 0; left: 0; right: 0; height: 5px; background: {{ accent }}; z-index: 5; }
+.chrome-bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: {{ secondary_accent }}; z-index: 5; }
+.chrome-right  { position: absolute; top: 0; right: 0; bottom: 0; width: 12px; background: {{ accent }}; z-index: 5; }
+.chrome-left   { position: absolute; top: 80px; left: 0; bottom: 80px; width: 8px; background: {{ accent }}; z-index: 5; }
+.d-logo { position: absolute; bottom: 30px; right: 40px; z-index: 6; }
+.d-logo img { height: 56px; width: auto; }
 .d-title {
-  position: absolute; top: 60px; left: 80px; right: 340px;
+  position: absolute; top: 60px; left: 80px; right: 200px;
   font-size: 42px; font-weight: 700; color: {{ text_color }};
-  line-height: 1.15;
+  line-height: 1.15; z-index: 2;
 }
 .d-title.long-title { font-size: 34px; }
 .d-content {
   position: absolute; top: 180px; left: 80px; right: 80px; bottom: 80px;
+  z-index: 2;
 }
 
 {% block extra_style %}{% endblock %}
@@ -62,12 +61,15 @@ body {
 </head>
 <body>
   <div class="diagram">
-    <div class="bar"></div>
-    <div class="d-tag">{{ channel_name or 'theTwoCubes' }}</div>
+    <div class="chrome-top"></div>
+    <div class="chrome-bottom"></div>
+    <div class="chrome-right"></div>
+    <div class="chrome-left"></div>
     <div class="d-title{% if title|length > 40 %} long-title{% endif %}">{{ title }}</div>
     <div class="d-content">
       {% block content %}{% endblock %}
     </div>
+    {% if logo_b64 %}<div class="d-logo"><img src="data:image/png;base64,{{ logo_b64 }}" alt="Logo"></div>{% endif %}
   </div>
 </body>
 </html>

@@ -19,9 +19,7 @@ from __future__ import annotations
 import json
 from typing import Dict, List
 
-# ---------------------------------------------------------------------------
 # Global design system (canvas, floors, invariants) - blueprint §8-§11.
-# ---------------------------------------------------------------------------
 CANVAS = {
     "w": 1920, "h": 1080,
     "margin": 96, "grid_cols": 12, "gutter": 24, "baseline": 8,
@@ -51,10 +49,8 @@ RULES = [
 # score = chars*0.4 + bullets*8 + code_lines*6 + media*20  (blueprint §13)
 DENSITY_WEIGHTS = {"chars": 0.4, "bullet": 8, "code_line": 6, "media": 20}
 
-# ---------------------------------------------------------------------------
 # The layout catalog. Every entry: id, family, use_when, caps, density_capacity,
 # motion/transition defaults. Families group layouts for diversity/rhythm rules.
-# ---------------------------------------------------------------------------
 LAYOUTS: List[Dict] = [
     # -- opening / structural --
     {"id": "title", "family": "opening", "use_when": "slide 1 / lesson open",

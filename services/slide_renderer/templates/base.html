@@ -22,14 +22,11 @@ body {
   width: {{ width }}px;
   height: {{ height }}px;
   position: relative;
-  background: var(--ground);
+  background: linear-gradient(180deg, #0D0D0D 0%, #17121F 100%);
   display: flex;
   flex-direction: column;
 }
 
-/* ============ AMBIENT BACKGROUND EFFECTS ============
-   Subtle radial gradients that give each slide depth
-   instead of flat black. */
 .slide::before {
   content: "";
   position: absolute; inset: 0;
@@ -38,45 +35,51 @@ body {
 }
 .slide > * { position: relative; z-index: 1; }
 
-/* CHROME */
+/* CHROME — matches thumbnail border design */
 .chrome-top {
   position: absolute; top: 0; left: 0; right: 0;
-  height: 4px; background: {{ accent }};
+  height: 5px; background: {{ accent }};
   z-index: 5;
 }
 .chrome-bottom {
   position: absolute; bottom: 0; left: 0; right: 0;
-  height: 2px; background: #1E2330;
+  height: 5px; background: {{ secondary_accent }};
+  z-index: 5;
+}
+.chrome-right {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 12px; background: {{ accent }};
+  z-index: 5;
+}
+.chrome-left {
+  position: absolute; top: 80px; left: 0; bottom: 80px;
+  width: 8px; background: {{ accent }};
   z-index: 5;
 }
 
-/* BRAND */
+/* BRAND — logo only, bottom-right (thumbnail position) */
 .brand {
-  position: absolute; top: 36px; right: 56px;
-  display: flex; align-items: center; gap: 14px;
+  position: absolute; bottom: 30px; right: 40px;
+  display: flex; align-items: center;
   z-index: 5;
 }
-.brand img { height: 30px; width: auto; opacity: 0.7; filter: grayscale(100%) brightness(250%); }
-.brand-name {
-  font-size: 15px; font-weight: 600;
-  color: #5A6070; letter-spacing: 0.08em; text-transform: uppercase;
-}
+.brand img { height: 56px; width: auto; }
 
 .counter {
-  position: absolute; bottom: 32px; right: 56px;
+  position: absolute; bottom: 32px; left: 56px;
   font-size: 13px; font-weight: 500; color: #3A4050;
   letter-spacing: 0.05em; font-variant-numeric: tabular-nums;
   z-index: 5;
 }
 
 .progress-track {
-  position: absolute; bottom: 0; left: 0; right: 0;
+  position: absolute; bottom: 5px; left: 0; right: 0;
   height: 3px; background: #1A1D26;
   z-index: 5;
 }
 .progress-fill { height: 100%; background: {{ accent }}; opacity: 0.7; }
 
-/* ===== TITLE ===== */
+/* TITLE */
 .layout-title {
   display: flex; flex-direction: column;
   justify-content: center; align-items: flex-start;
@@ -107,9 +110,7 @@ body {
   color: #7A8090; line-height: 1.4; max-width: 1200px;
 }
 
-/* ============================================================
-   CONTENT LAYOUT
-============================================================ */
+/* CONTENT LAYOUT */
 .layout-content {
   padding: 120px 120px 60px 120px;
   display: flex; flex-direction: column;
@@ -173,9 +174,7 @@ body {
   max-width: 1200px;
 }
 
-/* ============================================================
-   PROSE LAYOUT
-============================================================ */
+/* PROSE LAYOUT */
 .layout-prose {
   padding: 120px 120px 60px 120px;
   display: flex; flex-direction: column;
@@ -221,11 +220,10 @@ body {
   max-width: 1200px;
 }
 
-/* ============================================================
-   SUMMARY LAYOUT
-============================================================ */
+/* SUMMARY LAYOUT */
 .layout-summary {
   padding: 120px 120px 60px 120px; display: flex; flex-direction: column;
+  justify-content: center;
 }
 .layout-summary::before {
   background:
@@ -252,7 +250,7 @@ body {
   background: linear-gradient(to right, {{ accent }}, transparent);
   margin-bottom: 36px;
 }
-.summary-items { display: flex; flex-direction: column; gap: 22px; flex: 1; justify-content: center; }
+.summary-items { display: flex; flex-direction: column; gap: 22px; margin-top: 12px; }
 .summary-item {
   display: flex; align-items: flex-start; gap: 24px;
   padding: 14px 20px;
@@ -271,9 +269,7 @@ body {
   border-top: 1px solid #1E2330; padding-top: 20px;
 }
 
-/* ============================================================
-   CODE LAYOUT
-============================================================ */
+/* CODE LAYOUT */
 .layout-code {
   padding: 120px 100px 60px 120px;
   display: flex; flex-direction: column;
@@ -320,9 +316,7 @@ body {
   border-top: 1px solid #1E2330; background: #0A0C10;
 }
 
-/* ============================================================
-   SPLIT CODE LAYOUT
-============================================================ */
+/* SPLIT CODE LAYOUT */
 .layout-split_code {
   padding: 120px 80px 60px 120px;
   display: flex; flex-direction: column;
@@ -367,9 +361,7 @@ body {
 .split-code-right .code-window { margin: auto 0; }
 .split-code-right .code-body pre { font-size: 22px; line-height: 1.6; }
 
-/* ============================================================
-   TWO COLUMN LAYOUT
-============================================================ */
+/* TWO COLUMN LAYOUT */
 .layout-two_column {
   padding: 120px 80px 60px 120px;
   display: flex; flex-direction: column;
@@ -403,9 +395,7 @@ body {
 }
 .col-bullet-text { font-size: 28px; line-height: 1.45; color: #C8CDD8; }
 
-/* ============================================================
-   NUMBERED STEPS LAYOUT
-============================================================ */
+/* NUMBERED STEPS LAYOUT */
 .layout-numbered_steps {
   padding: 120px 120px 60px 120px;
   display: flex; flex-direction: column;
@@ -440,9 +430,7 @@ body {
   padding: 2px 8px; border-radius: 3px;
 }
 
-/* ============================================================
-   EXERCISE LAYOUT
-============================================================ */
+/* EXERCISE LAYOUT */
 .layout-exercise {
   display: flex; flex-direction: column;
   padding: 100px 120px 60px 120px;
@@ -452,8 +440,8 @@ body {
   border: 1px solid rgba(251,146,60,0.2);
   border-top: 4px solid #FB923C;
   border-radius: 12px;
-  padding: 48px 60px;
-  flex: 1; display: flex; flex-direction: column;
+  padding: 56px 60px;
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
 }
 .exercise-tag {
   font-size: 13px; font-weight: 700; color: #FB923C;
@@ -465,7 +453,7 @@ body {
 }
 .exercise-card h3.long-title { font-size: 40px; }
 .exercise-card h3.very-long-title { font-size: 32px; }
-.exercise-items { display: flex; flex-direction: column; gap: 20px; flex: 1; justify-content: center; }
+.exercise-items { display: flex; flex-direction: column; gap: 24px; margin-top: 12px; }
 .exercise-item { display: flex; align-items: flex-start; gap: 18px; }
 .ex-num {
   font-family: "FiraCode", monospace;
@@ -479,9 +467,7 @@ body {
   font-size: 22px; color: #8A6050; font-style: italic; line-height: 1.4;
 }
 
-/* ============================================================
-   COMPARISON / ERROR FIX LAYOUT
-============================================================ */
+/* COMPARISON / ERROR FIX LAYOUT */
 .layout-comparison, .layout-error_fix {
   padding: 120px 80px 60px 120px;
   display: flex; flex-direction: column;
@@ -510,9 +496,7 @@ body {
   overflow: hidden;
 }
 
-/* ============================================================
-   TERMINAL LAYOUT
-============================================================ */
+/* TERMINAL LAYOUT */
 .layout-terminal {
   padding: 120px 120px 60px 120px;
   display: flex; flex-direction: column;
@@ -545,9 +529,7 @@ body {
 .terminal-prompt { color: {{ accent }}; margin-right: 14px; font-weight: 700; }
 .terminal-output { color: #6A7080; display: block; padding-left: 28px; }
 
-/* ============================================================
-   DEFINITION LAYOUT
-============================================================ */
+/* DEFINITION LAYOUT */
 .layout-definition {
   display: flex; flex-direction: column;
   justify-content: center; align-items: flex-start; padding: 80px 140px;
@@ -584,9 +566,7 @@ body {
   font-style: italic; line-height: 1.5;
 }
 
-/* ============================================================
-   CHECKLIST (alias for content)
-============================================================ */
+/* CHECKLIST (alias for content) */
 .layout-checklist {
   padding: 120px 120px 60px 120px; display: flex; flex-direction: column;
 }
@@ -599,9 +579,7 @@ body {
   margin-top: 8px; flex-shrink: 0;
 }
 
-/* ============================================================
-   CHAPTER TITLE - section divider
-============================================================ */
+/* CHAPTER TITLE - section divider */
 .layout-chapter_title {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center;
@@ -621,9 +599,7 @@ body {
   font-size: 28px; color: #7A8090; max-width: 900px; line-height: 1.5;
 }
 
-/* ============================================================
-   AGENDA - lesson roadmap
-============================================================ */
+/* AGENDA - lesson roadmap */
 .layout-agenda {
   padding: 120px 140px 80px 140px; display: flex; flex-direction: column;
 }
@@ -650,9 +626,7 @@ body {
 }
 .agenda-text { font-size: 34px; color: #C8CDD8; font-weight: 400; }
 
-/* ============================================================
-   HOOK - attention-grabbing opener
-============================================================ */
+/* HOOK - attention-grabbing opener */
 .layout-hook {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center;
@@ -672,9 +646,7 @@ body {
   margin-top: 32px; font-size: 28px; color: #7A8090; max-width: 1100px; line-height: 1.5;
 }
 
-/* ============================================================
-   KEY INSIGHT - single memorable statement
-============================================================ */
+/* KEY INSIGHT - single memorable statement */
 .layout-key_insight {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center;
@@ -692,9 +664,7 @@ body {
   margin-top: 28px; font-size: 24px; color: #7A8090;
 }
 
-/* ============================================================
-   BIG NUMBER - single impressive metric
-============================================================ */
+/* BIG NUMBER - single impressive metric */
 .layout-big_number {
   display: flex; flex-direction: column;
   justify-content: center; align-items: center; text-align: center;
@@ -711,9 +681,7 @@ body {
 .big-number-label { margin-top: 20px; font-size: 40px; color: #FFFFFF; font-weight: 500; }
 .big-number-context { margin-top: 24px; font-size: 24px; color: #7A8090; max-width: 900px; line-height: 1.5; }
 
-/* ============================================================
-   QUOTE - attributed quote
-============================================================ */
+/* QUOTE - attributed quote */
 .layout-quote {
   display: flex; flex-direction: column; justify-content: center; padding: 100px 160px;
 }
@@ -730,10 +698,7 @@ body {
 .layout-quote .quote-text.very-long-title { font-size: 24px; }
 .quote-attribution { margin-top: 28px; font-size: 24px; color: #7A8090; font-style: italic; padding-left: 40px; }
 
-/* ============================================================
-   ANALOGY - real world vs technical, side by side
-   REDESIGNED: vertically centered panels, accent glow, filled space
-============================================================ */
+/* ANALOGY - real world vs technical, side by side REDESIGNED: vertically centered panels, accent glow, filled space */
 .layout-analogy {
   padding: 120px 100px 60px 120px; display: flex; flex-direction: column;
   justify-content: center; gap: 36px;
@@ -777,9 +742,7 @@ body {
   border-left: 3px solid rgba({{ accent_rgb }},0.3);
 }
 
-/* ============================================================
-   CODE OUTPUT
-============================================================ */
+/* CODE OUTPUT */
 .layout-code_output { padding: 120px 100px 60px 120px; display: flex; flex-direction: column; }
 .layout-code_output h2 { font-size: 46px; font-weight: 700; color: #FFFFFF; margin-bottom: 24px; }
 .code-output-wrap { margin: auto 0; display: flex; flex-direction: column; gap: 0; border-radius: 12px; overflow: hidden; border: 1px solid #1E2330; box-shadow: 0 24px 60px rgba(0,0,0,0.6); }
@@ -789,9 +752,7 @@ body {
 .output-label { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #556070; margin-bottom: 10px; }
 .output-line { font-family: "FiraCode", monospace; font-size: 20px; color: #7CD9A8; line-height: 1.6; }
 
-/* ============================================================
-   CODE EVOLUTION
-============================================================ */
+/* CODE EVOLUTION */
 .layout-code_evolution { padding: 120px 80px 60px 120px; display: flex; flex-direction: column; }
 .layout-code_evolution h2 { font-size: 48px; font-weight: 700; color: #FFFFFF; margin-bottom: 30px; }
 .evolution-wrap { display: flex; align-items: stretch; gap: 24px; margin: auto 0; }
@@ -801,9 +762,7 @@ body {
 .evolution-panel-label { font-size: 15px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #7A8090; margin-bottom: 12px; }
 .evolution-arrow { display: flex; align-items: center; font-size: 30px; color: {{ accent }}; }
 
-/* ============================================================
-   SNIPPET
-============================================================ */
+/* SNIPPET */
 .layout-snippet { display: flex; flex-direction: column; justify-content: center; padding: 100px 140px; }
 .layout-snippet h2 { font-size: 46px; font-weight: 700; color: #FFFFFF; margin-bottom: 36px; }
 .layout-snippet h2.long-title { font-size: 36px; }
@@ -814,9 +773,7 @@ body {
 .snippet-box pre { font-family: "FiraCode", monospace; font-size: 32px; line-height: 1.6; color: #D4D8E8; white-space: pre-wrap; }
 .snippet-explanation { font-size: 26px; color: #9BA3B5; line-height: 1.5; max-width: 1200px; }
 
-/* ============================================================
-   PROS CONS
-============================================================ */
+/* PROS CONS */
 .layout-pros_cons { padding: 120px 100px 60px 120px; display: flex; flex-direction: column; }
 .layout-pros_cons h2 { font-size: 54px; font-weight: 700; color: #FFFFFF; margin-bottom: 36px; }
 .layout-pros_cons h2.long-title { font-size: 42px; }
@@ -835,9 +792,7 @@ body {
 .pc-panel.cons .pc-icon { color: {{ warning_color }}; }
 .pc-text { font-size: 28px; color: #C8CDD8; line-height: 1.4; }
 
-/* ============================================================
-   TABLE
-============================================================ */
+/* TABLE */
 .layout-table { padding: 120px 120px 60px 120px; display: flex; flex-direction: column; justify-content: center; }
 .layout-table h2 { font-size: 54px; font-weight: 700; color: #FFFFFF; margin-bottom: 36px; }
 .layout-table h2.long-title { font-size: 42px; }
@@ -855,9 +810,7 @@ body {
 .data-table td code, .data-table td.is-code { font-family: "FiraCode", monospace; color: #82AAFF; }
 .data-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 
-/* ============================================================
-   TIMELINE - REDESIGNED: vertically centered, cards below dots
-============================================================ */
+/* TIMELINE - REDESIGNED: vertically centered, cards below dots */
 .layout-timeline { padding: 120px 100px 80px 100px; display: flex; flex-direction: column; justify-content: center; gap: 36px; }
 .layout-timeline::before {
   background:
@@ -893,9 +846,7 @@ body {
   border: 1px solid rgba({{ accent_rgb }},0.12);
 }
 
-/* ============================================================
-   CYCLE
-============================================================ */
+/* CYCLE */
 .layout-cycle { padding: 120px 120px 60px 120px; display: flex; flex-direction: column; }
 .layout-cycle h2 { font-size: 54px; font-weight: 700; color: #FFFFFF; margin-bottom: 44px; }
 .layout-cycle h2.long-title { font-size: 42px; }
@@ -907,9 +858,7 @@ body {
 }
 .cycle-arrow { font-size: 32px; color: {{ accent }}; margin: 0 20px; }
 
-/* ============================================================
-   BAR CHART
-============================================================ */
+/* BAR CHART */
 .layout-bar_chart { padding: 120px 120px 60px 120px; display: flex; flex-direction: column; }
 .layout-bar_chart::before {
   background: radial-gradient(ellipse 60% 50% at 60% 60%, rgba({{ accent_rgb }},0.04) 0%, transparent 70%);
@@ -923,9 +872,7 @@ body {
 .bar-fill { height: 100%; background: linear-gradient(90deg, {{ accent }}, rgba({{ accent_rgb }},0.6)); border-radius: 6px; }
 .bar-value { width: 120px; font-size: 22px; color: #FFFFFF; font-weight: 600; font-family: "FiraCode", monospace; }
 
-/* ============================================================
-   QUIZ
-============================================================ */
+/* QUIZ */
 .layout-quiz { padding: 120px 130px 60px 130px; display: flex; flex-direction: column; }
 .layout-quiz::before {
   background: radial-gradient(ellipse 50% 50% at 50% 40%, rgba({{ accent_rgb }},0.04) 0%, transparent 70%);
@@ -952,9 +899,7 @@ body {
 .quiz-option-text { font-size: 26px; color: #C8CDD8; }
 .quiz-option.correct .quiz-option-text { color: #FFFFFF; }
 
-/* ============================================================
-   THINK PAUSE
-============================================================ */
+/* THINK PAUSE */
 .layout-think_pause {
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   text-align: center; padding: 100px 200px;
@@ -968,9 +913,7 @@ body {
 .layout-think_pause h2.long-title { font-size: 44px; }
 .think-pause-subtitle { margin-top: 26px; font-size: 24px; color: #7A8090; }
 
-/* ============================================================
-   WARNING
-============================================================ */
+/* WARNING */
 .layout-warning {
   padding: 120px 120px 60px 120px; display: flex; flex-direction: column;
   border-left: 6px solid {{ warning_color }};
@@ -991,9 +934,7 @@ body {
 .warning-dot { width: 8px; height: 8px; border-radius: 50%; background: {{ warning_color }}; flex-shrink: 0; margin-top: 18px; }
 .warning-text { font-size: 32px; color: #C8CDD8; line-height: 1.45; }
 
-/* ============================================================
-   TIP
-============================================================ */
+/* TIP */
 .layout-tip {
   padding: 120px 120px 60px 120px; display: flex; flex-direction: column;
   border-left: 6px solid {{ tip_color }};
@@ -1019,9 +960,7 @@ body {
   font-size: 26px; color: #FFFFFF;
 }
 
-/* ============================================================
-   CHECKPOINT
-============================================================ */
+/* CHECKPOINT */
 .layout-checkpoint { padding: 120px 120px 60px 120px; display: flex; flex-direction: column; }
 .layout-checkpoint::before {
   background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba({{ accent_rgb }},0.04) 0%, transparent 70%);
@@ -1044,9 +983,7 @@ body {
 .checkpoint-text { font-size: 30px; color: #C8CDD8; line-height: 1.45; }
 .checkpoint-transition { margin-top: 26px; font-size: 22px; color: #556070; border-top: 1px solid #1E2330; padding-top: 18px; }
 
-/* ============================================================
-   MENTAL MODEL
-============================================================ */
+/* MENTAL MODEL */
 .layout-mental_model {
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   text-align: center; padding: 100px 180px;
@@ -1064,9 +1001,7 @@ body {
 .layout-mental_model h2.long-title { font-size: 40px; }
 .mental-model-explanation { margin-top: 24px; font-size: 24px; color: #7A8090; line-height: 1.5; }
 
-/* ============================================================
-   RESOURCES
-============================================================ */
+/* RESOURCES */
 .layout-resources { padding: 120px 130px 60px 130px; display: flex; flex-direction: column; }
 .layout-resources h2 { font-size: 50px; font-weight: 700; color: #FFFFFF; margin-bottom: 40px; }
 .layout-resources h2.long-title { font-size: 38px; }
@@ -1081,6 +1016,36 @@ body {
 .resource-title { font-size: 28px; font-weight: 600; color: #FFFFFF; }
 .resource-desc { font-size: 22px; color: #7A8090; margin-top: 4px; }
 
+/* INTRO LAYOUT - centered logo + channel name */
+.layout-intro { display: flex; justify-content: center; align-items: center; }
+.layout-intro .brand { display: none; }
+.intro-center {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 40px;
+}
+.intro-logo { height: 160px; width: auto; }
+.intro-channel {
+  font-size: 42px; font-weight: 700; color: #FFFFFF;
+  letter-spacing: 0.06em;
+}
+
+/* OUTRO LAYOUT - centered message + subscribe */
+.layout-outro { display: flex; justify-content: center; align-items: center; }
+.outro-center {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 28px;
+}
+.outro-heading {
+  font-size: 72px; font-weight: 700; color: #FFFFFF;
+  letter-spacing: 0.04em;
+}
+.outro-subtext {
+  font-size: 32px; font-weight: 400; color: #7A8090;
+  letter-spacing: 0.02em;
+}
+
 </style>
 </head>
 <body>
@@ -1089,11 +1054,12 @@ body {
   <div class="slide layout-{{ layout }}">
     <div class="chrome-top"></div>
     <div class="chrome-bottom"></div>
+    <div class="chrome-right"></div>
+    <div class="chrome-left"></div>
     <div class="progress-track"><div class="progress-fill" style="width: {{ progress }}%"></div></div>
 
     <div class="brand">
       {% if logo_b64 %}<img src="data:image/png;base64,{{ logo_b64 }}" alt="Logo">{% endif %}
-      <div class="brand-name">theTwoCubes</div>
     </div>
 
     {% if total_slides > 0 %}

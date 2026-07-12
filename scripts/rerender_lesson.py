@@ -137,7 +137,7 @@ def rerender_video(output_dir: Path, profile: dict, music_override: str = None) 
     # re-build slide_audio_pairs same way as video_agent
     from agents.video_agent import VideoAgent
     va = VideoAgent()
-    pairs, hints, _sids, _drefs = va._build_pairs(segments, slide_id_to_path, slide_contents, audio_paths)
+    pairs, _sids, _drefs = va._build_pairs(segments, slide_id_to_path, slide_contents, audio_paths)
 
     music = music_override or profile["music"].get("bg_track", "")
     anim = profile["slides"].get("animation_preset", "smooth")
@@ -159,8 +159,6 @@ def rerender_video(output_dir: Path, profile: dict, music_override: str = None) 
     result = compose_video_aligned(
         pairs, output_path,
         fps=profile["rendering"].get("fps", 30),
-        use_transitions=True,
-        transition_hints=hints,
         animation_preset=anim,
         ken_burns=profile["slides"].get("ken_burns", False),
         music_track=music,

@@ -49,12 +49,10 @@ def strip_next_prefix(text) -> str:
     return _LEADING_NEXT_RE.sub("", str(text))
 
 
-# ---------------------------------------------------------------------------
 # Server-side syntax highlighting (blueprint §14). Previously this ran as an
 # in-page <script> after the screenshot's wait, which raced the capture. Doing
 # it in Python bakes the highlighted markup straight into the HTML, so there is
 # nothing async left to race and the output is deterministic.
-# ---------------------------------------------------------------------------
 _CODE_KWS = ("int|float|double|char|bool|void|long|short|unsigned|signed|const|"
              "static|auto|return|if|else|while|for|do|break|continue|switch|case|"
              "default|class|struct|public|private|protected|new|delete|nullptr|"

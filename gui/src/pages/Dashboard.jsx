@@ -143,14 +143,34 @@ export function Dashboard() {
 
         {/* Usage */}
         {usage && (
-          <div className={cx(S.card, 'px-5 py-4 flex items-center gap-8 flex-wrap')}>
-            <span className={S.label} style={{ marginBottom: 0 }}>LLM Usage</span>
-            {Object.entries(usage).map(([k, v]) => (
-              <div key={k} className="text-[12px]">
-                <span className="text-zinc-500">{k}: </span>
-                <span className="text-zinc-200 font-medium tabular-nums">{typeof v === 'number' ? v.toLocaleString() : v}</span>
+          <div className="flex flex-col gap-4">
+            <div className={cx(S.card, 'px-5 py-4 flex items-center gap-8 flex-wrap')}>
+              <span className={S.label} style={{ marginBottom: 0 }}>LLM Usage</span>
+              {Object.entries(usage).filter(([k, v]) => typeof v !== 'object').map(([k, v]) => (
+                <div key={k} className="text-[12px]">
+                  <span className="text-zinc-500">{k}: </span>
+                  <span className="text-zinc-200 font-medium tabular-nums">{typeof v === 'number' ? v.toLocaleString() : v}</span>
+                </div>
+              ))}
+            </div>
+            {usage.models && usage.models.length > 0 && (
+              <div className={cx(S.card, 'px-5 py-4')}>
+                <span className={S.label} style={{ marginBottom: '12px' }}>Usage by Model</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {usage.models.map(m => (
+                    <div key={m.model} className="p-3 bg-[#0d0f12] rounded-lg border border-[#1e2330]">
+                      <div className="text-zinc-200 font-medium text-[13px] mb-2">{m.model}</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
+                        <span className="text-zinc-500">Calls:</span><span className="text-right text-zinc-300 tabular-nums">{m.calls}</span>
+                        <span className="text-zinc-500">In / Out:</span><span className="text-right text-zinc-300 tabular-nums">{m.input_tokens.toLocaleString()} / {m.output_tokens.toLocaleString()}</span>
+                        <span className="text-zinc-500">Cost USD:</span><span className="text-right text-emerald-400 tabular-nums">${m.cost_usd.toFixed(4)}</span>
+                        <span className="text-zinc-500">Cost INR:</span><span className="text-right text-emerald-400 tabular-nums">₹{m.cost_inr.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         )}
 

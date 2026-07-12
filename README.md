@@ -42,7 +42,7 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 - **Animated Diagrams**: 8 diagram types (pipeline, memory layout, call stack, iteration, flow, tree, state machine, layered architecture) rendered as animated MP4s from structured LLM content, not freehand HTML.
 - **Professional Slide Rendering**: Dark-themed, brand-token-driven (no hardcoded colors), 1920×1080 slides rendered via Playwright with embedded fonts — no CDN dependency.
 - **Voice Synthesis**: 6 curated Edge TTS voices (free, no API key). Sidechain audio ducking automatically lowers background music when narration plays.
-- **Video Composition**: FFmpeg composites slides + audio into MP4, with configurable xfade transitions, Ken Burns slow-zoom, and optional branded intro/outro cards.
+- **Video Composition**: FFmpeg composites slides + audio into MP4 on a single shared timeline (per-segment baked fades keep audio/video in lockstep), with Ken Burns slow-zoom and branded thumbnail-style intro/outro cards.
 - **Testing Studio GUI**: Iterate on visuals and audio for free by re-rendering from checkpoints — no LLM calls. Live log streaming, slide gallery, and voice preview included.
 - **Configuration Profiles**: All rendering parameters (voice, music, animation, FPS) live in shareable YAML files.
 - **React Dashboard**: Unified frontend to manage courses, curricula, monitor pipelines, and access the Testing Studio.
@@ -58,7 +58,7 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 | **Backend Pipeline** | Python 3.12, FastAPI, LangGraph, SQLAlchemy (SQLite) |
 | **Knowledge Store** | ChromaDB (vector), SQLite (catalog) |
 | **Slide Rendering** | Playwright → 1920×1080 PNG, Jinja2 HTML templates |
-| **Video Composition** | FFmpeg (transitions, ducking, intros, Ken Burns) |
+| **Video Composition** | FFmpeg (single-timeline fades, ducking, intro/outro, Ken Burns) |
 | **Voice Synthesis** | edge-tts (Azure Neural voices, free tier) |
 | **Frontend** | React 19, React Router, Vite, Tailwind CSS v4 |
 

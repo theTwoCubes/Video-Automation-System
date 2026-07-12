@@ -2,7 +2,7 @@
 VideoAgent - composes the final lesson video from slides + audio.
 
 Features:
-- Per-layout slide transitions from slide_contents.transition_hint
+- Single-timeline composition with per-segment baked fades (sync-safe)
 - Video quality validation via ffprobe after composition
 - Code reveal animation integration
 - Subtitle .srt generation
@@ -11,7 +11,7 @@ import subprocess
 from collections import OrderedDict
 from pathlib import Path
 from agents.base_agent import BaseAgent
-from services.video_composer.composer import compose_video_aligned, _LAYOUT_TRANSITIONS
+from services.video_composer.composer import compose_video_aligned
 from services.slide_renderer.renderer import SlideRenderer
 from services.media.ffmpeg import (
     get_audio_duration,
@@ -25,39 +25,67 @@ from services.media.ffmpeg import (
 MAX_SLIDE_SECONDS = 45.0
 
 
-def _generate_srt(narration_segs: list, audio_paths: list, ffmpeg_exe: str) -> str:
-    from services.video_composer.composer import _get_audio_duration
+def _wrap_srt_text(text: str) -> str:
+    """Trim narration to a subtitle: drop [PAUSE] markers and wrap to <=3 lines
+    of ~80 chars so a long sentence doesn't overflow the caption area."""
+    text = (text or "").strip().replace("[PAUSE]", "")
+    if len(text) <= 80:
+        return text
+    words = text.split()
+    lines, cur_line, cur_len = [], [], 0
+    for w in words:
+        if cur_len + len(w) + 1 > 80:
+            lines.append(" ".join(cur_line))
+            cur_line, cur_len = [w], len(w)
+        else:
+            cur_line.append(w)
+            cur_len += len(w) + 1
+    if cur_line:
+        lines.append(" ".join(cur_line))
+    return "\n".join(lines[:3])
+
+
+def _generate_srt(aligned_pairs: list, text_by_audio: dict, segments_dir,
+                  intro_offset: float, lead_s: float, gap_s: float) -> str:
+    """Build .srt timings that mirror the composed timeline exactly, so captions
+    line up with the voice:
+
+      - `intro_offset` seconds for a prepended intro card (no captions there);
+      - a `lead_s` lead-in silence at the START of every slide's segment;
+      - a `gap_s` silence BETWEEN clips within a slide;
+      - each segment advances by its ACTUAL rendered duration (read from the
+        seg_NNNN.mp4 the composer produced), which also absorbs the code-reveal
+        trailing pad and any fade, so later captions don't drift.
+
+    Walking `aligned_pairs` (the same structure the composer builds segments from)
+    guarantees the caption order and grouping match what's on screen."""
     srt_lines = []
-    cursor = 0.0
+    cursor = float(intro_offset)
+    idx = 0
+    for i, (_img, clips) in enumerate(aligned_pairs):
+        seg_file = Path(segments_dir) / f"seg_{i:04d}.mp4"
+        seg_dur = get_audio_duration(str(seg_file), default=0.0) if seg_file.exists() else 0.0
+        seg_end = cursor + seg_dur if seg_dur > 0 else None
 
-    for idx, (seg, audio_path) in enumerate(zip(narration_segs, audio_paths)):
-        if not Path(audio_path).exists():
-            continue
-        try:
-            dur = _get_audio_duration(audio_path, ffmpeg_exe)
-        except Exception as e:
-            raise RuntimeError(f"Corrupt or unreadable audio file: {audio_path}. ffprobe failed: {e}")
+        t = cursor + lead_s
+        for j, ap in enumerate(clips):
+            if j > 0:
+                t += gap_s
+            dur = get_audio_duration(ap, default=0.0) if Path(ap).exists() else 0.0
+            text = _wrap_srt_text(text_by_audio.get(ap, ""))
+            if text and dur > 0:
+                end_s = t + dur
+                if seg_end is not None:
+                    end_s = min(end_s, seg_end)
+                idx += 1
+                srt_lines.append(
+                    f"{idx}\n{_seconds_to_srt_time(t)} --> {_seconds_to_srt_time(end_s)}\n{text}\n"
+                )
+            t += dur
 
-        start = _seconds_to_srt_time(cursor)
-        end   = _seconds_to_srt_time(cursor + dur)
-        text  = seg.get("text", "").strip().replace("[PAUSE]", "")
-
-        if len(text) > 80:
-            words = text.split()
-            lines, cur_line, cur_len = [], [], 0
-            for w in words:
-                if cur_len + len(w) + 1 > 80:
-                    lines.append(" ".join(cur_line))
-                    cur_line, cur_len = [w], len(w)
-                else:
-                    cur_line.append(w)
-                    cur_len += len(w) + 1
-            if cur_line:
-                lines.append(" ".join(cur_line))
-            text = "\n".join(lines[:3])
-
-        srt_lines.append(f"{idx + 1}\n{start} --> {end}\n{text}\n")
-        cursor += dur
+        # advance by the true segment length; fall back to the summed audio
+        # timeline if the segment file couldn't be measured.
+        cursor += seg_dur if seg_dur > 0 else (t - cursor)
 
     return "\n".join(srt_lines)
 
@@ -81,7 +109,7 @@ class VideoAgent(BaseAgent):
         fallback_img: str = None,
     ) -> tuple:
         """
-        Build (slide_image_path, [audio_paths]) pairs and transition hints.
+        Build (slide_image_path, [audio_paths]) pairs.
         Also returns, in lockstep, the slide_id and diagram_ref (if any) each
         pair was built from - computed directly here rather than re-derived
         later by reverse-searching slide_id_to_path, which breaks silently
@@ -92,7 +120,7 @@ class VideoAgent(BaseAgent):
         multiple consecutive pairs (same image, chunked audio) so no single
         static frame holds the screen for minutes on end.
 
-        Returns (aligned_pairs, transition_hints, pair_slide_ids, pair_diagram_refs).
+        Returns (aligned_pairs, pair_slide_ids, pair_diagram_refs).
         """
         from services.video_composer.composer import _get_ffmpeg, _get_audio_duration
 
@@ -100,7 +128,6 @@ class VideoAgent(BaseAgent):
             s for s in segments
             if s.get("type") in ("narration", "code_demo") and s.get("text", "").strip()
         ]
-        slide_content_map = {s.get("id", ""): s for s in slide_contents}
         slide_paths_list = list(slide_id_to_path.values())
         fb = fallback_img or (slide_paths_list[-1] if slide_paths_list else "")
         ffmpeg_exe = _get_ffmpeg()
@@ -114,7 +141,6 @@ class VideoAgent(BaseAgent):
             slide_audio_map.setdefault(sid, []).append((audio_paths[i], seg.get("diagram_ref", "")))
 
         aligned_pairs = []
-        transition_hints = []
         pair_slide_ids = []
         pair_diagram_refs = []
         for slide_id, audio_diag_pairs in slide_audio_map.items():
@@ -124,19 +150,37 @@ class VideoAgent(BaseAgent):
                       f"substituting the fallback slide. Audio/visual will be mismatched "
                       f"for this segment until the slide render is fixed.")
                 img = fb
-            sd = slide_content_map.get(slide_id, {})
-            layout = sd.get("layout", "content")
-            hint = _LAYOUT_TRANSITIONS.get(layout, sd.get("transition_hint", "fade"))
 
-            for chunk in self._split_by_duration(audio_diag_pairs, ffmpeg_exe, MAX_SLIDE_SECONDS):
-                chunk_audios = [a for a, _ in chunk]
-                chunk_diagram_ref = next((d for _, d in chunk if d), "")
-                aligned_pairs.append((img, chunk_audios))
-                transition_hints.append(hint)
-                pair_slide_ids.append(slide_id)
-                pair_diagram_refs.append(chunk_diagram_ref)
+            # Split first by diagram_ref, so when a single slide's narration
+            # references TWO different diagrams (one segment each), each diagram
+            # gets its own on-screen pair instead of only the first being shown.
+            for ref_group in self._split_by_diagram_ref(audio_diag_pairs):
+                for chunk in self._split_by_duration(ref_group, ffmpeg_exe, MAX_SLIDE_SECONDS):
+                    chunk_audios = [a for a, _ in chunk]
+                    chunk_diagram_ref = next((d for _, d in chunk if d), "")
+                    aligned_pairs.append((img, chunk_audios))
+                    pair_slide_ids.append(slide_id)
+                    pair_diagram_refs.append(chunk_diagram_ref)
 
-        return aligned_pairs, transition_hints, pair_slide_ids, pair_diagram_refs
+        return aligned_pairs, pair_slide_ids, pair_diagram_refs
+
+    @staticmethod
+    def _split_by_diagram_ref(audio_diag_pairs: list) -> list:
+        """Group a slide's ordered (audio_path, diagram_ref) items into runs of a
+        constant diagram_ref. Consecutive segments sharing a ref (or sharing no
+        ref) stay together; a change in ref starts a new group. This keeps each
+        diagram on screen only during the narration that describes it."""
+        groups, current, current_ref = [], [], None
+        for item in audio_diag_pairs:
+            ref = item[1] or ""
+            if current and ref != current_ref:
+                groups.append(current)
+                current = []
+            current.append(item)
+            current_ref = ref
+        if current:
+            groups.append(current)
+        return groups
 
     def _split_by_duration(self, audio_diag_pairs: list, ffmpeg_exe: str, max_seconds: float) -> list:
         """Split a slide_id's ordered (audio_path, diagram_ref) list into chunks
@@ -199,7 +243,7 @@ class VideoAgent(BaseAgent):
         ]
 
         fallback_img = slide_paths[-1]
-        aligned_pairs, transition_hints, pair_slide_ids, pair_diagram_refs = self._build_pairs(
+        aligned_pairs, pair_slide_ids, pair_diagram_refs = self._build_pairs(
             segments, slide_id_to_path, slide_contents, audio_paths, fallback_img
         )
 
@@ -249,7 +293,6 @@ class VideoAgent(BaseAgent):
                 output_path,
                 fps=p_rendering.get("fps", 30),
                 prebuilt_segments=prebuilt_segments,
-                transition_hints=transition_hints,
                 animation_preset=p_slides.get("animation_preset", "smooth"),
                 ken_burns=p_slides.get("ken_burns", False),
                 music_track=p_music.get("bg_track", ""),
@@ -281,11 +324,26 @@ class VideoAgent(BaseAgent):
         except Exception as e:
             print(f"  Video quality check skipped: {e}")
 
-        # subtitle generation
+        # subtitle generation - timings mirror the composed timeline (intro
+        # offset + per-slide lead-in + inter-clip gaps + true segment durations)
+        # so captions line up with the voice.
         try:
-            from services.video_composer.composer import _get_ffmpeg
-            ffmpeg_exe = _get_ffmpeg()
-            srt_content = _generate_srt(narration_segs, audio_paths, ffmpeg_exe)
+            from services.video_composer.composer import (
+                _INTRO_SECONDS, _SILENCE_GAP_MS, _lead_in_ms,
+            )
+            p_music = state.get("profile", {}).get("music", {})
+            intro_added = bool(p_music.get("use_intro", False) and p_music.get("intro_sting"))
+            text_by_audio = {
+                audio_paths[i]: narration_segs[i].get("text", "")
+                for i in range(min(len(audio_paths), len(narration_segs)))
+            }
+            srt_content = _generate_srt(
+                aligned_pairs, text_by_audio,
+                Path(output_dir) / "segments",
+                intro_offset=_INTRO_SECONDS if intro_added else 0.0,
+                lead_s=_lead_in_ms() / 1000.0,
+                gap_s=_SILENCE_GAP_MS / 1000.0,
+            )
             if srt_content:
                 srt_path = Path(output_dir) / "subtitles.srt"
                 srt_path.write_text(srt_content, encoding="utf-8")
@@ -399,7 +457,9 @@ class VideoAgent(BaseAgent):
                 "-t", f"{total_dur:.3f}",
                 "-vf", f"scale=1920:1080:flags=lanczos,tpad=stop_mode=clone:stop_duration={total_dur:.3f}",
                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "fast", "-crf", "22",
-                "-c:a", "aac", "-b:a", "192k",
+                # Canonical audio format so this prebuilt segment stream-copies
+                # cleanly alongside the static segments in the final concat.
+                "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "1",
                 "-shortest",
                 _fwd(out),
             ]

@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     # Ken Burns threshold (seconds): slides longer than this get slow zoom
     KEN_BURNS_THRESHOLD_SECONDS: float = 7.0
 
+    # Silence (ms) prepended to every slide's audio so the slide is on screen for
+    # a beat before narration starts, instead of the voice beginning the instant
+    # it appears. The video segment is extended to match, so audio/video stay in
+    # sync. Set 0 to disable the lead-in.
+    SLIDE_LEAD_IN_MS: int = 1000
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
