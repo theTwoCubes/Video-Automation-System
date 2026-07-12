@@ -1,6 +1,6 @@
-# Testing profile — ultra-fast rendering for design iteration
+# Testing profile
 name: "testing"
-description: "Ultra-fast render for testing slide design and audio. No music, minimal transitions."
+description: "No music, minimal transitions."
 
 voice:
   name: "en-US-AndrewNeural"

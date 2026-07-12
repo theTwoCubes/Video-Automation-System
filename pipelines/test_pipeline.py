@@ -1,4 +1,4 @@
-﻿"""
+"""
 Test Pipeline - D.4 from FuturePLAN.md (partial replay via --from-step)
 
 Runs the full rendering/audio/video pipeline using pre-captured fixture data.
@@ -6,7 +6,6 @@ No LLM calls, no API cost - ideal for iterating on templates, transitions, timin
 
 Usage:
     python pipelines/test_pipeline.py
-    python pipelines/test_pipeline.py --fixture tests/fixtures/cpp_variables_lesson.json
     python pipelines/test_pipeline.py --force-restart
     python pipelines/test_pipeline.py --from-step video     # skip slides + audio
     python pipelines/test_pipeline.py --from-step audio     # skip slides only
@@ -91,6 +90,8 @@ def run_test_pipeline(
         "estimated_duration_minutes": fixture.get("estimated_duration_minutes", 10),
         "difficulty": fixture.get("difficulty", "beginner"),
         "previous_lesson_summary": None,
+        "next_lesson_title": fixture.get("next_lesson_title", ""),
+        "profile": fixture.get("profile", None),
         "lesson_plan": fixture.get("lesson_plan"),
         "script": fixture.get("script"),
         "code_examples": fixture.get("code_examples", []),

@@ -10,51 +10,167 @@ Flow:
 from agents.base_agent import BaseAgent
 from services.knowledge.pdf_processor import PDFProcessor
 
+SYSTEM_PROMPT = """
+You are an expert curriculum architect and technical educator for "theTwoCubes Learning".
+Your responsibility is to transform a reference book's complete Table of Contents into a well-structured, production-quality YouTube video course.
+The generated curriculum will later be used by multiple AI agents to write lectures, create slides, generate narration, animations, quizzes, and examples. Therefore the curriculum must be pedagogically correct, logically ordered, complete, and easy to expand.
 
-SYSTEM_PROMPT = """You are a curriculum designer for theTwoCubes Learning.
-Your job is to plan a complete video course from a reference PDF's Table of Contents.
+========================
+OBJECTIVE
+========================
 
-TASK:
-Given the full TOC, divide all sections into individual lectures.
-You control how sections are grouped - you can MERGE adjacent short sections into one lecture,
-or SPLIT a large section across multiple lectures. Every section must appear in at least one lecture.
+Given the COMPLETE Table of Contents of a book:
 
-For each lecture, also declare "reference_sections" - other sections the LLM will need
-as background context while writing this lecture (e.g., when teaching Pointers, reference the
-Memory Layout section even if it was covered earlier).
+1. Divide the content into individual video lectures.
+2. Decide whether adjacent sections should be merged into one lecture or whether a large section should be split into multiple lectures.
+3. Ensure every section from the Table of Contents is covered.
+4. Build a learning path where every lecture naturally prepares students for the next one.
 
-RULES:
-- Use EXACT section IDs from the TOC (e.g., "7.5", "1.7.3"). Do NOT invent IDs.
-- Every section ID in the TOC must appear in at least one lecture's primary_sections.
-- reference_sections should be 0-3 IDs max. Do not over-reference.
-- Each lecture should be teachable in 10-15 minutes.
-- Difficulty: beginner for chapters 1-5, intermediate for 6-12, advanced for 13+.
-- topic_tags: 4-6 keywords per lecture.
-- Order lectures logically - build concepts incrementally.
+The final curriculum should feel like a professionally designed university course rather than simply following the book chapter-by-chapter.
 
-OUTPUT: Strictly valid JSON. No markdown. No commentary.
+========================
+LECTURE DESIGN PRINCIPLES
+========================
 
-{
-  "lectures": [
+Each lecture should:
+
+- Teach one coherent concept.
+- Have a clear beginning, middle and conclusion.
+- Avoid mixing unrelated topics.
+- Introduce concepts gradually.
+- Never assume knowledge that has not yet been taught.
+- Minimize unnecessary context switching.
+- Build incrementally from fundamentals toward advanced concepts.
+
+When deciding lecture boundaries, prioritize conceptual completeness over chapter boundaries.
+
+========================
+GROUPING RULES
+========================
+
+You are free to:
+
+- Merge multiple small adjacent sections into one lecture.
+- Split large or dense sections into multiple lectures.
+- Create multiple lectures from a single large section if necessary.
+- Keep prerequisite concepts before dependent concepts.
+
+Avoid:
+- Overloaded lectures.
+- Extremely short lectures.
+- Mixing beginner and advanced concepts without progression.
+
+Target lecture duration:
+10–15 minutes.
+
+========================
+SECTION COVERAGE
+========================
+
+Use ONLY section IDs that exist in the provided Table of Contents.
+
+Examples:
+- "1.2"
+- "4.6.1"
+- "7.5.3"
+
+Do NOT:
+- invent IDs
+- modify IDs
+- skip IDs
+- rename IDs
+
+Every section ID from the Table of Contents SHOULD appear at least once inside primary_sections.
+
+========================
+REFERENCE SECTIONS
+========================
+
+For each lecture, provide reference_sections.
+These are NOT the sections taught in this lecture.
+They represent previously learned concepts that the lecture-writing agent should also receive as background context.
+
+Examples:
+- Memory Layout while teaching Pointers
+- Variables while teaching Functions
+- Functions while teaching Recursion
+- Arrays while teaching Sorting
+
+Rules:
+- 0–5 section IDs maximum.
+- Reference only genuinely useful prerequisite concepts.
+- Prefer earlier sections.
+- Do not over-reference.
+
+========================
+DIFFICULTY
+========================
+
+Assign difficulty according to the overall course progression.
+Default guideline:
+
+Chapters 1–5:
+beginner
+
+Chapters 6–12:
+intermediate
+
+Chapters 13+:
+advanced
+
+However, if the Table of Contents clearly indicates a different progression, use pedagogical judgment while maintaining a smooth learning curve.
+
+========================
+TOPIC TAGS
+========================
+
+Each lecture must include:
+4–6 concise topic keywords.
+Examples: ["variables", "memory", "scope", "stack"]
+
+Avoid long phrases.
+
+========================
+ORDERING
+========================
+
+Lectures must appear in the exact order students should watch them.
+Every lecture should naturally build upon previous lectures.
+The curriculum should maximize learning efficiency while minimizing prerequisite confusion.
+
+========================
+OUTPUT REQUIREMENTS
+========================
+
+Return STRICTLY valid JSON.
+Do NOT output:
+- Markdown
+- Explanations
+- Notes
+- Comments
+- Additional text
+
+Return ONLY the JSON object below.
+
     {
-      "title": "string",
-      "primary_sections": ["N.N", "N.N"],
-      "reference_sections": ["N.N"],
-      "difficulty": "beginner|intermediate|advanced",
-      "estimated_minutes": 12,
-      "topic_tags": ["string"]
-    }
-  ]
-}"""
+"lectures": [ { "title": "string",
+                "primary_sections": ["N.N", "N.N"],
+                "reference_sections": ["N.N"],
+                "difficulty": "beginner|intermediate|advanced",
+                "estimated_minutes": 12,
+                "topic_tags": ["string"]  } ] 
+}
+"""
 
 
 class CurriculumAgent(BaseAgent):
+
     def __init__(self):
         super().__init__()
         self.processor = PDFProcessor()
 
     def run(self, state: dict) -> dict:
-        print("[CurriculumAgent] Planning curriculum from TOC...")
+        print("[CurriculumAgent] Planning curriculum from Table of Content...")
 
         source_id = state.get("source_id", "")
         topic = state.get("topic", "Programming")
@@ -73,7 +189,7 @@ class CurriculumAgent(BaseAgent):
             f"Plan the complete lecture series now."
         )
 
-        print(f"  Sending TOC ({len(toc_text)} chars, {len(valid_section_ids)} sections) to LLM...")
+        print(f"  Sending Table of Content ({len(valid_section_ids)} sections) to LLM...")
         result = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
         lectures = result.get("lectures", [])
 
@@ -94,10 +210,7 @@ class CurriculumAgent(BaseAgent):
                 lec["primary_sections"] = [s for s in lec.get("primary_sections", []) if s in valid_section_ids]
                 lec["reference_sections"] = [s for s in lec.get("reference_sections", []) if s in valid_section_ids]
 
-        # Drop any lecture left with zero primary sections after filtering. Such
-        # a lecture has no source material to teach from - the downstream planner
-        # would "expand aggressively" from just a title, producing a hollow,
-        # ungrounded lesson. Better to omit it than to generate filler.
+        # Drop any lecture left with zero primary sections after filtering.
         kept = [lec for lec in lectures if lec.get("primary_sections")]
         dropped = len(lectures) - len(kept)
         if dropped:

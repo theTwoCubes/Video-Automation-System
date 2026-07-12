@@ -2,6 +2,7 @@
 FastAPI backend for the theTwoCubes GUI dashboard.
 Run: uvicorn api.server:app --reload --port 8000
 """
+
 import json
 import subprocess
 import sys
@@ -37,10 +38,9 @@ _output_dir = ROOT / "output"
 _output_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=_output_dir), name="static")
 
-# Async job state (ingest, curricula, test runs, re-renders) is persisted via
-# db.jobs so it survives an API reload and works across multiple workers.
+# Async job state (ingest, curricula, test runs, re-renders) is persisted via db.jobs so it survives an API reload and works across multiple workers.
 
-# Live generation subprocesses, keyed by lesson_id, so a run can be cancelled.
+# Live generation subprocesses, keyed by lesson_id, so a run can be cancelled. 
 # Intentionally in-memory: only the worker that spawned a child can signal it.
 _running_procs: dict = {}
 

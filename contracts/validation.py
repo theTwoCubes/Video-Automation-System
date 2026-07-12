@@ -6,12 +6,9 @@ PipelineState (see AGENT_FIELDS in pipelines/full_video_pipeline.py). This
 module validates those fields the moment the agent finishes, so a malformed or
 empty LLM/render output fails loudly at its OWN boundary with a clear message,
 instead of surfacing three agents later as a confusing downstream crash.
-
-`errors` are fatal (the pipeline stops and writes FAILED.txt); `warnings` are
-advisory and only logged.
 """
-from __future__ import annotations
 
+from __future__ import annotations
 from typing import List, Tuple
 
 
@@ -20,7 +17,8 @@ def _nonempty_list(v) -> bool:
 
 
 def validate_step(step: str, state: dict) -> Tuple[List[str], List[str]]:
-    """Return (errors, warnings) for the given step's outputs in `state`."""
+    """Return (errors, warnings) for the given step's outputs in `state`.
+    """
     errors: List[str] = []
     warnings: List[str] = []
 

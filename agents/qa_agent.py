@@ -1,7 +1,8 @@
 ﻿from agents.base_agent import BaseAgent
 
 
-SYSTEM_PROMPT = """You are a QA reviewer for theTwoCubes Learning.
+SYSTEM_PROMPT = """
+You are a QA reviewer for "theTwoCubes Learning".
 Review lesson content and flag issues. Be strict but fair.
 Output strictly valid JSON. No markdown."""
 

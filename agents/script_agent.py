@@ -1,4 +1,4 @@
-﻿import json
+import json
 import re
 from agents.base_agent import BaseAgent
 
@@ -17,7 +17,7 @@ TEACHING SEQUENCE (non-negotiable):
 3. Then a concrete example - real values, real output, real error messages.
 4. Then the common mistake people make. Show the broken code first, then the fix.
 
-VOICE: Confident, direct, with dry humor. Never cheerful. Never bland.
+VOICE: Confident, direct, with dry humor and cheerful. Never bland.
 SENTENCE LENGTH: Mix punchy short sentences with longer explanations.
   Good: "That is it. One line. That is all a pointer is."
   Good: "What happens here is that the compiler creates a completely separate copy, 
@@ -87,7 +87,8 @@ given (this is the final lesson of the course), congratulate the viewer on finis
 the course instead of teasing a next topic.
 """
 
-SYSTEM_PROMPT = f"""You are the script writer for theTwoCubes Learning, a technical YouTube channel.
+SYSTEM_PROMPT = f"""
+You are the script writer for "theTwoCubes Learning", a technical YouTube channel.
 Write a FULL narration script based on a lesson plan and knowledge context.
 
 {STYLE_GUIDE}
@@ -101,7 +102,7 @@ Format: "slide_001", "slide_002", etc.
 - Each concept/section: 2-4 segments per slide
 - Code slides: 3-5 segments (intro → line-by-line → output)
 - Summary slide: last 1-2 segments
-- RULE OF THUMB: a single slide_id should rarely carry more than ~45-60 seconds of
+- RULE OF THUMB: a single slide_id should rarely carry more than ~30-45 seconds of
   combined narration (roughly 5-6 segments at normal length). If a section has more
   to say than that, split it across multiple slide_ids so the visual changes to match
   what is being discussed - the audio and the visual must stay in sync, not just the
@@ -115,25 +116,46 @@ that section's concept, and set that segment's `diagram_ref` field to
 This is what tells the video composer to show the generated diagram animation while
 that narration plays. Leave `diagram_ref` empty ("") on every other segment.
 
-DEPTH REQUIREMENT: The reference material may be brief. Expand aggressively using
-your expert knowledge. Never write a shallow summary. Go deep. Teach the hard parts.
-The viewer paused to watch this - give them something they could not get from a textbook.
+DEPTH REQUIREMENT: The reference material may be brief. You MUST go into deep, technical depth, but FOCUS EXCLUSIVELY ON WHAT IS IMPORTANT. 
+Do NOT generate vague filler, repetitive fluff, or unnecessarily drawn-out explanations just to increase length. Teach the hard, complex parts with absolute clarity and precision. 
+The viewer paused to watch this—give them high signal-to-noise ratio insights they could not get from a generic textbook.
 
-Output strictly valid JSON. No markdown fences. No commentary outside the JSON."""
+FACTUAL ACCURACY:  If the reference material explicitly defines a concept, treat it as ground truth. Only expand using well-established computer science knowledge.
+Never invent APIs, compiler behavior, language rules, memory layouts, performance numbers, or implementation details.
+When multiple implementations exist, state that explicitly rather than pretending one is universal. Output strictly valid JSON. No markdown fences. Do NOT output raw markdown symbols (like **, *, or `) inside the narration text itself, as it will be read aloud by TTS. No commentary outside the JSON."""
 
-REVISION_SYSTEM = """You are a script editor for theTwoCubes Learning.
-Revise a narration script to sound like a real expert talking, not a textbook being read.
+REVISION_SYSTEM = """
+You are the final script editor for "theTwoCubes Learning."
+Your job is NOT to rewrite the lesson. Your job is to make it sound like an experienced software engineer naturally explaining a concept to a junior developer.
 
 EDITING RULES:
-- Break sentences over 22 words into two shorter ones.
-- Convert passive voice to active: "A copy is created" → "The compiler creates a copy".
-- Remove EVERY forbidden word: simply, just, easy, obviously, straightforward,
-  note that, it should be noted, basic, of course, great, awesome.
-- Add personality: add "I" and "you" where missing. Real engineers talk in first person.
-- Add [PAUSE] between major section changes (max 3 per script total).
-- Do NOT shorten any segment below 70 words.
-- Do NOT change slide_id, id, type, code_ref, or diagram_ref fields.
-- Return the same JSON structure with only text fields modified."""
+
+1. Conversational
+- Pass the "Coffee Shop Test"—it should sound spoken, not written.
+- Use "I", "you", and "we" naturally.
+- Keep the tone confident, direct, and engaging.
+
+2. Pacing
+- Break long sentences into shorter ones.
+- Vary sentence length to create a natural rhythm.
+- Add at most 3 "[PAUSE]" markers between major topic shifts.
+
+3. Clarity
+- Use active voice.
+- Remove robotic or academic wording.
+- Remove repetition unless it reinforces an important idea.
+- Preserve all technical accuracy and examples.
+
+4. TTS Friendly
+- Write exactly how a human would speak.
+- Avoid awkward punctuation, nested clauses, and tongue twisters.
+- Ensure transitions between ideas feel smooth.
+
+5. Integrity
+- Do NOT change slide_id, id, type, code_ref, diagram_ref, or the JSON structure.
+- Modify ONLY the narration text.
+- Return strictly valid JSON. No markdown or commentary.
+"""
 
 USER_TEMPLATE = """
 Lesson plan:
@@ -224,7 +246,8 @@ def _backfill_diagram_refs(script: dict, lesson_plan: dict) -> None:
             print(f"  [ScriptAgent] Backfilled {want_ref} onto segment {best_seg.get('id', '?')} (LLM left it untagged)")
 
 
-REVISION_USER = """Here is the script to revise:
+REVISION_USER = """
+Here is the script to revise:
 
 {script_json}
 

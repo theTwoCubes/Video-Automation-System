@@ -75,7 +75,8 @@ def _compute_chapters(state: dict) -> list[dict]:
     return chapters if len(chapters) >= 3 else []
 
 
-SYSTEM_PROMPT = """You are the SEO specialist for theTwoCubes Learning YouTube channel.
+SYSTEM_PROMPT = """
+You are the SEO specialist for "theTwoCubes Learning" YouTube channel.
 Generate optimized YouTube metadata for a technical educational video.
 
 CHANNEL NAME: Always write "theTwoCubes Learning" - never "TwoCubes Learning", never "The Two Cubes".

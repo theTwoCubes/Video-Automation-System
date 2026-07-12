@@ -1,6 +1,5 @@
 """
-Profile loader - reads YAML profiles from config/profiles/ and provides
-a merged configuration that can override base Settings values.
+Profile loader - reads YAML profiles from config/profiles/ and provides a merged configuration that can override base Settings values.
 """
 from __future__ import annotations
 

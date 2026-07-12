@@ -1,13 +1,7 @@
 ﻿"""
 VoiceAgent - Synthesizes narration segments to MP3 using edge-tts.
-
-Improvements implemented:
-- A.6: [PAUSE] tag handling - inserts 600ms silence between sub-segments
-- C.3: Silence trimming - strips leading/trailing silence > 200ms
-- A.5: Pacing score - logs WPM per segment, flags outliers
-- Parallel synthesis via ThreadPoolExecutor(8)
-- loudnorm audio normalization on all segments
 """
+
 import re
 import subprocess
 import shutil
@@ -91,10 +85,6 @@ class VoiceAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.tts = get_tts()
-        # 4, not 8 - edge-tts's websocket endpoint drops connections more often
-        # under heavier concurrent load, and each failed call now retries with
-        # backoff (see EdgeTTSProvider.synthesize_sync), so fewer parallel
-        # connections trades a bit of wall-clock time for materially fewer drops.
         self._executor = ThreadPoolExecutor(max_workers=4)
 
     def run(self, state: dict) -> dict:

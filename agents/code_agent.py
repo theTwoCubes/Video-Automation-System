@@ -2,15 +2,109 @@
 from config.settings import settings
 
 
-SYSTEM_PROMPT = """You are a code generation agent for theTwoCubes Learning.
-Generate real, runnable, beginner-friendly code examples.
+SYSTEM_PROMPT = """
+You are an expert programming instructor and code generation agent for "theTwoCubes Learning".
+Your task is to generate high-quality educational code examples that clearly demonstrate a single programming concept.
 
-Rules:
-- Code must be complete and runnable as-is.
-- Include only stdlib (no external packages unless the topic requires it).
-- Add SHORT inline comments on key lines only (not every line).
-- Keep examples under 30 lines where possible.
-- Output strictly valid JSON. No markdown."""
+The generated code will later be used for:
+- YouTube lectures
+- Slide generation
+- Voice narration
+- Line-by-line explanation
+- Interactive visualizations
+
+Therefore, prioritize clarity and teaching quality over clever or optimized code.
+
+========================
+OBJECTIVE
+========================
+
+Generate ONE complete, runnable code example that teaches the requested concept.
+The example should help a beginner understand WHY the concept exists, HOW it works, and WHAT it produces.
+
+========================
+CODE REQUIREMENTS
+========================
+
+The code must be:
+- Complete and runnable without modification.
+- Self-contained.
+- Readable.
+- Beginner-friendly.
+- Properly formatted.
+- Idiomatic for the requested language.
+
+Unless the lesson specifically requires otherwise:
+- Use only the language's standard library.
+- Do not require installation of external packages.
+- Avoid unnecessary abstractions.
+- Avoid advanced syntax when a simpler alternative exists.
+
+========================
+TEACHING PRINCIPLES
+========================
+
+The example should:
+- Focus on ONE primary concept.
+- Avoid introducing unrelated ideas.
+- Use meaningful variable names.
+- Keep logic straightforward.
+- Demonstrate the requested concept clearly.
+- Produce deterministic output whenever possible.
+
+If input is required, hardcode example values instead of asking the user for input unless interactive input is itself the concept being taught.
+
+========================
+COMMENTS
+========================
+
+Include only SHORT inline comments.
+Comment only important lines.
+Do NOT comment every line.
+Avoid long explanations inside the source code.
+
+========================
+SIZE
+========================
+
+Prefer examples under 30 lines.
+Slightly exceed this only if required for correctness or clarity.
+
+========================
+EXPECTED OUTPUT
+========================
+
+expected_output must exactly match the program's stdout.
+Do not include prompts unless they are intentionally printed.
+
+========================
+ANNOTATIONS
+========================
+
+Provide annotations only for important lines.
+Each annotation should briefly explain:
+- what the line does
+- why it exists
+- or what concept it demonstrates
+
+Do not annotate every line.
+Keep notes concise.
+
+========================
+OUTPUT REQUIREMENTS
+========================
+
+Return STRICTLY valid JSON.
+Do NOT return:
+- Markdown
+- Triple backticks
+- Explanations
+- Notes
+- Commentary
+- Extra text
+
+Return ONLY the JSON object.
+"""
 
 USER_TEMPLATE = """
 Lesson: {lesson_title}
@@ -19,17 +113,20 @@ Concept to demonstrate: {concept}
 Complexity: {complexity}
 
 Generate a code example as JSON:
+
 {{
   "id": "{code_id}",
   "language": "{language}",
   "source_code": "the complete code as a string",
   "expected_output": "what stdout should show",
   "annotations": [
-    {{"line": 1, "note": "explanation of this line"}}
+    {{
+      "line": 1,
+      "note": "explanation of this line"
+    }}
   ]
 }}
 """
-
 
 class CodeAgent(BaseAgent):
     MAX_RETRIES = 3
@@ -110,13 +207,10 @@ class CodeAgent(BaseAgent):
             result["id"] = code_id
 
             if settings.ENABLE_CODE_EXECUTION:
-                # Opt-in: actually run the generated code in a sandboxed
-                # subprocess and record REAL output. A compile/runtime failure
-                # is a genuine validation failure - retry generation.
+                # Opt-in: actually run the generated code in a sandboxed subprocess and record REAL output. 
                 exec_result = self._execute(language, source_code)
                 if exec_result is None:
-                    # language unsupported / toolchain missing - can't validate,
-                    # but don't fabricate output. Ship it flagged unvalidated.
+                    # language unsupported / toolchain missing - can't validate, but don't fabricate output. Ship it flagged unvalidated.
                     result["actual_output"] = ""
                     result["is_validated"] = False
                     print(f"  Generated (unvalidated - no runner for {language}): {code_id}")
@@ -130,10 +224,6 @@ class CodeAgent(BaseAgent):
                 print(f"  Validated by execution: {code_id}")
                 return result
 
-            # Execution disabled (default). Do NOT claim validation and do NOT
-            # copy expected_output into actual_output - showing fabricated output
-            # as if it were real is a correctness/trust liability in a teaching
-            # product. The slide/QA layers treat unvalidated code accordingly.
             result["actual_output"] = ""
             result["is_validated"] = False
             print(f"  Generated (execution disabled - unvalidated): {code_id}")
@@ -144,15 +234,13 @@ class CodeAgent(BaseAgent):
 
     def _execute(self, language: str, source_code: str):
         """Run code via the sandbox executor. Returns an ExecutionResult, or
-        None if the language/toolchain isn't available (so the caller can ship
-        the example flagged unvalidated rather than failing the lesson)."""
+        None if the language/toolchain isn't available."""
         try:
             from services.code_sandbox.executor import execute_code, LANGUAGE_CONFIGS
             if language.lower() not in LANGUAGE_CONFIGS:
                 return None
             res = execute_code(language, source_code)
-            # A missing compiler/runtime surfaces as exit 127 - treat as "no
-            # runner", not as a code defect worth regenerating over.
+            # A missing compiler/runtime surfaces as exit 127 - treat as "no runner", not as a code defect worth regenerating over.
             if res.exit_code == 127:
                 return None
             return res

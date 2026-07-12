@@ -1,7 +1,6 @@
 """
-Durable job store - replaces the in-memory task dicts the API used to keep
-(_ingest_tasks, _curricula_tasks, _test_runs, _rerender_tasks). Backing these
-with SQLite means job status survives a reload, doesn't grow unbounded in
+Durable job store - replaces the in-memory task dicts the API used to keep (_ingest_tasks, _curricula_tasks, _test_runs, _rerender_tasks). 
+Backing these with SQLite means job status survives a reload, doesn't grow unbounded in
 memory, and works when the API runs with more than one worker (a poll can hit a
 worker that never saw the task otherwise).
 

@@ -10,10 +10,10 @@ assets/
 │   ├── Outfit-Regular.ttf      (Required for general UI/text)
 │   ├── Outfit-SemiBold.ttf     (Required for headers)
 │   └── FiraCode-Regular.ttf    (Optional, recommended for code blocks)
-├── logos/      
+├── logos/    
 ├── music/          # Audio tracks mixed into the final video
 │   ├── bg_track.mp3            (Low volume background loop)
-│   ├── intro_sting.mp3         (Plays during title slides)
+│   ├── intro_music.mp3         (Plays during title slides)
 │   └── outro_music.mp3         (Plays during summary/outro slides)
 ```
 

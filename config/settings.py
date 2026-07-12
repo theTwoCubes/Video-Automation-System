@@ -18,12 +18,9 @@ class Settings(BaseSettings):
 
     # Gemini model names (free tier)
     LLM_MODEL: str = "gemini-2.5-flash"
-    EMBEDDING_MODEL: str = "models/gemini-embedding-001"
 
-    # Default thinking budget (tokens) for reasoning-heavy LLM calls (plan, script,
-    # slide selection). 0 disables reasoning entirely. Cheap mechanical calls
-    # (QA/SEO/quiz) pass their own budget of 0 at the call site. The cost guard
-    # below bounds the extra spend that thinking incurs.
+    # Default thinking budget (tokens) for reasoning-heavy LLM calls (plan, script, slide selection). 0 disables reasoning entirely. 
+    # (QA/SEO/quiz) pass their own budget of 0 at the call site. The cost guard below bounds the extra spend that thinking incurs.
     LLM_THINKING_BUDGET: int = 4096
 
     # Opt-in sandboxed execution of LLM-generated code examples. OFF by default:

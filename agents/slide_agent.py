@@ -45,7 +45,8 @@ LAYOUT_TRANSITIONS = {
 }
 
 
-SYSTEM_PROMPT = """You are a senior slide designer for theTwoCubes Learning, a technical YouTube channel.
+SYSTEM_PROMPT = """
+You are a senior slide designer for theTwoCubes Learning, a technical YouTube channel.
 Your job: convert narrated script segments into visually diverse, pedagogically excellent slide specifications.
 
 You have CREATIVE AUTHORITY. Do not just mechanically pick templates.

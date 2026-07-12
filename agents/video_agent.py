@@ -18,12 +18,10 @@ from services.media.ffmpeg import (
     seconds_to_srt_time as _seconds_to_srt_time,
 )
 
-# A single slide_id should never hold the screen for longer than this - past it,
-# audio keeps playing over a frozen frame with nothing changing on screen. Slide
-# groups longer than this get split into multiple chunks of the same image, each
-# getting its own Ken Burns zoom / transition instead of one dead-static hold.
-MAX_SLIDE_SECONDS = 9999.0  # Increased to prevent repeated transitions on the same slide
+# A single slide_id should never hold the screen for longer than this - past it, audio keeps playing over a frozen frame with nothing changing on screen. 
+# Slide groups longer than this get split into multiple chunks of the same image, each getting its own Ken Burns zoom / transition instead of one dead-static hold.
 
+MAX_SLIDE_SECONDS = 9999.0  # Increased to prevent repeated transitions on the same slide
 
 def _wrap_srt_text(text: str) -> str:
     """Trim narration to a subtitle: drop [PAUSE] markers and wrap to <=3 lines

@@ -1,6 +1,6 @@
-# No-music profile — for silent testing or accessibility
+# No-music profile
 name: "no_music"
-description: "No background music. Fastest for iteration."
+description: "No background music."
 
 voice:
   name: "en-US-AndrewNeural"

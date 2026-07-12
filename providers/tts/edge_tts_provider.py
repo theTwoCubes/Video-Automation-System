@@ -4,10 +4,8 @@ import edge_tts
 from providers.tts.base import TTSProvider
 from config.settings import settings
 
-# edge-tts opens a websocket to Microsoft's service per call; that connection
-# drops transiently under normal network conditions (and more often when
-# several workers dial it at once, as VoiceAgent's ThreadPoolExecutor(8) does).
-# A single dropped connection used to kill the entire pipeline run.
+# edge-tts opens a websocket to Microsoft's service per call; that connection drops transiently under normal network conditions 
+# (and more often when several workers dial it at once, as VoiceAgent's ThreadPoolExecutor(8) does).
 _MAX_RETRIES = 4
 _RETRY_BACKOFF_SECONDS = 2.0
 

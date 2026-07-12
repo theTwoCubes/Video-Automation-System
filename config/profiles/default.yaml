@@ -11,7 +11,7 @@ voice:
 # body (it competed with the voice). Intro/outro keep their own short stings.
 music:
   bg_track: ""
-  intro_sting: "assets/music/intro_sting.mp3"
+  intro_sting: "assets/music/intro_music.mp3"
   outro_music: "assets/music/outro_music.mp3"
   bg_volume: 0.5
   ducking_ratio: 8.0

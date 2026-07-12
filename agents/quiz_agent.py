@@ -1,18 +1,17 @@
 ﻿"""
-QuizAgent - G.2 from FuturePLAN.md
+QuizAgent
 
 Generates 3-5 multiple-choice quiz questions per lesson from the script content.
 Runs after QAAgent. Questions are saved to output/<lesson>/quiz.json and
 stored in state["quiz_questions"].
-
-No LLM call if script is absent (test pipeline compat).
 """
 import json
 from pathlib import Path
 from agents.base_agent import BaseAgent
 
 
-SYSTEM_PROMPT = """You are an educational assessment designer for theTwoCubes Learning.
+SYSTEM_PROMPT = """
+You are an educational assessment designer for "theTwoCubes Learning".
 Generate multiple-choice quiz questions from a technical lesson script.
 
 RULES:
