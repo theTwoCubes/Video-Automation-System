@@ -26,7 +26,6 @@ Title rules:
 Description rules:
 - 400-600 words
 - First 2 sentences must be the hook (shown before "show more")
-- Include timestamps as a table of contents
 - End with: "Subscribe to theTwoCubes Learning for more."
 - Naturally include 8-10 keywords
 
