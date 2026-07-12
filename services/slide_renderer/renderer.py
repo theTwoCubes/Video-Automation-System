@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import base64
 import json
 import re
@@ -78,6 +78,7 @@ _LAYOUT_CODE_TIERS = {
     "split_code": {"code_content": "split"},
     "code_output": {"code_content": "split"},
     "code_evolution": {"left_code": "split", "right_code": "split"},
+    "exercise": {"code_content": "split"},
 }
 _TOK_CLASS = {1: "tok-cmt", 2: "tok-pp", 3: "tok-str", 4: "tok-str",
               5: "tok-kw", 6: "tok-num", 7: "tok-op"}

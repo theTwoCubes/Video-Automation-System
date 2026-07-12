@@ -1,4 +1,4 @@
-﻿import json
+import json
 from agents.base_agent import BaseAgent
 from services.slide_renderer.renderer import SlideRenderer
 from services.slide_validator.validator import validate_slides, auto_fix_slides, print_validation_report
@@ -242,7 +242,7 @@ JSON schema (include ALL fields you use for the chosen layout, use empty string/
       "left_bullets": [],
       "right_label": "",
       "right_bullets": [],
-      "code_content": "complete runnable code (code/split_code/code_output/snippet layout only)",
+      "code_content": "complete runnable code (code/split_code/code_output/snippet/exercise layout only)",
       "code_language": "cpp",
       "code_filename": "main.cpp",
       "caption": "code layout only: optional 1-line note below code block",
@@ -294,7 +294,7 @@ class SlideAgent(BaseAgent):
         code_examples = state.get("code_examples", [])
         output_dir = state["output_dir"]
 
-        code_refs = {ex["id"]: ex.get("source_code", "")[:600] for ex in code_examples}
+        code_refs = {ex["id"]: ex.get("source_code", "")[:2500] for ex in code_examples}
 
         segments = script.get("segments", [])
 

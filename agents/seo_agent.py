@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from agents.base_agent import BaseAgent
 
 
@@ -8,71 +8,6 @@ def _fmt_ts(seconds: float) -> str:
     h, rem = divmod(total, 3600)
     m, s = divmod(rem, 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-
-
-def _compute_chapters(state: dict) -> list[dict]:
-    """Derive YouTube chapters from the REAL audio timeline instead of letting
-    the LLM invent timestamps. Narration audio is grouped by slide in script
-    order (the same grouping the video uses); each new slide that carries a
-    headline becomes a chapter at its measured start time.
-
-    Honors YouTube's chapter rules: first chapter at 0:00, at least three
-    chapters, and >= 10s between consecutive chapters (closer ones are merged).
-    Returns [] if timings can't be read, so the caller can fall back.
-    """
-    script = state.get("script", {}) or {}
-    segments = script.get("segments", []) or []
-    audio_paths = state.get("audio_paths", []) or []
-    slide_contents = state.get("slide_contents", []) or []
-    if not segments or not audio_paths:
-        return []
-
-    try:
-        from services.video_composer.composer import _get_ffmpeg, _get_audio_duration
-        ffmpeg_exe = _get_ffmpeg()
-    except Exception:
-        return []
-
-    headline_by_slide = {
-        s.get("id", ""): (s.get("headline") or "").strip() for s in slide_contents
-    }
-
-    narration_segs = [
-        s for s in segments
-        if s.get("type") in ("narration", "code_demo") and s.get("text", "").strip()
-    ]
-
-    raw: list[tuple[float, str]] = []  # (start_seconds, title)
-    cursor = 0.0
-    last_slide = None
-    for i, seg in enumerate(narration_segs):
-        if i >= len(audio_paths):
-            break
-        path = audio_paths[i]
-        sid = seg.get("slide_id", "")
-        if sid != last_slide:
-            title = headline_by_slide.get(sid, "")
-            if title:
-                raw.append((cursor, title))
-            last_slide = sid
-        try:
-            cursor += _get_audio_duration(path, ffmpeg_exe) if Path(path).exists() else 0.0
-        except Exception:
-            pass
-
-    if not raw:
-        return []
-
-    # Force the first chapter to 0:00, then keep only chapters >= 10s apart.
-    raw[0] = (0.0, raw[0][1])
-    chapters, last_t = [], -10.0
-    for t, title in raw:
-        if t - last_t >= 10.0 or not chapters:
-            chapters.append({"timestamp": _fmt_ts(t), "title": title})
-            last_t = t
-
-    # YouTube needs at least three chapters to render the UI at all.
-    return chapters if len(chapters) >= 3 else []
 
 
 SYSTEM_PROMPT = """
@@ -176,10 +111,10 @@ class SEOAgent(BaseAgent):
         # the real audio timeline. The model cannot know true timings, so its
         # numbers point viewers to the wrong moments; only override when we
         # successfully computed at least three real chapters.
-        measured = _compute_chapters(state)
+        measured = state.get("computed_chapters", [])
         if measured:
             seo["chapters"] = measured
-            print(f"  Chapters: {len(measured)} derived from real audio timings")
+            print(f"  Chapters: {len(measured)} derived from real video timings")
 
         # fix branding: normalize any LLM-generated channel name variants
         if isinstance(seo.get("description"), str):

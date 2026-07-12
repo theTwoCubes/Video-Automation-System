@@ -108,13 +108,12 @@ Format: "slide_001", "slide_002", etc.
   what is being discussed - the audio and the visual must stay in sync, not just the
   audio droning on over one frozen slide.
 
-DIAGRAM_REF LINKING:
-The lesson plan's `sections` list may mark some sections with `needs_diagram: true`.
-For each such section, find the narration segment(s) where you are actually explaining
-that section's concept, and set that segment's `diagram_ref` field to
-`"diag_{{section_id}}"` (e.g. a section with id `"sec_003"` → `diagram_ref: "diag_sec_003"`).
-This is what tells the video composer to show the generated diagram animation while
-that narration plays. Leave `diagram_ref` empty ("") on every other segment.
+VISUAL SYNCHRONIZATION:
+You are the central authority for the lesson. Your narration script drives what code and diagrams will be generated later. 
+If the lesson plan marks a section with `needs_diagram: true` or `needs_code: true`, you MUST explicitly narrate what is happening in that visual.
+- For code: narrate the variable names, the function logic, and the expected output you want the Code Generator to write.
+- For diagrams: narrate the shapes, the flow, and the visual metaphor you want the Diagram Generator to draw.
+Your spoken words will be passed directly to the Code and Diagram AI to ensure they build exactly what you described.
 
 DEPTH REQUIREMENT: The reference material may be brief. You MUST go into deep, technical depth, but FOCUS EXCLUSIVELY ON WHAT IS IMPORTANT. 
 Do NOT generate vague filler, repetitive fluff, or unnecessarily drawn-out explanations just to increase length. Teach the hard, complex parts with absolute clarity and precision. 
@@ -207,43 +206,117 @@ Requirements:
 
 def _backfill_diagram_refs(script: dict, lesson_plan: dict) -> None:
     """The DIAGRAM_REF LINKING instruction asks the LLM to tag the right narration
-    segment(s) with diagram_ref, but compliance isn't guaranteed - if it misses a
-    section, the diagram DiagramAgent generates for that section never gets shown
-    (see agents/video_agent.py._build_diagram_segments, which only inserts a
-    diagram where some segment actually carries its diagram_ref). This backfills
-    any missed needs_diagram section deterministically via word-overlap matching,
-    so every generated diagram has somewhere to attach instead of silently going
-    unused."""
+    segment(s) with diagram_ref. However, the LLM sometimes hallucinates section IDs
+    or assigns them out of chronological order (e.g. putting the summary diagram on
+    the roadmap slide). A naive global word-overlap search also causes severe
+    sequence mismatch.
+    
+    This method deterministically assigns diagram references using a monotonic 
+    search: ensuring diagrams always appear in the exact chronological sequence
+    dictated by the lesson plan."""
     segments = script.get("segments", [])
     if not segments:
         return
-    existing_refs = {s.get("diagram_ref") for s in segments if s.get("diagram_ref")}
+        
+    # Strip any potentially hallucinated/out-of-order refs from the LLM
+    for seg in segments:
+        seg["diagram_ref"] = ""
 
-    for section in lesson_plan.get("sections", []):
+    last_assigned_idx = 0
+    sections = lesson_plan.get("sections", [])
+    
+    for sec_idx, section in enumerate(sections):
         if not section.get("needs_diagram") or not section.get("id"):
             continue
+            
         want_ref = f"diag_{section['id']}"
-        if want_ref in existing_refs:
-            continue
-
         section_text = section.get("title", "") + " " + " ".join(section.get("key_points", []))
         section_words = set(re.findall(r"[a-z0-9']+", section_text.lower()))
         if not section_words:
             continue
 
-        best_seg, best_score = None, 0
-        for seg in segments:
+        best_seg, best_score, best_idx = None, -9999, -1
+        
+        # Expected relative position in the script
+        expected_ratio = sec_idx / max(1, len(sections))
+        expected_seg_idx = int(expected_ratio * len(segments))
+        
+        for i, seg in enumerate(segments):
             if seg.get("diagram_ref") or seg.get("type") not in ("narration", "code_demo"):
                 continue
+                
+            # Enforce strict sequence: diagrams cannot jump backwards in time
+            if i < last_assigned_idx:
+                continue
+                
             seg_words = set(re.findall(r"[a-z0-9']+", seg.get("text", "").lower()))
-            score = len(section_words & seg_words)
+            overlap = len(section_words & seg_words)
+            
+            # Penalize jumping too far from the expected chronological position
+            distance = abs(i - expected_seg_idx)
+            score = overlap - (distance * 0.1)
+            
             if score > best_score:
-                best_score, best_seg = score, seg
+                best_score = score
+                best_seg = seg
+                best_idx = i
 
         if best_seg is not None:
             best_seg["diagram_ref"] = want_ref
-            existing_refs.add(want_ref)
-            print(f"  [ScriptAgent] Backfilled {want_ref} onto segment {best_seg.get('id', '?')} (LLM left it untagged)")
+            last_assigned_idx = best_idx
+            print(f"  [ScriptAgent] Chronologically mapped {want_ref} to segment {best_seg.get('id', '?')}")
+
+
+def _backfill_code_refs(script: dict, lesson_plan: dict) -> None:
+    """Deterministically assigns code references using monotonic sequence mapping,
+    ensuring code references appear chronologically and match the lesson plan's needs_code flags."""
+    segments = script.get("segments", [])
+    if not segments:
+        return
+        
+    for seg in segments:
+        seg["code_ref"] = ""
+
+    last_assigned_idx = 0
+    sections = lesson_plan.get("sections", [])
+    
+    for sec_idx, section in enumerate(sections):
+        if not section.get("needs_code") or not section.get("id"):
+            continue
+            
+        want_ref = f"code_{section['id']}"
+        section_text = section.get("title", "") + " " + " ".join(section.get("key_points", []))
+        section_words = set(re.findall(r"[a-z0-9']+", section_text.lower()))
+        if not section_words:
+            continue
+
+        best_seg, best_score, best_idx = None, -9999, -1
+        
+        expected_ratio = sec_idx / max(1, len(sections))
+        expected_seg_idx = int(expected_ratio * len(segments))
+        
+        for i, seg in enumerate(segments):
+            if seg.get("code_ref") or seg.get("type") not in ("narration", "code_demo"):
+                continue
+                
+            if i < last_assigned_idx:
+                continue
+                
+            seg_words = set(re.findall(r"[a-z0-9']+", seg.get("text", "").lower()))
+            overlap = len(section_words & seg_words)
+            
+            distance = abs(i - expected_seg_idx)
+            score = overlap - (distance * 0.1)
+            
+            if score > best_score:
+                best_score = score
+                best_seg = seg
+                best_idx = i
+
+        if best_seg is not None:
+            best_seg["code_ref"] = want_ref
+            last_assigned_idx = best_idx
+            print(f"  [ScriptAgent] Chronologically mapped {want_ref} to segment {best_seg.get('id', '?')}")
 
 
 REVISION_USER = """
@@ -294,6 +367,7 @@ class ScriptAgent(BaseAgent):
             print(f"  Pass 2 skipped: {e}")
 
         _backfill_diagram_refs(script, lesson_plan)
+        _backfill_code_refs(script, lesson_plan)
 
         all_text = " ".join(s.get("text", "") for s in script.get("segments", []))
         script["total_words"] = len(all_text.split())

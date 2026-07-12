@@ -232,12 +232,12 @@ def _compose_intro_card(lesson_title: str, renderer, output_path: str, ffmpeg_ex
         "layout": "intro",
     }
     try:
-        renderer.render_slides([slide_data], str(out_dir), prefix="intro_")
+        renderer.render_slides([slide_data], str(out_dir), prefix="")
     except Exception as e:
         print(f"  Intro rendering failed: {e}")
         return False
         
-    img_path = out_dir / "intro_intro_card.png"
+    img_path = out_dir / "intro_card.png"
     if not img_path.exists():
         return False
 
@@ -252,12 +252,12 @@ def _compose_outro_card(renderer, output_path: str, ffmpeg_exe: str, outro_music
         "layout": "outro",
     }
     try:
-        renderer.render_slides([slide_data], str(out_dir), prefix="outro_")
+        renderer.render_slides([slide_data], str(out_dir), prefix="")
     except Exception as e:
         print(f"  Outro rendering failed: {e}")
         return False
         
-    img_path = out_dir / "outro_outro_card.png"
+    img_path = out_dir / "outro_card.png"
     if not img_path.exists():
         return False
 

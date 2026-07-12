@@ -303,6 +303,12 @@ Concept: {concept}
 Lesson: {lesson_title}
 Diagram type: {diagram_type}
 
+NARRATION SCRIPT:
+"{narration}"
+
+CRITICAL SYNCHRONIZATION REQUIREMENT:
+You MUST generate a diagram that exactly matches the above narration script. The labels, steps, state names, and visual flow MUST align with what is being spoken by the narrator. 
+
 Generate only the JSON content required for the specified diagram_type.
 """
 
@@ -401,21 +407,21 @@ class DiagramAgent(BaseAgent):
         lesson_title = state["lesson_title"]
         lesson_plan = state.get("lesson_plan", {})
 
-        # collect diagram refs from script
+        # collect diagram context from lesson plan and script narration
         diagram_refs = {}
-        for seg in segments:
-            if seg.get("type") == "diagram" and seg.get("diagram_ref"):
-                diagram_refs[seg["diagram_ref"]] = seg.get("text", seg["diagram_ref"])
-
-        # also check lesson plan, and remember the planner's diagram type guess per section so it can be used ahead of the blunt keyword classifier
         planned_diagram_types: dict[str, str] = {}
+        
         for section in lesson_plan.get("sections", []):
             did = f"diag_{section.get('id', '')}"
             recommended = section.get("recommended_diagram_type", "")
             if recommended and recommended in VALID_DIAGRAM_TYPES:
                 planned_diagram_types[did] = recommended
-            if section.get("needs_diagram") and did not in diagram_refs:
-                diagram_refs[did] = section.get("title", lesson_title)
+                
+            if section.get("needs_diagram") and section.get("id"):
+                concept = section.get("title", lesson_title) + ": " + " ".join(section.get("key_points", []))
+                narrations = [s.get("text", "") for s in segments if s.get("diagram_ref") == did]
+                narration = " ".join(narrations)
+                diagram_refs[did] = {"concept": concept, "narration": narration}
 
         output_dir = Path(state["output_dir"]) / "diagrams"
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -429,12 +435,14 @@ class DiagramAgent(BaseAgent):
         except Exception:
             ffmpeg_exe = None
 
-        for diag_id, concept in diagram_refs.items():
+        for diag_id, data in diagram_refs.items():
+            concept = data["concept"]
+            narration = data["narration"]
             print(f"  Generating {diag_id}: {concept[:60]}")
             out_video = str(output_dir / f"{diag_id}.mp4")
             diagram_type = planned_diagram_types.get(diag_id) or self._classify_diagram_type(concept)
 
-            html_content = self._generate_diagram_html(diag_id, lesson_title, concept, diagram_type)
+            html_content = self._generate_diagram_html(diag_id, lesson_title, concept, narration, diagram_type)
 
             if html_content and ffmpeg_exe:
                 from services.diagram_renderer.html_animator import render_animated_diagram
@@ -487,11 +495,12 @@ class DiagramAgent(BaseAgent):
             return "iteration"
         return "flow"
 
-    def _generate_diagram_html(self, diag_id: str, lesson_title: str, concept: str, diagram_type: str) -> str:
+    def _generate_diagram_html(self, diag_id: str, lesson_title: str, concept: str, narration: str, diagram_type: str) -> str:
         """Ask LLM for structured content matching diagram_type's schema, then render
         it through the shared DiagramRenderer template. Returns HTML string or empty."""
         user_msg = USER_TEMPLATE.format(
             concept=concept[:300],
+            narration=narration,
             lesson_title=lesson_title,
             diagram_type=diagram_type,
         )

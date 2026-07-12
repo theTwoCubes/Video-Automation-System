@@ -4,11 +4,11 @@
         <div class="def-equation">
           {% set eq = bullets[0] if bullets else '' %}
           {% if '=' in eq %}
-            <span class="eq-lhs">{{ eq.split('=')[0].strip()|e }}</span>
+            <span class="eq-lhs">{{ eq.split('=')[0].strip()|md }}</span>
             <span class="eq-op">=</span>
-            <span class="eq-rhs">{{ eq.split('=', 1)[1].strip()|e }}</span>
+            <span class="eq-rhs">{{ eq.split('=', 1)[1].strip()|md }}</span>
           {% else %}
-            {{ eq|e }}
+            {{ eq|md }}
           {% endif %}
         </div>
       </div>

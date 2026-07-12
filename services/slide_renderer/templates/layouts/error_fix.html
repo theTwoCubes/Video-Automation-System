@@ -2,11 +2,11 @@
       <div class="split-wrap">
         <div class="split-panel bad">
           <div class="split-label">{% if layout == 'error_fix' %}&#10007; Mistake{% else %}{{ (left_label or 'Before')|md }}{% endif %}</div>
-          <div class="split-code">{{ (left_bullets | join('\n'))|e }}</div>
+          <div class="split-code">{{ (left_bullets | join('\n'))|md }}</div>
         </div>
         <div class="split-panel good">
           <div class="split-label">{% if layout == 'error_fix' %}&#10003; Fix{% else %}{{ (right_label or 'After')|md }}{% endif %}</div>
-          <div class="split-code">{{ (right_bullets | join('\n'))|e }}</div>
+          <div class="split-code">{{ (right_bullets | join('\n'))|md }}</div>
         </div>
       </div>
 

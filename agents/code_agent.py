@@ -1,4 +1,4 @@
-﻿from agents.base_agent import BaseAgent
+from agents.base_agent import BaseAgent
 from config.settings import settings
 
 
@@ -96,11 +96,10 @@ OUTPUT REQUIREMENTS
 
 Return STRICTLY valid JSON.
 Do NOT return:
-- Markdown
-- Triple backticks
-- Explanations
-- Notes
-- Commentary
+- Markdown fences (e.g. ```json)
+- Markdown formatting symbols (like **, *, `) inside the code comments. Code is syntax-highlighted directly.
+- Explanations outside JSON
+- Notes or Commentary
 - Extra text
 
 Return ONLY the JSON object.
@@ -111,6 +110,14 @@ Lesson: {lesson_title}
 Language: {language}
 Concept to demonstrate: {concept}
 Complexity: {complexity}
+
+NARRATION SCRIPT:
+"{narration}"
+
+CRITICAL SYNCHRONIZATION REQUIREMENT:
+You MUST generate code that exactly matches the above narration script. If the script mentions specific variable names, function names, error messages, or logical flows, you MUST use those exact names and flows in your code. Do not invent contradictory variables.
+
+Generate a code example as JSON:
 
 Generate a code example as JSON:
 
@@ -142,25 +149,38 @@ class CodeAgent(BaseAgent):
         tags = state.get("topic_tags", [])
         language = self._detect_language(tags)
 
-        # find all code_demo segments
+        # Extract code requirements directly from the lesson plan
         code_refs = {}
-        for seg in segments:
-            if seg.get("type") == "code_demo" and seg.get("code_ref"):
-                code_refs[seg["code_ref"]] = seg.get("text", "")
+        lesson_plan = state.get("lesson_plan", {})
+        script = state.get("script", {})
+        segments = script.get("segments", [])
+        
+        for sec in lesson_plan.get("sections", []):
+            if sec.get("needs_code") and sec.get("id"):
+                code_id = f"code_{sec['id']}"
+                concept = sec.get("title", "") + ": " + " ".join(sec.get("key_points", []))
+                
+                narrations = [s.get("text", "") for s in segments if s.get("code_ref") == code_id]
+                narration = " ".join(narrations)
+                
+                code_refs[code_id] = {"concept": concept, "narration": narration}
 
         if not code_refs:
             # generate at least one example from lesson plan
-            code_refs["code_001"] = f"Basic example of {lesson_title}"
+            code_refs["code_001"] = {"concept": f"Basic example of {lesson_title}", "narration": ""}
 
         code_examples = []
 
-        for code_id, concept in code_refs.items():
+        for code_id, data in code_refs.items():
+            concept = data["concept"]
+            narration = data["narration"]
             print(f"  Generating {code_id}: {concept[:60]}")
             example = self._generate_and_validate(
                 code_id=code_id,
                 lesson_title=lesson_title,
                 language=language,
                 concept=concept,
+                narration=narration,
             )
             code_examples.append(example)
 
@@ -181,7 +201,7 @@ class CodeAgent(BaseAgent):
         return "python"
 
     def _generate_and_validate(
-        self, code_id: str, lesson_title: str, language: str, concept: str
+        self, code_id: str, lesson_title: str, language: str, concept: str, narration: str
     ) -> dict:
         complexity = "beginner"
 
@@ -190,6 +210,7 @@ class CodeAgent(BaseAgent):
                 lesson_title=lesson_title,
                 language=language,
                 concept=concept[:300],
+                narration=narration,
                 complexity=complexity,
                 code_id=code_id,
             )

@@ -1,7 +1,8 @@
-      <div class="exercise-card">
+<div style="display: flex; gap: 40px; height: 100%; align-items: stretch; width: 100%;">
+      <div class="exercise-card" style="flex: 1; display: flex; flex-direction: column;">
         <div class="exercise-tag">&#127919; Challenge</div>
         <h3 class="{% if headline|length > 45 %}long-title{% endif %}{% if headline|length > 65 %} very-long-title{% endif %}">{{ headline|md }}</h3>
-        <div class="exercise-items">
+        <div class="exercise-items" style="flex-grow: 1;">
           {% for b in bullets %}
           <div class="exercise-item">
             <div class="ex-num">{{ loop.index }}.</div>
@@ -11,5 +12,23 @@
         </div>
         {% if hint %}<div class="exercise-hint">Hint: {{ hint|md }}</div>{% endif %}
       </div>
+      
+      {% if code_content %}
+      <div class="code-panel" style="flex: 1; border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; background: var(--surface);">
+          {% if code_filename %}
+          <div class="code-header" style="padding: 12px 20px; background: rgba(0,0,0,0.2); font-family: monospace; font-size: 14px; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.1);">
+              {{ code_filename }}
+          </div>
+          {% endif %}
+          <div class="code-content" style="padding: 24px; overflow-y: auto; flex-grow: 1; font-family: monospace; font-size: 18px;">
+              {% if code_html and code_html.code_content %}
+                  {{ code_html.code_content.html|safe }}
+              {% else %}
+                  <pre><code class="language-{{ code_language }}">{{ code_content }}</code></pre>
+              {% endif %}
+          </div>
+      </div>
+      {% endif %}
+</div>
 
     {# ===== COMPARISON / ERROR_FIX ===== #}

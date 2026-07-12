@@ -43,8 +43,8 @@ def _wrap_srt_text(text: str) -> str:
     return "\n".join(lines[:3])
 
 
-def _generate_srt(aligned_pairs: list, text_by_audio: dict, segments_dir,
-                  intro_offset: float, lead_s: float, gap_s: float) -> str:
+def _generate_srt(aligned_pairs: list, pair_slide_ids: list, slide_contents: list, text_by_audio: dict, segments_dir,
+                  intro_offset: float, lead_s: float, gap_s: float) -> tuple[str, list]:
     """Build .srt timings that mirror the composed timeline exactly, so captions
     line up with the voice:
 
@@ -57,10 +57,25 @@ def _generate_srt(aligned_pairs: list, text_by_audio: dict, segments_dir,
 
     Walking `aligned_pairs` (the same structure the composer builds segments from)
     guarantees the caption order and grouping match what's on screen."""
+    
+    headline_by_slide = {
+        s.get("id", ""): (s.get("headline") or "").strip() for s in slide_contents
+    }
+    
     srt_lines = []
+    raw_chapters = []
+    last_slide = None
+    
     cursor = float(intro_offset)
     idx = 0
     for i, (_img, clips) in enumerate(aligned_pairs):
+        sid = pair_slide_ids[i] if i < len(pair_slide_ids) else ""
+        if sid and sid != last_slide:
+            title = headline_by_slide.get(sid, "")
+            if title:
+                raw_chapters.append((cursor, title))
+            last_slide = sid
+            
         seg_file = Path(segments_dir) / f"seg_{i:04d}.mp4"
         seg_dur = get_audio_duration(str(seg_file), default=0.0) if seg_file.exists() else 0.0
         seg_end = cursor + seg_dur if seg_dur > 0 else None
@@ -85,7 +100,23 @@ def _generate_srt(aligned_pairs: list, text_by_audio: dict, segments_dir,
         # timeline if the segment file couldn't be measured.
         cursor += seg_dur if seg_dur > 0 else (t - cursor)
 
-    return "\n".join(srt_lines)
+    # Force the first chapter to 0:00, then keep only chapters >= 10s apart.
+    if raw_chapters:
+        raw_chapters[0] = (0.0, raw_chapters[0][1])
+    chapters = []
+    last_t = -10.0
+    
+    def _fmt_ts(seconds: float) -> str:
+        h, rem = divmod(int(seconds), 3600)
+        m, s = divmod(rem, 60)
+        return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+        
+    for t, title in raw_chapters:
+        if t - last_t >= 10.0 or not chapters:
+            chapters.append({"timestamp": _fmt_ts(t), "title": title})
+            last_t = t
+
+    return "\n".join(srt_lines), chapters if len(chapters) >= 3 else []
 
 
 class VideoAgent(BaseAgent):
@@ -335,13 +366,15 @@ class VideoAgent(BaseAgent):
                 audio_paths[i]: narration_segs[i].get("text", "")
                 for i in range(min(len(audio_paths), len(narration_segs)))
             }
-            srt_content = _generate_srt(
-                aligned_pairs, text_by_audio,
+            srt_content, computed_chapters = _generate_srt(
+                aligned_pairs, pair_slide_ids, state.get("slide_contents", []),
+                text_by_audio,
                 Path(output_dir) / "segments",
                 intro_offset=_INTRO_SECONDS if intro_added else 0.0,
                 lead_s=_lead_in_ms() / 1000.0,
                 gap_s=_SILENCE_GAP_MS / 1000.0,
             )
+            state["computed_chapters"] = computed_chapters
             if srt_content:
                 srt_path = Path(output_dir) / "subtitles.srt"
                 srt_path.write_text(srt_content, encoding="utf-8")
