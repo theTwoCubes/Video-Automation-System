@@ -1,4 +1,4 @@
-﻿import subprocess
+import subprocess
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -92,7 +92,9 @@ def _concat_audio(audio_paths: List[str], output_path: Path, ffmpeg_exe: str) ->
     The lead-in and gap clips share the narration's 24 kHz mono format, so the
     stream-copy concat below stays clean."""
     lead_ms = _lead_in_ms()
+    tail_ms = 500  # Hold the slide visually for 500ms after audio finishes
     lead_in = _make_gap_silence(output_path.parent, ffmpeg_exe, lead_ms) if lead_ms > 0 else None
+    tail_gap = _make_gap_silence(output_path.parent, ffmpeg_exe, tail_ms) if tail_ms > 0 else None
     gap = _make_gap_silence(output_path.parent, ffmpeg_exe)
 
     concat_list = output_path.parent / f"audio_concat_{output_path.stem}.txt"
@@ -103,6 +105,8 @@ def _concat_audio(audio_paths: List[str], output_path: Path, ffmpeg_exe: str) ->
             if idx > 0 and gap.exists():
                 f.write(f"file '{_fwd(gap)}'\n")
             f.write(f"file '{_fwd(Path(ap))}'\n")
+        if tail_gap and tail_gap.exists():
+            f.write(f"file '{_fwd(tail_gap)}'\n")
 
     cmd = [
         ffmpeg_exe, "-y",

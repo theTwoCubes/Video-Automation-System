@@ -1,4 +1,4 @@
-﻿"""
+"""
 VideoAgent - composes the final lesson video from slides + audio.
 
 Features:
@@ -22,7 +22,7 @@ from services.media.ffmpeg import (
 # audio keeps playing over a frozen frame with nothing changing on screen. Slide
 # groups longer than this get split into multiple chunks of the same image, each
 # getting its own Ken Burns zoom / transition instead of one dead-static hold.
-MAX_SLIDE_SECONDS = 45.0
+MAX_SLIDE_SECONDS = 9999.0  # Increased to prevent repeated transitions on the same slide
 
 
 def _wrap_srt_text(text: str) -> str:
