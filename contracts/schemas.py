@@ -125,6 +125,8 @@ class PipelineState(TypedDict):
     seo_metadata: Optional[dict]
     quiz_questions: Optional[List[dict]]
     subtitle_srt: Optional[str]
+    computed_chapters: Optional[List[dict]]
+    video_quality: Optional[dict]
     output_dir: str
     error: Optional[str]
     retry_count: int

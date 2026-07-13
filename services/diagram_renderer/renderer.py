@@ -46,18 +46,18 @@ class DiagramRenderer:
         template = self.env.get_template(f"{diagram_type}.html")
 
         accent = self.brand.get("accent_color", "#00C896")
-        render_kwargs = dict(
-            width=settings.SLIDE_WIDTH,
-            height=settings.SLIDE_HEIGHT,
-            bg=self.brand.get("primary_color", "#0D0D0D"),
-            accent=accent,
-            accent_rgb=hex_to_rgb(accent),
-            secondary_accent=self.brand.get("secondary_accent", "#FF6B35"),
-            text_color=self.brand.get("text_color", "#FFFFFF"),
-            channel_name=self.brand.get("channel_name", "theTwoCubes"),
-            logo_b64=self.logo_b64,
-            **content,
-        )
+        render_kwargs = {
+            "width": settings.SLIDE_WIDTH,
+            "height": settings.SLIDE_HEIGHT,
+            "bg": self.brand.get("primary_color", "#0D0D0D"),
+            "accent": accent,
+            "accent_rgb": hex_to_rgb(accent),
+            "secondary_accent": self.brand.get("secondary_accent", "#FF6B35"),
+            "text_color": self.brand.get("text_color", "#FFFFFF"),
+            "channel_name": self.brand.get("channel_name", "theTwoCubes"),
+            "logo_b64": self.logo_b64,
+        }
+        render_kwargs.update(content)
 
         if diagram_type == "iteration":
             render_kwargs["items"] = self._compute_iteration_delays(

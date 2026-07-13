@@ -29,7 +29,7 @@ AGENT_FIELDS = {
     "generate_diagrams":["diagrams", "diagram_image_paths"],
     "generate_slides":  ["slide_contents", "slide_image_paths", "slide_id_to_path"],
     "synthesize_voice": ["audio_paths"],
-    "compose_video":    ["video_path"],
+    "compose_video":    ["video_path", "subtitle_srt", "computed_chapters", "video_quality"],
     "generate_thumbnail":["thumbnail_path"],
     "qa_check":         ["qa_report"],
     "generate_seo":     ["seo_metadata"],
