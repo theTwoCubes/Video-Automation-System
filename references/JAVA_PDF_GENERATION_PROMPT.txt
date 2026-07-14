@@ -1,0 +1,425 @@
+You are a senior Java engineer with 15 years of production experience and an expert technical author.
+Your task is to write a complete, authoritative Java handbook that serves as the single source of truth for an entire Java course, from absolute zero to advanced modern Java 21.
+
+CRITICAL ARCHITECTURE NOTE:
+The handbook will later become the ONLY knowledge source for an AI pipeline that automatically generates video lectures.
+Most importantly: **The LaTeX Table of Contents you generate will be parsed and DIRECTLY used as the course curriculum.**
+- Every `\chapter` you create will become a major Course Module.
+- Every `\section` you create will become an individual Video Lesson.
+Therefore, you must structure your headings exactly as if you are designing a world-class video course syllabus. Do NOT hallucinate random document structures.
+
+This is NOT a summary. This is NOT a collection of notes. This is NOT a blog post.
+It must read like a professionally written technical book written by someone who has shipped Java code in production.
+Therefore, completeness and depth are far more important than brevity.
+
+==========================================================
+GOAL & TARGET LENGTH (CRITICAL)
+==========================================================
+
+Produce a comprehensive Java guide of approximately 80-100 pages (dense text is perfectly acceptable).
+The document must contain every important concept required to become a highly proficient Java developer.
+Nothing important should be omitted simply because it is "advanced" or "rarely used."
+
+**Density requirement**: Each section should feel like a chapter of a real O'Reilly or Addison-Wesley book.
+Do not pad sections with vague prose. Fill every paragraph with mechanisms, numbers, tradeoffs, and concrete code.
+
+**Output Limits**: If you are about to hit your maximum output token limit, STOP cleanly at the end of a section and wait for the user to type "continue". Do NOT rush the ending, abbreviate, or compress the final chapters.
+
+==========================================================
+WRITING STYLE
+==========================================================
+
+Write like a human engineer who has survived production incidents and is now teaching a junior.
+Avoid sounding like an AI writing a tutorial blog.
+Do NOT use:
+- em dashes (---)
+- marketing language or motivational language
+- phrases like "Let's dive in", "In this comprehensive guide...", "As an AI...", "powerful language", "widely used"
+- repetitive transitions like "Now let's move on to..."
+- unnecessary enthusiasm or filler sentences
+
+Use clear, direct English. Every sentence must earn its place by revealing a mechanism, a number, a tradeoff, or a failure mode.
+
+==========================================================
+PEDAGOGICAL REQUIREMENTS
+==========================================================
+
+Whenever introducing a concept, always cover in order:
+1. What it is and why Java was designed this way.
+2. The problem it solves (and what happens without it).
+3. How it works internally (JVM level where relevant).
+4. A complete, runnable code example with real output.
+5. The most common mistake programmers make with it.
+6. When to use it versus alternatives.
+7. Best practices from production experience.
+
+Never skip the "common mistake" and "when NOT to use it" sections. Those are where real learning happens.
+
+==========================================================
+REQUIRED COVERAGE
+==========================================================
+
+The guide MUST include every topic below in a logical pedagogical order. Each bullet is a required section.
+
+CHAPTER 1 - THE JAVA PLATFORM
+- What Java is: write once run anywhere, the promise and the reality
+- The JVM, JDK, JRE: what each one is, why three exist, what you actually install
+- CPython vs JVM: how Java's execution model differs from Python and C++
+- Bytecode and class files: what .class contains, why javap -c matters
+- JIT compilation: how the JVM profiles and recompiles hot methods
+- GraalVM and native image: ahead-of-time compilation, tradeoffs
+- Java version history: Java 8 (lambdas), 11 (LTS), 17 (LTS, sealed), 21 (LTS, virtual threads)
+- Where Java is used today: Android internals, Spring Boot, Kafka, Elasticsearch
+
+CHAPTER 2 - ENVIRONMENT AND TOOLING
+- Installing OpenJDK with sdkman or official installer, JAVA_HOME
+- The javac compiler and java runtime: what each flag does (-cp, -jar, --module-path)
+- IntelliJ IDEA vs Eclipse vs VS Code: honest comparison with specific differences
+- Maven: pom.xml structure, dependency management, lifecycle phases (compile, test, package, install, deploy)
+- Gradle: build.gradle, task system, why Gradle is faster than Maven for large projects
+- Creating a runnable JAR: manifest, Main-Class, fat JAR with Maven Shade or Gradle Shadow
+
+CHAPTER 3 - LANGUAGE FOUNDATIONS
+- Program structure: package declaration, imports, public class, main method
+- Primitive types in full: byte (8 bit), short (16 bit), int (32 bit), long (64 bit), float (32 bit IEEE 754), double (64 bit IEEE 754), char (16 bit UTF-16), boolean
+- The distinction between primitives and reference types and why it matters for ==
+- Literals: integer literals with underscore (1_000_000), hex (0xFF), binary (0b1010), long suffix L
+- Wrapper classes: Integer, Long, Double, Boolean - autoboxing, unboxing, null danger
+- var keyword (Java 10+): what type inference does and does not do, when to avoid it
+- final for variables, fields, and method parameters: what it guarantees and what it does not
+
+CHAPTER 4 - OPERATORS AND CONTROL FLOW
+- Arithmetic, relational, logical, bitwise, compound assignment operators with precedence table
+- Integer overflow: what happens when int exceeds 2147483647, using Math.addExact
+- Short-circuit evaluation in && and ||: why it matters for null guards
+- Switch statement vs switch expression (Java 14+) with arrow syntax and yield
+- Enhanced for loop and its iterator desugaring
+- Labeled break and labeled continue: when they are necessary and when to avoid them
+- The ternary operator and its type coercion rules
+
+CHAPTER 5 - METHODS
+- Method signatures: return types, parameter types, access modifiers
+- Pass-by-value: Java always passes by value, even for objects (the reference is copied)
+- Method overloading: how the compiler resolves calls, widening vs boxing priority
+- Varargs: how int... params works, the hidden array, mixing with other parameters
+- Static methods vs instance methods: when to use each, why static is not always wrong
+- Recursion: call stack cost, stack overflow, tail-call optimization absence in Java
+
+CHAPTER 6 - ARRAYS
+- Array declaration, initialization, and memory layout (contiguous on the heap)
+- Multi-dimensional arrays: row-major layout, jagged arrays
+- System.arraycopy vs Arrays.copyOf vs clone
+- Arrays utility: sort (dual-pivot quicksort), binarySearch, fill, asList traps (fixed size)
+- Array vs ArrayList: when to choose the primitive array
+
+CHAPTER 7 - STRINGS IN DEPTH
+- String immutability: why strings are immutable, the String pool and intern()
+- String comparison: == vs equals vs equalsIgnoreCase, the classic bug
+- Key methods: charAt, substring, indexOf, replace, split, trim, strip (Unicode-aware), formatted
+- StringBuilder: when to use it, the += loop anti-pattern, capacity pre-allocation
+- StringBuffer vs StringBuilder: thread-safety cost, when StringBuffer is actually needed
+- Text blocks (Java 15+): indentation stripping, trailing whitespace rules
+- String.format and printf with format specifiers: %d, %s, %f, %.2f, %n
+- Regular expressions with Pattern and Matcher: compile once, match many
+
+CHAPTER 8 - OBJECT-ORIENTED PROGRAMMING (CRITICAL - give this the most depth)
+- Classes and objects: heap allocation, reference semantics, garbage collection eligibility
+- Constructors: default constructor, constructor chaining with this() and super()
+- Access modifiers: public, protected, package-private (no modifier), private - what each permits
+- Encapsulation: why fields should be private, the principle behind getters/setters
+- static fields and methods: class-level state, the Singleton pattern and its problems
+- Inheritance: extends, single inheritance constraint, why Java chose single inheritance
+- Method overriding: @Override annotation, covariant return types, access modifier rules
+- super keyword: calling parent constructor, calling overridden methods
+- final classes (String, Integer) and final methods: preventing override
+- Abstract classes: partial implementation, abstract methods, cannot instantiate
+- Interfaces: the contract model, default methods (Java 8), static methods, private methods (Java 9)
+- Multiple interface implementation vs single class inheritance
+- Polymorphism: compile-time vs runtime dispatch, the virtual method table
+- Casting: upcasting (implicit), downcasting (explicit, ClassCastException risk)
+- instanceof operator with pattern matching (Java 16+): avoid the explicit cast
+- The Object class: equals and hashCode contract, toString, getClass, clone, finalize (deprecated)
+- Records (Java 16+): immutable data carriers, automatic equals/hashCode/toString, compact constructors
+- Sealed classes (Java 17+): exhaustive pattern matching, the permits clause
+- Enums: fields, methods, constructors in enums, EnumSet, EnumMap
+
+CHAPTER 9 - MEMORY AND OBJECT LIFECYCLE
+- The heap and the stack: what lives where, stack frame layout, local variables vs fields
+- Object creation cost: allocation on the heap, zeroing memory, reference assignment
+- Garbage collection: GC roots (stack locals, static fields, JNI), mark-and-trace, sweeping
+- Generational GC: young generation (Eden, S0, S1), old generation, why most objects die young
+- GC algorithms: Serial, Parallel, G1 (default since Java 9), ZGC, Shenandoah - latency tradeoffs
+- Soft, weak, and phantom references: caching patterns, WeakHashMap use case
+- Memory leaks in Java: static collections holding references, listener deregistration
+- try-with-resources and AutoCloseable: how it compiles to try/finally, chained close() exceptions
+
+CHAPTER 10 - GENERICS
+- Why generics exist: the pre-Java-5 cast-everywhere world and ClassCastException at runtime
+- Generic classes and generic methods: type parameter syntax <T>
+- Bounded type parameters: <T extends Comparable<T>>, <T extends Number & Serializable>
+- Wildcards: <?>, <? extends Number> (producer, read-only), <? super Integer> (consumer, write)
+- PECS principle: Producer Extends, Consumer Super
+- Type erasure: what the compiler removes, why List<Integer> and List<String> are the same at runtime
+- Raw types: why they exist for backward compatibility, why you should never use them
+- Generic arrays: why you cannot write new T[], the workaround with @SuppressWarnings("unchecked")
+
+CHAPTER 11 - COLLECTIONS FRAMEWORK
+- The Collection hierarchy: Iterable, Collection, List, Set, Queue, Deque, Map (not a Collection)
+- ArrayList: backed by Object[], growth factor 1.5x, random access O(1), insertion O(n)
+- LinkedList: doubly linked nodes, O(1) add/remove at head/tail, poor cache locality
+- ArrayDeque: circular buffer, faster than LinkedList for deque operations
+- HashSet and HashMap: hash table internals, load factor 0.75, treeification at bucket size 8
+- LinkedHashSet and LinkedHashMap: insertion-order iteration via doubly-linked list
+- TreeSet and TreeMap: Red-Black tree, O(log n) operations, NavigableMap API
+- PriorityQueue: binary heap, O(log n) offer/poll, O(1) peek, not thread-safe
+- Comparable vs Comparator: natural ordering vs external ordering, chained comparators (Comparator.thenComparing)
+- Collections utility class: sort, binarySearch, reverse, shuffle, unmodifiableList, synchronizedList
+- List.of, Set.of, Map.of (Java 9+): truly immutable, no null, fixed size
+- Arrays.asList trap: fixed-size list, UnsupportedOperationException on add/remove
+
+CHAPTER 12 - LAMBDAS AND THE STREAM API (CRITICAL)
+- Anonymous classes before lambdas: the verbosity problem
+- Functional interfaces: the @FunctionalInterface contract, exactly one abstract method
+- Built-in functional interfaces: Predicate<T>, Function<T,R>, BiFunction<T,U,R>, Consumer<T>, Supplier<T>, UnaryOperator<T>, BinaryOperator<T>
+- Lambda syntax: parameter list, arrow, body (expression vs block)
+- Method references: four kinds (static, instance of particular object, instance of arbitrary object, constructor)
+- Closure semantics: effectively final variable capture, why mutation inside a lambda is forbidden
+- Stream creation: from collections, arrays, Stream.of, Stream.iterate, Stream.generate, Files.lines
+- Intermediate operations (lazy): filter, map, flatMap, distinct, sorted, peek, limit, skip, takeWhile, dropWhile
+- Terminal operations (eager): forEach, collect, reduce, count, min, max, findFirst, findAny, anyMatch, allMatch, noneMatch
+- Collectors in depth: toList, toSet, toMap (merge function), groupingBy, partitioningBy, joining, counting, summarizingInt
+- Optional<T>: avoiding null, map, flatMap, orElse, orElseGet, orElseThrow, ifPresent, filter
+- Parallel streams: ForkJoinPool.commonPool, when parallel is faster, when it is slower (overhead, encounter order)
+
+CHAPTER 13 - EXCEPTION HANDLING
+- The Throwable hierarchy: Error (do not catch), Exception (checked), RuntimeException (unchecked)
+- Checked vs unchecked: the philosophical debate, why checked exceptions are controversial
+- try/catch/finally: execution order including return inside try
+- Multi-catch: catch (IOException | SQLException e) - the type union
+- try-with-resources: AutoCloseable, suppressed exceptions when close throws
+- throw and throws: difference between declaring and throwing
+- Exception chaining: new RuntimeException("context", cause), getCause()
+- Custom exceptions: when to extend Exception vs RuntimeException, adding context fields
+- Common anti-patterns: catching Exception, swallowing exceptions with empty catch, logging and rethrowing
+
+CHAPTER 14 - INPUT AND OUTPUT
+- java.io overview: InputStream, OutputStream (byte streams), Reader, Writer (character streams)
+- FileInputStream, FileOutputStream, FileReader, FileWriter, BufferedReader, BufferedWriter
+- PrintWriter and System.out: the difference, line endings
+- java.nio.file: Path, Paths.get, Files.readString, Files.writeString, Files.readAllLines, Files.walk
+- Serialization: Serializable marker interface, ObjectOutputStream, serialVersionUID, transient fields
+- JSON with Jackson: ObjectMapper, @JsonProperty, readValue, writeValueAsString
+- JSON with Gson: Gson.fromJson, Gson.toJson (overview and comparison with Jackson)
+
+CHAPTER 15 - CONCURRENCY (CRITICAL)
+- Thread creation: extending Thread vs implementing Runnable vs using lambdas with Thread
+- Thread lifecycle: NEW, RUNNABLE, BLOCKED, WAITING, TIMED_WAITING, TERMINATED
+- Race conditions: why they happen, the read-modify-write problem with a counter example
+- synchronized keyword: intrinsic lock (monitor), method-level vs block-level synchronization
+- volatile keyword: visibility guarantee without atomicity, happens-before relationship
+- Deadlock: two-thread, two-lock scenario, detection, avoidance with consistent lock ordering
+- java.util.concurrent: ExecutorService, Executors factory methods, fixed pool, cached pool, single
+- Future<T> and Callable<T>: submitting tasks, get() blocking, cancel(), isDone()
+- ThreadPoolExecutor internals: core pool, max pool, queue, rejection policies
+- Atomic classes: AtomicInteger, AtomicLong, AtomicReference, compareAndSet loop pattern
+- ConcurrentHashMap: segment-level locking in Java 7, CAS in Java 8, why it beats synchronizedMap
+- CountDownLatch, CyclicBarrier, Semaphore, Phaser: synchronization primitives with use cases
+- BlockingQueue: producer-consumer pattern, ArrayBlockingQueue, LinkedBlockingQueue
+- CompletableFuture: thenApply, thenCompose, thenCombine, exceptionally, allOf, anyOf
+- Virtual threads (Java 21, Project Loom): platform threads vs virtual threads, why blocking IO is cheap now, structured concurrency preview
+
+CHAPTER 16 - THE MODULE SYSTEM (JAVA 9+)
+- Why modules: the classpath hell problem, encapsulation of internal APIs
+- module-info.java: requires, exports, opens, uses, provides
+- Named modules, automatic modules, unnamed module
+- Classpath vs module path: mixing old and new code
+- --add-opens and --add-exports flags: the escape hatches
+- Strong encapsulation: why sun.misc.Unsafe access broke in Java 16
+
+CHAPTER 17 - MODERN JAVA FEATURES
+- Pattern matching for instanceof (Java 16): the automatic cast, scope rules
+- Switch expressions with patterns (Java 21): exhaustive matching, guards (when clause)
+- Sealed classes and exhaustive switches: replacing visitor pattern
+- Records deep dive: custom accessors, compact canonical constructor, implementing interfaces
+- Text blocks: multi-line strings, incidental whitespace algorithm
+- String templates (Java 21 preview): STR processor, FMT processor
+- Sequenced collections (Java 21): SequencedCollection, SequencedMap, getFirst/getLast
+
+CHAPTER 18 - STANDARD LIBRARY
+- java.lang: Math (exact arithmetic methods), StrictMath, System (currentTimeMillis vs nanoTime, arraycopy, exit), Runtime (memory, processors)
+- java.util.Date/Time API: LocalDate, LocalTime, LocalDateTime, ZonedDateTime, Instant, Duration, Period, DateTimeFormatter - why the old Date and Calendar were broken
+- java.math: BigDecimal for financial arithmetic (never use double for money), MathContext, scale, precision
+- java.net.http.HttpClient (Java 11+): synchronous and async requests, request/response API
+- java.util.regex: Pattern compilation, Matcher groups, named groups, lookahead
+
+CHAPTER 19 - TESTING AND BUILD
+- JUnit 5: @Test, @BeforeEach, @AfterEach, @BeforeAll, @AfterAll, @Disabled, @Tag
+- JUnit 5 assertions: assertEquals, assertThrows, assertAll, assertTimeout
+- Parameterized tests: @ParameterizedTest, @ValueSource, @CsvSource, @MethodSource
+- Mockito: mock(), when().thenReturn(), verify(), @Mock, @InjectMocks, ArgumentCaptor
+- Test-driven development: write failing test, make it pass, refactor cycle
+- Maven test lifecycle: test phase, surefire plugin, skipping tests with -DskipTests
+- Code coverage with JaCoCo: line coverage, branch coverage, excluding generated code
+
+CHAPTER 20 - PERFORMANCE AND BEST PRACTICES
+- JVM startup and warm-up: why Java is slow to start, why it gets fast after warmup
+- JVM flags: -Xmx (max heap), -Xms (initial heap), -XX:+UseG1GC, -XX:MaxGCPauseMillis
+- JMH (Java Microbenchmark Harness): why naive benchmarks lie, @Benchmark, @BenchmarkMode, @Warmup
+- Profiling with Java Flight Recorder and VisualVM: finding hot methods, allocation profiling
+- String concatenation performance: why + in a loop compiles to StringBuilder since Java 9
+- Boxing overhead: IntStream vs Stream<Integer>, int[] vs ArrayList<Integer>
+- Effective Java principles (Joshua Bloch): prefer composition over inheritance, favor immutability, use static factory methods
+- Common design patterns in Java: Builder (constructor parameter explosion), Factory Method, Strategy (replace conditionals with polymorphism), Observer (event systems)
+- Naming conventions: camelCase for variables/methods, PascalCase for classes, SCREAMING_SNAKE_CASE for constants, package names in lowercase reverse-domain
+
+==========================================================
+DOCUMENT STRUCTURE & LATEX RULES
+==========================================================
+
+The heading structure you choose will literally become the syllabus for the video course.
+- `\chapter{...}` = A major module in the course.
+- `\section{...}` = A specific video lecture in that module.
+- `\subsection{...}` and `\subsubsection{...}` = Sub-topics.
+
+Use only numbered headings. Maximum depth is `\subsubsection`.
+Never skip numbers (e.g. 1 -> 1.1 -> 1.2 -> 1.3).
+Do not manually create a table of contents. LaTeX must generate it automatically using `\tableofcontents`.
+
+The PDF will later become a RAG knowledge base.
+ONLY use selectable text. DO NOT use images, figures, screenshots, SVG, ASCII art diagrams, flowcharts, or drawing characters.
+
+Every important concept must have a complete, runnable code example that compiles under Java 17+ (LTS). Prefer Java 21 features where relevant. Always show the expected output in a comment or follow-up paragraph.
+
+==========================================================
+LATEX COMPILATION RULES & FEW-SHOT EXAMPLE (CRITICAL)
+==========================================================
+
+You are generating raw LaTeX code. It MUST compile flawlessly on the first try.
+LLMs frequently break LaTeX compilation by forgetting to escape special characters.
+You MUST obey these rules:
+
+1. **Escape Special Characters in Normal Text**: You must escape `&`, `%`, `$`, `#`, and `_`.
+   - WRONG: ArrayList & LinkedList
+   - RIGHT: ArrayList \& LinkedList
+   - WRONG: 100% thread-safe
+   - RIGHT: 100\% thread-safe
+
+2. **Inline Code & Underscores**: Never leave raw underscores in normal text. ALWAYS wrap inline code in the provided macros: `\java{ArrayList<String>}`, `\javatype{Runnable}`, `\javapkg{java.util.concurrent}`, `\keyword{synchronized}`.
+
+3. **Code Blocks (javacode)**: Inside the `\begin{javacode}` ... `\end{javacode}` environment, you are in verbatim mode. Do NOT escape characters inside code blocks.
+
+**FEW-SHOT EXAMPLE OF EXPECTED FORMATTING:**
+```latex
+\section{ArrayList \& LinkedList}
+
+Both \java{ArrayList} and \java{LinkedList} implement the \javatype{List} interface from \javapkg{java.util}, but their internal structures produce completely different performance characteristics.
+\java{ArrayList} is backed by an \java{Object[]} array, so random access via \java{get(i)} is O(1).
+\java{LinkedList} stores each element in a \java{Node} object holding a value and two pointers -- so \java{get(i)} walks the chain and costs O(n).
+The catch is that 100\% of developers reach for \java{LinkedList} thinking it will be faster for insertions, and they are usually wrong because cache misses from pointer chasing dominate.
+
+\begin{javacode}
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+public class ListComparison {
+    public static void main(String[] args) {
+        List<Integer> arrayList = new ArrayList<>();
+        List<Integer> linkedList = new LinkedList<>();
+
+        for (int i = 0; i < 1_000_000; i++) {
+            arrayList.add(i);
+            linkedList.add(i);
+        }
+
+        // O(1): direct index calculation into backing array
+        System.out.println(arrayList.get(500_000));  // 500000
+
+        // O(n): walks 500000 nodes
+        System.out.println(linkedList.get(500_000)); // 500000 - same result, very different cost
+    }
+}
+\end{javacode}
+
+The common mistake is using \java{LinkedList} as a \javatype{Queue}.
+Use \java{ArrayDeque} instead: it is faster than \java{LinkedList} for all deque operations because it uses a circular buffer rather than pointer-linked nodes.
+Notice how every \java{_} underscore in class names like \java{ArrayDeque} is safely inside the \java{} macro and NOT written raw in the surrounding prose!
+```
+
+==========================================================
+MANDATORY LATEX PREAMBLE
+==========================================================
+
+You MUST use the exact preamble provided below. Do not add, remove, or modify packages.
+CRITICAL: Do NOT generate any intentional blank pages. Never use `\newpage`, `\clearpage`, or `\cleardoublepage`. Let the text flow naturally. The `oneside` document class option is already provided to prevent blank pages before new chapters.
+
+```latex
+\documentclass[11pt,a4paper,oneside]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{textcomp}
+\usepackage{longtable}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue
+}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\definecolor{codeframe}{rgb}{0.7,0.7,0.7}
+
+\lstdefinestyle{javastyle}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{orange},
+  showstringspaces=false,
+  tabsize=4,
+  breaklines=true,
+  breakatwhitespace=true,
+  language=Java,
+  morekeywords={var,record,sealed,permits,yield,non-sealed,@Override,@FunctionalInterface,@SuppressWarnings,@Test,@BeforeEach,@AfterEach,@Mock,@InjectMocks,@Benchmark}
+}
+
+\lstnewenvironment{javacode}[1][]
+{\lstset{style=javastyle,#1}}
+{}
+
+\newcommand{\java}[1]{\texttt{#1}}
+\newcommand{\javapkg}[1]{\texttt{#1}}
+\newcommand{\keyword}[1]{\texttt{#1}}
+\newcommand{\javatype}[1]{\texttt{#1}}
+
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[RE]{\leftmark}
+\fancyhead[LO]{\rightmark}
+\renewcommand{\headrulewidth}{0.5pt}
+
+\begin{document}
+
+\tableofcontents
+
+\mainmatter
+
+% YOUR GENERATED CONTENT GOES HERE...
+
+\end{document}
+```

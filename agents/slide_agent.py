@@ -59,6 +59,10 @@ If a concept needs something novel, invent it by combining or adapting the provi
 - Every bullet must teach something SPECIFIC: a real value, real syntax, a runtime behavior, a tradeoff, or a failure mode.
   BAD:  "C++ is a powerful language"
   GOOD: "C++ compiles to native machine code - runs 10-100x faster than Python/JS in compute-bound work"
+  BAD:  "Python lists are useful"
+  GOOD: "`list.append()` is O(1) amortised - but `list.insert(0, x)` is O(n) because every element shifts right"
+  BAD:  "Java handles memory automatically"
+  GOOD: "The JVM's Garbage Collector traces live references from GC roots; objects with no reachable path are freed in the next collection cycle"
   BAD:  "Variables store data"
   GOOD: "`int x = 42;` occupies exactly 4 bytes on the stack at address ~0x7ffe12345678"
 - Headlines: specific, max 8 words, no filler words ("Introduction to...", "Overview of...").

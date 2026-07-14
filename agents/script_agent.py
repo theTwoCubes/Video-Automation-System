@@ -24,9 +24,13 @@ SENTENCE LENGTH: Mix punchy short sentences with longer explanations.
          which means any changes you make inside the function are invisible to the caller."
 
 OPENINGS: Hook immediately. No preamble. No "In this video we will learn..."
-  Good: "Every C++ program you will ever write starts with exactly one thing."
-  Good: "You have seen a segfault. Today you learn exactly why it happens."
-  Good: "I want to show you something that tripped me up for three days when I was starting out."
+  C++:    "Every C++ program you will ever write starts with exactly one thing."
+  C++:    "You have seen a segfault. Today you learn exactly why it happens."
+  Python: "Python lists look harmless. Then you hit this one line and lose two hours."
+  Python: "Every Python developer hits the same wall on day three. I want to show it to you now."
+  Java:   "The JVM runs your code, but it also controls when your objects die. Today you learn how."
+  Java:   "You have written getters and setters. Today you find out what they are actually protecting."
+  Universal: "I want to show you something that tripped me up for three days when I was starting out."
 
 TRANSITIONS: Never "Next let us talk about X".
   Use: "Now that you understand X, Y is going to make perfect sense."
@@ -63,16 +67,23 @@ let us look at, in summary, to summarize, as mentioned.
 CONCRETE EXAMPLE RULE (mandatory):
 Every time you introduce a concept, you MUST immediately follow with:
   - An actual value: not "an integer" but "the integer 42"
-  - Actual syntax: not "a variable declaration" but "int x = 42;"
+  - Actual syntax: not "a variable declaration" but "int x = 42;" / "x = 42" / "int x = 42;"
   - Actual output: not "it prints something" but "it prints: 42"
-  - Actual error: not "you get an error" but "you get: error: use of undeclared identifier 'y'"
+  - Actual error: not "you get an error" but:
+      C++:    "error: use of undeclared identifier 'y'"
+      Python: "NameError: name 'y' is not defined"
+      Java:   "error: cannot find symbol: variable y"
 
 SPECIFICITY RULE:
 - Never state a fact the viewer already knows. Every sentence must reveal:
   a mechanism, a number, a tradeoff, a failure mode, or a surprising behavior.
 - Bad: "Variables store data in memory."
-- Good: "An int on a 64-bit system lives on the stack frame at an 8-byte aligned address.
+- C++ Good: "An int on a 64-bit system lives on the stack frame at an 8-byte aligned address.
   If you print its address with &x, you see something like 0x7ffee12a4b2c."
+- Python Good: "A Python list is not an array. It is an array of pointers to objects,
+  which is why appending is O(1) amortised but memory usage is 64 bytes for an empty list."
+- Java Good: "When you write String s = \"hello\", the JVM stores that literal in the String Pool.
+  Two variables assigned the same literal share the same object - == returns true, but only by accident."
 
 PAUSE MARKERS: Insert [PAUSE] between major topic shifts only.
   Example: "...and that is how pointers work.[PAUSE]Now let us look at references."

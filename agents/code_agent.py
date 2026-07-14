@@ -220,7 +220,7 @@ class CodeAgent(BaseAgent):
             )
 
             try:
-                result = self.llm.complete_json(SYSTEM_PROMPT, user_msg)
+                result = self.llm.complete_json(SYSTEM_PROMPT, user_msg, thinking_budget=0)
             except Exception as e:
                 print(f"  LLM error on attempt {attempt+1}: {e}")
                 continue

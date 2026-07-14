@@ -1,4 +1,4 @@
-﻿"""
+"""
 QuizAgent
 
 Generates 3-5 multiple-choice quiz questions per lesson from the script content.
@@ -45,6 +45,30 @@ Generate {n_questions} quiz questions as JSON:
       }},
       "correct": "B",
       "explanation": "int is always 4 bytes on both 32-bit and 64-bit systems per the C++ standard."
+    }},
+    {{
+      "id": "q002",
+      "question": "What is the time complexity of list.insert(0, x) in Python?",
+      "options": {{
+        "A": "O(1)",
+        "B": "O(log n)",
+        "C": "O(n)",
+        "D": "O(n log n)"
+      }},
+      "correct": "C",
+      "explanation": "Inserting at index 0 requires shifting all existing elements one position to the right, making it O(n)."
+    }},
+    {{
+      "id": "q003",
+      "question": "In Java, what does the == operator compare when used with two String variables?",
+      "options": {{
+        "A": "The content of the strings character by character",
+        "B": "The length of both strings",
+        "C": "The memory address (reference) of the objects",
+        "D": "The hash code of the strings"
+      }},
+      "correct": "C",
+      "explanation": "== compares object references in Java, not content. Use .equals() to compare string content."
     }}
   ]
 }}
