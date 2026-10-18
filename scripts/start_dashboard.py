@@ -4,7 +4,6 @@ Start the theTwoCubes dashboard.
 Runs FastAPI backend (port 8000) + Vite frontend (port 5173) simultaneously.
 
 Usage: python scripts/start_dashboard.py
-Then open: http://localhost:5173
 """
 import subprocess
 import sys
@@ -16,8 +15,6 @@ ROOT = Path(__file__).parent.parent
 
 def main():
     print("\ntheTwoCubes Learning Dashboard\n")
-    print("  Starting API server on http://localhost:8000 ...")
-    print("  Starting GUI on     http://localhost:5173 ...\n")
 
     api_proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "api.server:app", "--reload", "--port", "8000"],
@@ -29,11 +26,7 @@ def main():
     gui_proc = subprocess.Popen(
         ["npm", "run", "dev"],
         cwd=str(ROOT / "gui"),
-        shell=True,
     )
-
-    print("\n  Dashboard ready. Open http://localhost:5173 in your browser.")
-    print("  Press Ctrl+C to stop.\n")
 
     try:
         api_proc.wait()

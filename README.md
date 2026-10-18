@@ -1,6 +1,6 @@
 # theTwoCubes Video Automation System
 
-An agentic pipeline that autonomously generates professional programming tutorial videos from source material (PDFs, web pages, Markdown). The system ingests knowledge, plans a curriculum, writes narration scripts, renders slides, synthesizes voice, and composites finished MP4 videos — all without manual intervention.
+An agentic pipeline that autonomously generates professional programming tutorial videos from source material (PDFs, web pages, Markdown). The system ingests knowledge, plans a curriculum, writes narration scripts, renders slides, synthesizes voice, and composites finished MP4 videos, all without manual intervention.
 
 ---
 
@@ -29,7 +29,7 @@ PDF / URL ──► Knowledge Ingestion ──► ChromaDB Vector Store
                               └───────────────────────────┘
 ```
 
-Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the checkpoint is loaded instantly and the step is skipped — no LLM call is repeated.
+Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the checkpoint is loaded instantly and the step is skipped, no LLM call is repeated.
 
 ---
 
@@ -37,13 +37,13 @@ Each pipeline step saves a **checkpoint** to disk. If a step is re-run, the chec
 
 - **Knowledge Ingestion**: Ingest PDFs, Markdown directories, or web pages into a ChromaDB vector store and SQLite-backed catalog.
 - **Agentic Curriculum Planning**: Gemini 2.5 Flash generates a structured, prerequisite-aware multi-lesson curriculum from the ingested material.
-- **Presentation Engine**: A machine-readable design system (`services/slide_renderer/layout_catalog.py`) drives layout choice. The slide LLM is handed the catalog — per-layout caps, families, density budgets, and hard rules — as data (not prose), a selection engine audits the deck for diversity/rhythm/density, and a render linter enforces the density budget before rendering. Design tokens live in one place (`templates/_tokens.html`). See `CHANGES.md` and the design blueprint.
-- **Slide Diversity**: 35 distinct slide layouts spanning opening/structural, concept, code, comparison, process, data, engagement, warning, and summary categories (title, content, prose, split_code, quiz, warning, tip, big_number, timeline, and more) — with enforced variety rules and per-section layout recommendations from the LessonPlannerAgent.
+- **Presentation Engine**: A machine-readable design system (`services/slide_renderer/layout_catalog.py`) drives layout choice. The slide LLM is handed the catalog, per-layout caps, families, density budgets, and hard rules, as data (not prose), a selection engine audits the deck for diversity/rhythm/density, and a render linter enforces the density budget before rendering. Design tokens live in one place (`templates/_tokens.html`). See `CHANGES.md` and the design blueprint.
+- **Slide Diversity**: 35 distinct slide layouts spanning opening/structural, concept, code, comparison, process, data, engagement, warning, and summary categories (title, content, prose, split_code, quiz, warning, tip, big_number, timeline, and more), with enforced variety rules and per-section layout recommendations from the LessonPlannerAgent.
 - **Animated Diagrams**: 8 diagram types (pipeline, memory layout, call stack, iteration, flow, tree, state machine, layered architecture) rendered as animated MP4s from structured LLM content, not freehand HTML.
-- **Professional Slide Rendering**: Dark-themed, brand-token-driven (no hardcoded colors), 1920×1080 slides rendered via Playwright with embedded fonts — no CDN dependency.
+- **Professional Slide Rendering**: Dark-themed, brand-token-driven (no hardcoded colors), 1920×1080 slides rendered via Playwright with embedded fonts, no CDN dependency.
 - **Voice Synthesis**: 6 curated Edge TTS voices (free, no API key). Sidechain audio ducking automatically lowers background music when narration plays.
 - **Video Composition**: FFmpeg composites slides + audio into MP4 on a single shared timeline (per-segment baked fades keep audio/video in lockstep), with Ken Burns slow-zoom and branded thumbnail-style intro/outro cards.
-- **Testing Studio GUI**: Iterate on visuals and audio for free by re-rendering from checkpoints — no LLM calls. Live log streaming, slide gallery, and voice preview included.
+- **Testing Studio GUI**: Iterate on visuals and audio for free by re-rendering from checkpoints, no LLM calls. Live log streaming, slide gallery, and voice preview included.
 - **Configuration Profiles**: All rendering parameters (voice, music, animation, FPS) live in shareable YAML files.
 - **React Dashboard**: Unified frontend to manage courses, curricula, monitor pipelines, and access the Testing Studio.
 - **Usage Tracking**: Per-run LLM cost tracking with configurable spend limits.
@@ -169,8 +169,8 @@ videoAutomation/
 
 - **Python 3.12+**
 - **Node.js 18+** (for the React GUI)
-- **FFmpeg** — install via `winget install ffmpeg` or `brew install ffmpeg`, must be in PATH
-- **Gemini API Key** — get one free at [aistudio.google.com](https://aistudio.google.com)
+- **FFmpeg**, install via `winget install ffmpeg` or `brew install ffmpeg`, must be in PATH
+- **Gemini API Key**, get one free at [aistudio.google.com](https://aistudio.google.com)
 
 ### 2. Install
 
